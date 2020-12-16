@@ -1,3 +1,7 @@
+#![allow(dead_code)]
+
+mod base;
+
 #[cfg(test)]
 mod tests {
     #[test]
