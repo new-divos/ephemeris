@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-mod base;
+pub mod base;
 
 #[cfg(test)]
 mod tests {
