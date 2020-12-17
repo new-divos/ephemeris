@@ -2,6 +2,7 @@ use std::f64::consts::FRAC_PI_2;
 use std::ops;
 use std::ops::{Add, Mul, Sub};
 
+use crate::base::FMod;
 use crate::base::consts::MULT_2_PI;
 
 pub trait Norm {
@@ -109,18 +110,15 @@ impl Convert<CylindricalVec3D> for Vec3D {
     fn convert(&self) -> CylindricalVec3D {
         match *self {
             Vec3D::Cartesian(ref c) => {
-                let mut phi = if c.x == 0.0 && c.y == 0.0 {
+                let phi = if c.x == 0.0 && c.y == 0.0 {
                     0.0
                 } else {
                     c.y.atan2(c.x)
                 };
-                if phi < 0.0 {
-                    phi += MULT_2_PI;
-                }
 
                 CylindricalVec3D {
                     rho: c.x.hypot(c.y),
-                    phi,
+                    phi: phi.fmod(MULT_2_PI),
                     z: c.z
                 }
             },
@@ -152,14 +150,11 @@ impl Convert<SphericalVec3D> for Vec3D {
                 let rho_sq = c.x.powi(2) + c.y.powi(2);
                 let r = (rho_sq + c.z.powi(2)).sqrt();
 
-                let mut phi = if c.x == 0.0 && c.y == 0.0 {
+                let phi = if c.x == 0.0 && c.y == 0.0 {
                     0.0
                 } else {
                     c.y.atan2(c.x)
                 };
-                if phi < 0.0 {
-                    phi += MULT_2_PI;
-                }
 
                 let rho = rho_sq.sqrt();
                 let theta = if rho == 0.0 && c.z == 0.0 {
@@ -168,7 +163,7 @@ impl Convert<SphericalVec3D> for Vec3D {
                     c.z.atan2(rho)
                 };
 
-                SphericalVec3D { r, phi, theta }
+                SphericalVec3D { r, phi: phi.fmod(MULT_2_PI), theta }
             },
             Vec3D::Cylindrical(ref c) => {
                 let theta = if c.rho == 0.0 && c.z == 0.0 {
@@ -356,7 +351,7 @@ impl Vec3D {
             Vec3D::Cylindrical(
                 CylindricalVec3D {
                     rho,
-                    phi: MULT_2_PI * (phi / MULT_2_PI).fract(),
+                    phi: phi.fmod(MULT_2_PI),
                     z
                 }
             )
@@ -372,7 +367,7 @@ impl Vec3D {
             Vec3D::Spherical(
                 SphericalVec3D {
                     r,
-                    phi: MULT_2_PI * (phi / MULT_2_PI).fract(),
+                    phi: phi.fmod(MULT_2_PI),
                     theta
                 }
             )
