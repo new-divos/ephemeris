@@ -1,6 +1,7 @@
 use std::f64::consts::FRAC_PI_2;
 use std::convert;
 use std::default;
+use std::iter;
 use std::ops;
 use std::ops::{Add, Mul, Sub};
 
@@ -493,6 +494,12 @@ impl Vec3D {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Mat3D([[f64; 3]; 3]);
 
+impl default::Default for Mat3D {
+    fn default() -> Self {
+        Mat3D::zeros()
+    }
+}
+
 impl Norm for Mat3D {
     fn norm(&self) -> f64 {
         let mut s = 0.0;
@@ -738,6 +745,44 @@ impl Mat3D {
             self.0[0][2] * (self.0[1][0] * self.0[2][1] -
                 self.0[1][1] * self.0[2][0])
     }
+
+    pub fn inv(&self) -> Result<Mat3D> {
+        let det = self.det();
+        if det == 0.0 {
+            return Err(Error::SingularMatrixError);
+        }
+
+        Ok(Mat3D::zeros())
+    }
+
+    pub fn iter(&self) -> Mat3DIterator {
+        Mat3DIterator {
+            matrix: self,
+            count: 0
+        }
+    }
+}
+
+pub struct Mat3DIterator<'a> {
+    matrix: &'a Mat3D,
+    count: usize
+}
+
+impl<'a> iter::Iterator for Mat3DIterator<'a> {
+    type Item = f64;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.count < 9 {
+            let row = self.count / 3;
+            let col = self.count % 3;
+
+            self.count += 1;
+
+            Some(self.matrix.0[row][col])
+        } else {
+            None
+        }
+    }
 }
 
 #[cfg(test)]
@@ -833,5 +878,20 @@ mod tests {
             ]
         );
         assert_eq!(c.det(), 54.0);
+    }
+
+    #[test]
+    fn mat3d_iter_test() {
+        let a = Mat3D(
+            [
+                [1.0, 2.0, 3.0],
+                [4.0, 5.0, 6.0],
+                [7.0, 8.0, 9.0]
+            ]
+        );
+
+        for (i, m) in a.iter().enumerate() {
+            assert_eq!((i + 1) as f64, m);
+        }
     }
 }
