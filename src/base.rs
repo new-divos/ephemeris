@@ -1,9 +1,15 @@
 pub mod consts;
 pub mod linalg;
+pub mod error;
 
 use std::convert::From;
 use std::default::Default;
 use std::ops::{Add, AddAssign, Neg};
+use std::result;
+
+use crate::base::error::Error;
+
+type Result<T> = result::Result<T, Error>;
 
 ///
 /// Frac: Gives the fractional part of a number

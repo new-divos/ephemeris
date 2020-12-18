@@ -1,9 +1,12 @@
 use std::f64::consts::FRAC_PI_2;
+use std::convert;
+use std::default;
 use std::ops;
 use std::ops::{Add, Mul, Sub};
 
-use crate::base::Modulo;
+use crate::base::{Modulo, Result};
 use crate::base::consts::MULT_2_PI;
+use crate::base::error::Error;
 
 pub trait Norm {
     fn norm(&self) -> f64;
@@ -11,9 +14,9 @@ pub trait Norm {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct CartesianVec3D {
-    pub x: f64,
-    pub y: f64,
-    pub z: f64
+    x: f64,
+    y: f64,
+    z: f64
 }
 
 impl Norm for CartesianVec3D {
@@ -22,11 +25,25 @@ impl Norm for CartesianVec3D {
     }
 }
 
+impl CartesianVec3D {
+    pub fn x(&self) -> f64 {
+        self.x
+    }
+
+    pub fn y(&self) -> f64 {
+        self.y
+    }
+
+    pub fn z(&self) -> f64 {
+        self.z
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct CylindricalVec3D {
-    pub rho: f64,
-    pub phi: f64,
-    pub z: f64
+    rho: f64,
+    phi: f64,
+    z: f64
 }
 
 impl Norm for CylindricalVec3D {
@@ -35,11 +52,25 @@ impl Norm for CylindricalVec3D {
     }
 }
 
+impl CylindricalVec3D {
+    pub fn rho(&self) -> f64 {
+        self.rho
+    }
+
+    pub fn phi(&self) -> f64 {
+        self.phi
+    }
+
+    pub fn z(&self) -> f64 {
+        self.z
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct SphericalVec3D {
-    pub r: f64,
-    pub phi: f64,
-    pub theta: f64
+    r: f64,
+    phi: f64,
+    theta: f64
 }
 
 impl Norm for SphericalVec3D {
@@ -48,12 +79,18 @@ impl Norm for SphericalVec3D {
     }
 }
 
-pub trait Convert<T> {
-    #[must_use]
-    fn convert(&self) -> T;
+impl SphericalVec3D {
+    pub fn r(&self) -> f64 {
+        self.r
+    }
 
-    #[must_use]
-    fn unwrap(&mut self) -> Option<&mut T>;
+    pub fn phi(&self) -> f64 {
+        self.phi
+    }
+
+    pub fn theta(&self) -> f64 {
+        self.theta
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -73,42 +110,43 @@ impl Norm for Vec3D {
     }
 }
 
-impl Convert<CartesianVec3D> for Vec3D {
-    fn convert(&self) -> CartesianVec3D {
-        match *self {
-            Vec3D::Cartesian(ref c) => {
-                c.clone()
-            },
+impl default::Default for Vec3D {
+    fn default() -> Self {
+        Vec3D::zero()
+    }
+}
+
+impl convert::Into<CartesianVec3D> for Vec3D {
+    fn into(self) -> CartesianVec3D {
+        match self {
+            Vec3D::Cartesian(c) => c,
             Vec3D::Cylindrical(ref c) => {
+                let p = c.phi.sin_cos();
+
                 CartesianVec3D {
-                    x: c.rho * c.phi.cos(),
-                    y: c.rho * c.phi.sin(),
+                    x: c.rho * p.1,
+                    y: c.rho * p.0,
                     z: c.z
                 }
             },
             Vec3D::Spherical(ref s) => {
-                let rho = s.r * s.theta.cos();
+                let p = s.phi.sin_cos();
+                let t = s.theta.sin_cos();
+                let rho = s.r * t.1;
 
                 CartesianVec3D {
-                    x: rho * s.phi.cos(),
-                    y: rho * s.phi.sin(),
-                    z: s.r * s.theta.sin()
+                    x: rho * p.1,
+                    y: rho * p.0,
+                    z: s.r * t.0
                 }
             }
         }
     }
-
-    fn unwrap(&mut self) -> Option<&mut CartesianVec3D> {
-        match *self {
-            Vec3D::Cartesian(ref mut c) => Some(c),
-            _ => None
-        }
-    }
 }
 
-impl Convert<CylindricalVec3D> for Vec3D {
-    fn convert(&self) -> CylindricalVec3D {
-        match *self {
+impl convert::Into<CylindricalVec3D> for Vec3D {
+    fn into(self) -> CylindricalVec3D {
+        match self {
             Vec3D::Cartesian(ref c) => {
                 let phi = if c.x == 0.0 && c.y == 0.0 {
                     0.0
@@ -122,30 +160,23 @@ impl Convert<CylindricalVec3D> for Vec3D {
                     z: c.z
                 }
             },
-            Vec3D::Cylindrical(ref c) => {
-                c.clone()
-            },
+            Vec3D::Cylindrical(c) => c,
             Vec3D::Spherical(ref s) => {
+                let t = s.theta.sin_cos();
+
                 CylindricalVec3D {
-                    rho: s.r * s.theta.cos(),
+                    rho: s.r * t.1,
                     phi: s.phi,
-                    z: s.r * s.theta.sin()
+                    z: s.r * t.0
                 }
             }
         }
     }
-
-    fn unwrap(&mut self) -> Option<&mut CylindricalVec3D> {
-        match *self {
-            Vec3D::Cylindrical(ref mut c) => Some(c),
-            _ => None
-        }
-    }
 }
 
-impl Convert<SphericalVec3D> for Vec3D {
-    fn convert(&self) -> SphericalVec3D {
-        match *self {
+impl convert::Into<SphericalVec3D> for Vec3D {
+    fn into(self) -> SphericalVec3D {
+        match self {
             Vec3D::Cartesian(ref c) => {
                 let rho_sq = c.x.powi(2) + c.y.powi(2);
                 let r = (rho_sq + c.z.powi(2)).sqrt();
@@ -178,16 +209,7 @@ impl Convert<SphericalVec3D> for Vec3D {
                     theta
                 }
             },
-            Vec3D::Spherical(ref s) => {
-                s.clone()
-            }
-        }
-    }
-
-    fn unwrap(&mut self) -> Option<&mut SphericalVec3D> {
-        match *self {
-            Vec3D::Spherical(ref mut s) => Some(s),
-            _ => None
+            Vec3D::Spherical(s) => s
         }
     }
 }
@@ -196,9 +218,8 @@ impl ops::Neg for Vec3D {
     type Output = Self;
 
     fn neg(self) -> Self {
-        let lhs: CartesianVec3D = self.convert();
-
-        Vec3D::new_cartesian(-lhs.x, -lhs.y, -lhs.z)
+        let lhs: CartesianVec3D = self.into();
+        Vec3D::cartesian(-lhs.x, -lhs.y, -lhs.z)
     }
 }
 
@@ -206,10 +227,10 @@ impl ops::Add for Vec3D {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self {
-        let lhs: CartesianVec3D = self.convert();
-        let rhs: CartesianVec3D = rhs.convert();
+        let lhs: CartesianVec3D = self.into();
+        let rhs: CartesianVec3D = rhs.into();
 
-        Vec3D::new_cartesian(
+        Vec3D::cartesian(
             lhs.x + rhs.x,
             lhs.y + rhs.y,
             lhs.z + rhs.z
@@ -219,15 +240,14 @@ impl ops::Add for Vec3D {
 
 impl ops::AddAssign for Vec3D {
     fn add_assign(&mut self, rhs: Self) {
-        let rhs: CartesianVec3D = rhs.convert();
+        let rhs: CartesianVec3D = rhs.into();
 
-        let opt: Option<&mut CartesianVec3D> = self.unwrap();
-        if let Some(c) = opt {
+        if let Vec3D::Cartesian(ref mut c) = self {
             c.x += rhs.x;
             c.y += rhs.y;
             c.z += rhs.z;
         } else {
-            let mut lhs: CartesianVec3D = self.convert();
+            let mut lhs: CartesianVec3D = (*self).into();
 
             lhs.x += rhs.x;
             lhs.y += rhs.y;
@@ -252,10 +272,10 @@ impl ops::Sub for Vec3D {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self {
-        let lhs: CartesianVec3D = self.convert();
-        let rhs: CartesianVec3D = rhs.convert();
+        let lhs: CartesianVec3D = self.into();
+        let rhs: CartesianVec3D = rhs.into();
 
-        Vec3D::new_cartesian(
+        Vec3D::cartesian(
             lhs.x - rhs.x,
             lhs.y - rhs.y,
             lhs.z - rhs.z
@@ -265,15 +285,14 @@ impl ops::Sub for Vec3D {
 
 impl ops::SubAssign for Vec3D {
     fn sub_assign(&mut self, rhs: Self) {
-        let rhs: CartesianVec3D = rhs.convert();
+        let rhs: CartesianVec3D = rhs.into();
 
-        let opt: Option<&mut CartesianVec3D> = self.unwrap();
-        if let Some(c) = opt {
+        if let Vec3D::Cartesian(ref mut c) = self {
             c.x -= rhs.x;
             c.y -= rhs.y;
             c.z -= rhs.z;
         } else {
-            let mut lhs: CartesianVec3D = self.convert();
+            let mut lhs: CartesianVec3D = (*self).into();
 
             lhs.x -= rhs.x;
             lhs.y -= rhs.y;
@@ -298,9 +317,9 @@ impl ops::Mul<f64> for Vec3D {
     type Output = Self;
 
     fn mul(self, rhs: f64) -> Self {
-        let lhs: CartesianVec3D = self.convert();
+        let lhs: CartesianVec3D = self.into();
 
-        Vec3D::new_cartesian(
+        Vec3D::cartesian(
             lhs.x * rhs,
             lhs.y * rhs,
             lhs.z * rhs
@@ -310,13 +329,12 @@ impl ops::Mul<f64> for Vec3D {
 
 impl ops::MulAssign<f64> for Vec3D {
     fn mul_assign(&mut self, rhs: f64) {
-        let opt: Option<&mut CartesianVec3D> = self.unwrap();
-        if let Some(c) = opt {
+        if let Vec3D::Cartesian(ref mut c) = self {
             c.x *= rhs;
             c.y *= rhs;
             c.z *= rhs;
         } else {
-            let mut lhs: CartesianVec3D = self.convert();
+            let mut lhs: CartesianVec3D = (*self).into();
 
             lhs.x *= rhs;
             lhs.y *= rhs;
@@ -338,16 +356,18 @@ impl ops::MulAssign<f64> for Vec3D {
 }
 
 impl Vec3D {
-    pub fn new_cartesian(x: f64, y: f64, z: f64) -> Vec3D {
+    pub fn cartesian(x: f64, y: f64, z: f64) -> Vec3D {
         Vec3D::Cartesian(CartesianVec3D { x, y, z })
     }
 
-    pub fn new_cylindrical(rho: f64, phi: f64, z: f64) -> Option<Vec3D> {
+    pub fn cylindrical(rho: f64, phi: f64, z: f64) -> Result<Vec3D> {
         if rho < 0.0 {
-            return None;
+            return Err(Error::CannotCreateVec3DError(
+                Error::new_attribute_info("rho", rho)
+            ));
         }
 
-        Some(
+        Ok(
             Vec3D::Cylindrical(
                 CylindricalVec3D {
                     rho,
@@ -358,12 +378,19 @@ impl Vec3D {
         )
     }
 
-    pub fn new_spherical(r: f64, phi: f64, theta: f64) -> Option<Vec3D> {
-        if r < 0.0 || theta > FRAC_PI_2 || theta < -FRAC_PI_2 {
-            return None;
+    pub fn spherical(r: f64, phi: f64, theta: f64) -> Result<Vec3D> {
+        if r < 0.0 {
+            return Err(Error::CannotCreateVec3DError(
+                Error::new_attribute_info("r", r)
+            ));
+        }
+        if theta < -FRAC_PI_2 || theta > FRAC_PI_2 {
+            return Err(Error::CannotCreateVec3DError(
+                Error::new_attribute_info("theta", theta)
+            ));
         }
 
-        Some(
+        Ok(
             Vec3D::Spherical(
                 SphericalVec3D {
                     r,
@@ -374,34 +401,88 @@ impl Vec3D {
         )
     }
 
-    pub fn new_unit(phi: f64, theta: f64) -> Vec3D {
-        Vec3D::Spherical(SphericalVec3D { r: 1.0, phi, theta })
+    pub fn zero() -> Vec3D {
+        Vec3D::Cartesian(
+            CartesianVec3D {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0
+            }
+        )
     }
 
-    pub fn to_cartesian(&self) -> Vec3D {
-        Vec3D::Cartesian(self.convert())
+    pub fn unit_x() -> Vec3D {
+        Vec3D::Cartesian(
+            CartesianVec3D {
+                x: 1.0,
+                y: 0.0,
+                z: 0.0
+            }
+        )
     }
 
-    pub fn to_cylindrical(&self) -> Vec3D {
-        Vec3D::Cylindrical(self.convert())
+    pub fn unit_y() -> Vec3D {
+        Vec3D::Cartesian(
+            CartesianVec3D {
+                x: 0.0,
+                y: 1.0,
+                z: 0.0
+            }
+        )
     }
 
-    pub fn to_spherical(&self) -> Vec3D {
-        Vec3D::Spherical(self.convert())
+    pub fn unit_z() -> Vec3D {
+        Vec3D::Cartesian(
+            CartesianVec3D {
+                x: 0.0,
+                y: 0.0,
+                z: 1.0
+            }
+        )
     }
 
-    pub fn dot(&self, rhs: &Self) -> f64 {
-        let lhs: CartesianVec3D = self.convert();
-        let rhs: CartesianVec3D = rhs.convert();
+    pub fn unit(phi: f64, theta: f64) -> Result<Vec3D> {
+        if theta < -FRAC_PI_2 || theta > FRAC_PI_2 {
+            return Err(Error::CannotCreateVec3DError(
+                Error::new_attribute_info("theta", theta)
+            ));
+        }
+
+        Ok(
+            Vec3D::Spherical(
+                SphericalVec3D {
+                    r: 1.0,
+                    phi: phi.modulo(MULT_2_PI),
+                    theta
+                }
+            )
+        )
+    }
+
+    pub fn to_cartesian(self) -> Vec3D {
+        Vec3D::Cartesian(self.into())
+    }
+
+    pub fn to_cylindrical(self) -> Vec3D {
+        Vec3D::Cylindrical(self.into())
+    }
+
+    pub fn to_spherical(self) -> Vec3D {
+        Vec3D::Spherical(self.into())
+    }
+
+    pub fn dot(self, rhs: Self) -> f64 {
+        let lhs: CartesianVec3D = self.into();
+        let rhs: CartesianVec3D = rhs.into();
 
         lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z
     }
 
-    pub fn cross(&self, rhs: &Self) -> Vec3D {
-        let lhs: CartesianVec3D = self.convert();
-        let rhs: CartesianVec3D = rhs.convert();
+    pub fn cross(self, rhs: Self) -> Vec3D {
+        let lhs: CartesianVec3D = self.into();
+        let rhs: CartesianVec3D = rhs.into();
 
-        Vec3D::new_cartesian(
+        Vec3D::cartesian(
             lhs.y * rhs.z - lhs.z * rhs.y,
             lhs.z * rhs.x - lhs.x * rhs.z,
             lhs.x * rhs.y - lhs.y * rhs.x
@@ -512,7 +593,7 @@ impl ops::Mul<Vec3D> for Mat3D {
     type Output = Vec3D;
 
     fn mul(self, rhs: Vec3D) -> Self::Output {
-        let rhs: CartesianVec3D = rhs.convert();
+        let rhs: CartesianVec3D = rhs.into();
 
         let rhs = [rhs.x, rhs.y, rhs.z];
         let mut values = [0.0; 3];
@@ -523,7 +604,7 @@ impl ops::Mul<Vec3D> for Mat3D {
             }
         }
 
-        Vec3D::new_cartesian(
+        Vec3D::cartesian(
             values[0],
             values[1],
             values[2]
@@ -574,10 +655,10 @@ impl Mat3D {
         )
     }
 
-    pub fn from_rows(r1: &Vec3D, r2: &Vec3D, r3: &Vec3D) -> Mat3D {
-        let r1: CartesianVec3D = r1.convert();
-        let r2: CartesianVec3D = r2.convert();
-        let r3: CartesianVec3D = r3.convert();
+    pub fn from_rows(r1: Vec3D, r2: Vec3D, r3: Vec3D) -> Mat3D {
+        let r1: CartesianVec3D = r1.into();
+        let r2: CartesianVec3D = r2.into();
+        let r3: CartesianVec3D = r3.into();
 
         Mat3D(
             [
@@ -588,10 +669,10 @@ impl Mat3D {
         )
     }
 
-    pub fn from_columns(c1: &Vec3D, c2: &Vec3D, c3: &Vec3D) -> Mat3D {
-        let c1: CartesianVec3D = c1.convert();
-        let c2: CartesianVec3D = c2.convert();
-        let c3: CartesianVec3D = c3.convert();
+    pub fn from_columns(c1: Vec3D, c2: Vec3D, c3: Vec3D) -> Mat3D {
+        let c1: CartesianVec3D = c1.into();
+        let c2: CartesianVec3D = c2.into();
+        let c3: CartesianVec3D = c3.into();
 
         Mat3D(
             [
