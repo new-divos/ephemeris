@@ -1,68 +1,82 @@
-use std::ops;
-use std::ops::Add;
-
 pub mod consts;
 pub mod linalg;
+
+use std::convert::From;
+use std::default::Default;
+use std::ops::{Add, AddAssign, Neg};
 
 ///
 /// Frac: Gives the fractional part of a number
 ///
-pub trait Frac {
-    fn frac(self) -> Self;
+pub trait Fractional {
+    fn fractional(self) -> Self;
 }
 
-macro_rules! impl_frac {
+macro_rules! impl_fractional {
     ($t:ty) => (
-        impl Frac for $t {
-            fn frac(self) -> Self {
+        impl Fractional for $t {
+            fn fractional(self) -> Self {
                 self - self.floor()
             }
         }
     );
 }
 
-impl_frac!(f32);
-impl_frac!(f64);
+impl_fractional!(f32);
+impl_fractional!(f64);
 
 ///
 /// FMod: calculates x mod y
 ///
-pub trait FMod {
-    fn fmod(self, rhs: Self) -> Self;
+pub trait Modulo {
+    fn modulo(self, rhs: Self) -> Self;
 }
 
-macro_rules! impl_fmod {
+macro_rules! impl_modulo {
     ($t:ty) => (
-        impl FMod for $t {
-            fn fmod(self, rhs: Self) -> Self {
+        impl Modulo for $t {
+            fn modulo(self, rhs: Self) -> Self {
                 self - rhs * (self / rhs).floor()
             }
         }
     );
 }
 
-impl_fmod!(f32);
-impl_fmod!(f64);
+impl_modulo!(f32);
+impl_modulo!(f64);
 
 ///
 /// Pair: Calculates cos(alpha+beta) and sin(alpha+beta) using addition
 /// theorems
 ///
 #[derive(Debug, Copy, Clone)]
-pub struct Pair {
-    pub c: f64,
-    pub s: f64
+pub struct PertPair {
+    c: f64,
+    s: f64
 }
 
-impl ops::Neg for Pair {
-    type Output = Self;
-
-    fn neg(self) -> Self {
-        Pair { c: self.c, s: -self.s }
+impl From<f64> for PertPair {
+    fn from(angle: f64) -> Self {
+        let v = angle.sin_cos();
+        Self { c: v.1, s: v.0 }
     }
 }
 
-impl ops::Add for Pair {
+impl Default for PertPair {
+    fn default() -> Self {
+        Self { c: 1.0, s: 0.0 }
+    }
+}
+
+impl Neg for PertPair {
+    type Output = Self;
+
+    fn neg(self) -> Self {
+        PertPair { c: self.c, s: -self.s }
+    }
+}
+
+impl Add for PertPair {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self {
@@ -73,19 +87,18 @@ impl ops::Add for Pair {
     }
 }
 
-impl ops::AddAssign for Pair {
+impl AddAssign for PertPair {
     fn add_assign(&mut self, rhs: Self) {
         *self = self.add(rhs);
     }
 }
 
-impl Pair {
-    fn from_zero() -> Pair {
-        Self { c: 1.0, s: 0.0 }
+impl PertPair {
+    pub fn c(&self) -> f64 {
+        self.c
     }
 
-    fn from_angle(angle: f64) -> Pair {
-        let v = angle.sin_cos();
-        Self { c: v.1, s: v.0 }
+    pub fn s(&self) -> f64 {
+        self.s
     }
 }

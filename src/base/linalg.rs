@@ -2,7 +2,7 @@ use std::f64::consts::FRAC_PI_2;
 use std::ops;
 use std::ops::{Add, Mul, Sub};
 
-use crate::base::FMod;
+use crate::base::Modulo;
 use crate::base::consts::MULT_2_PI;
 
 pub trait Norm {
@@ -118,7 +118,7 @@ impl Convert<CylindricalVec3D> for Vec3D {
 
                 CylindricalVec3D {
                     rho: c.x.hypot(c.y),
-                    phi: phi.fmod(MULT_2_PI),
+                    phi: phi.modulo(MULT_2_PI),
                     z: c.z
                 }
             },
@@ -163,7 +163,7 @@ impl Convert<SphericalVec3D> for Vec3D {
                     c.z.atan2(rho)
                 };
 
-                SphericalVec3D { r, phi: phi.fmod(MULT_2_PI), theta }
+                SphericalVec3D { r, phi: phi.modulo(MULT_2_PI), theta }
             },
             Vec3D::Cylindrical(ref c) => {
                 let theta = if c.rho == 0.0 && c.z == 0.0 {
@@ -351,7 +351,7 @@ impl Vec3D {
             Vec3D::Cylindrical(
                 CylindricalVec3D {
                     rho,
-                    phi: phi.fmod(MULT_2_PI),
+                    phi: phi.modulo(MULT_2_PI),
                     z
                 }
             )
@@ -367,7 +367,7 @@ impl Vec3D {
             Vec3D::Spherical(
                 SphericalVec3D {
                     r,
-                    phi: phi.fmod(MULT_2_PI),
+                    phi: phi.modulo(MULT_2_PI),
                     theta
                 }
             )
@@ -664,7 +664,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn mat3d_mul() {
+    fn mat3d_mul_test() {
         let a = Mat3D(
             [
                 [5.0, 8.0, -4.0],
@@ -725,7 +725,7 @@ mod tests {
     }
 
     #[test]
-    fn mat3d_det() {
+    fn mat3d_det_test() {
         let a = Mat3D(
             [
                 [1.0, 2.0, 3.0],

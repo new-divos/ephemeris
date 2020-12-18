@@ -2,7 +2,7 @@ use ephemeris::base::linalg;
 use ephemeris::base::linalg::Convert;
 
 #[test]
-fn create_cartesian_vec3d() {
+fn create_cartesian_vec3d_test() {
     let mut v1 = linalg::Vec3D::new_cartesian(1.0, 2.0, 3.0);
     let raw: linalg::CartesianVec3D = v1.convert();
     assert_eq!(raw, linalg::CartesianVec3D { x: 1.0, y: 2.0, z: 3.0 });
