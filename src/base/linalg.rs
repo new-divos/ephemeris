@@ -356,6 +356,34 @@ impl ops::MulAssign<f64> for Vec3D {
     }
 }
 
+impl ops::Div<f64> for Vec3D {
+    type Output = Result<Vec3D>;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        if rhs == 0.0 {
+            return Err(Error::ZeroDivisionError);
+        }
+
+        let lhs: CartesianVec3D = self.into();
+        Ok(
+            Vec3D::cartesian(
+                lhs.x / rhs,
+                lhs.y / rhs,
+                lhs.z / rhs
+            )
+        )
+    }
+}
+
+impl ops::Div<Mat3D> for Vec3D {
+    type Output = Result<Vec3D>;
+
+    fn div(self, rhs: Mat3D) -> Self::Output {
+        let inverted = rhs.inv()?;
+        Ok(inverted.mul(self))
+    }
+}
+
 impl Vec3D {
     pub fn cartesian(x: f64, y: f64, z: f64) -> Vec3D {
         Vec3D::Cartesian(CartesianVec3D { x, y, z })
@@ -643,6 +671,43 @@ impl ops::MulAssign for Mat3D {
     }
 }
 
+impl ops::Div<f64> for Mat3D {
+    type Output = Result<Mat3D>;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        if rhs == 0.0 {
+            return Err(Error::ZeroDivisionError);
+        }
+
+        let mut result = self;
+        for i in 0..3 {
+            for j in 0..3 {
+                result.0[i][j] /= rhs;
+            }
+        }
+
+        Ok(result)
+    }
+}
+
+impl ops::Div for Mat3D {
+    type Output = Result<Mat3D>;
+
+    fn div(self, rhs: Mat3D) -> Self::Output {
+        let inverted = rhs.inv()?;
+        Ok(inverted.mul(self))
+    }
+}
+
+impl ops::Div<Mat3D> for f64 {
+    type Output = Result<Mat3D>;
+
+    fn div(self, rhs: Mat3D) -> Self::Output {
+        let inverted = rhs.inv()?;
+        Ok(inverted.mul(self))
+    }
+}
+
 impl Mat3D {
     pub fn zeros() -> Mat3D {
         Mat3D([[0.0; 3]; 3])
@@ -752,7 +817,31 @@ impl Mat3D {
             return Err(Error::SingularMatrixError);
         }
 
-        Ok(Mat3D::zeros())
+        let d2 = |r1: usize, c1: usize, r2: usize, c2: usize| {
+            self.0[r1][c1] * self.0[r2][c2] - self.0[r1][c2] * self.0[r2][c1]
+        };
+
+        Ok(
+            Mat3D(
+                [
+                    [
+                         d2(1, 1, 2, 2) / det,
+                        -d2(0, 1, 2, 2) / det,
+                         d2(0, 1, 1, 2) / det
+                    ],
+                    [
+                        -d2(1, 0, 2, 2) / det,
+                         d2(0, 0, 2, 2) / det,
+                        -d2(0, 0, 1, 2) / det
+                    ],
+                    [
+                         d2(1, 0, 2, 1) / det,
+                        -d2(0, 0, 2, 1) / det,
+                         d2(0, 0, 1, 1) / det
+                    ],
+                ]
+            )
+        )
     }
 
     pub fn iter(&self) -> Mat3DIterator {
@@ -763,6 +852,7 @@ impl Mat3D {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct Mat3DIterator<'a> {
     matrix: &'a Mat3D,
     count: usize
@@ -878,6 +968,73 @@ mod tests {
             ]
         );
         assert_eq!(c.det(), 54.0);
+    }
+
+    #[test]
+    fn mat3d_inv_test() {
+        let a = Mat3D(
+            [
+                [1.0, 2.0, 3.0],
+                [4.0, 5.0, 6.0],
+                [7.0, 8.0, 9.0]
+            ]
+        );
+
+        let r = a.inv();
+        assert!(r.is_err());
+
+        let a = Mat3D(
+            [
+                [3.0, 2.0, 2.0],
+                [1.0, 3.0, 1.0],
+                [5.0, 3.0, 4.0]
+            ]
+        );
+        let b = Mat3D(
+            [
+                [  9.0 / 5.0, -2.0 / 5.0,  -4.0 / 5.0],
+                [  1.0 / 5.0,  2.0 / 5.0,  -1.0 / 5.0],
+                [-12.0 / 5.0,  1.0 / 5.0,   7.0 / 5.0]
+            ]
+        );
+
+        let inv_a = a.inv().unwrap();
+        for (v1, v2) in inv_a.iter().zip(b.iter()) {
+            assert_relative_eq!(v1, v2);
+        }
+
+        let inv_a = (1.0 / a).unwrap();
+        for (v1, v2) in inv_a.iter().zip(b.iter()) {
+            assert_relative_eq!(v1, v2);
+        }
+
+        let a = Mat3D(
+            [
+                [4.0, 8.0, 0.0],
+                [8.0, 8.0, 8.0],
+                [2.0, 0.0, 1.0]
+            ]
+        );
+        let b = Mat3D(
+            [
+                [ 1.0 / 12.0, -1.0 / 12.0,  2.0 / 3.0],
+                [ 1.0 / 12.0,  1.0 / 24.0, -1.0 / 3.0],
+                [-1.0 /  6.0,  1.0 /  6.0, -1.0 / 3.0]
+            ]
+        );
+
+        let inv_a = a.inv().unwrap();
+        for (v1, v2) in inv_a.iter().zip(b.iter()) {
+            assert_relative_eq!(v1, v2);
+        }
+
+        let vk = vec![-2.0, -1.0, -0.5, 0.5, 1.0, 2.0];
+        for k in vk {
+            let c = (k / a).unwrap();
+            for (v1, v2) in b.iter().map(|x| x * k).zip(c.iter()) {
+                assert_relative_eq!(v1, v2);
+            }
+        }
     }
 
     #[test]

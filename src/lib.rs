@@ -2,8 +2,9 @@
 
 pub mod base;
 
+#[cfg(test)]
+#[macro_use]
 extern crate approx;
-extern crate lazy_static;
 extern crate num_traits;
 
 #[cfg(test)]
