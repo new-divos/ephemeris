@@ -1,4 +1,4 @@
-use ephemeris::base::linalg;
+use ephem::base::linalg;
 
 #[test]
 fn create_cartesian_vec3d_test() {

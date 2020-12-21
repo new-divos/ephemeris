@@ -1,13 +1,15 @@
 [package]
-name = "ephemeris"
-version = "0.1.0"
+name = "ephem"
+version = "0.1.0-alpha"
+description = "Library for determining the ephemeris of heavenly bodies"
 authors = ["Roman A. Voronkin <roman.voronkin@gmail.com>"]
+license-file = "LICENSE"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-name = "ephemeris"
+name = "ephem"
 
 [dependencies]
 approx = "0.3.2"

@@ -7,8 +7,8 @@ extern crate lazy_static;
 
 use std::f64::consts::{FRAC_PI_6, FRAC_PI_4, FRAC_PI_3, FRAC_PI_2};
 
-use ephemeris::base;
-use ephemeris::base::{Fractional, Modulo};
+use ephem::base;
+use ephem::base::{Fractional, Modulo};
 
 #[test]
 fn fractional_test() {
