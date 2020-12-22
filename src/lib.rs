@@ -5,7 +5,11 @@ pub mod base;
 #[cfg(test)]
 #[macro_use]
 extern crate approx;
+
 extern crate num_traits;
+
+#[cfg(test)]
+extern crate rand;
 
 #[cfg(test)]
 mod tests {

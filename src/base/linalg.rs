@@ -328,6 +328,14 @@ impl ops::Mul<f64> for Vec3D {
     }
 }
 
+impl ops::Mul<Vec3D> for f64 {
+    type Output = Vec3D;
+
+    fn mul(self, rhs: Vec3D) -> Self::Output {
+        rhs.mul(self)
+    }
+}
+
 impl ops::MulAssign<f64> for Vec3D {
     fn mul_assign(&mut self, rhs: f64) {
         if let Vec3D::Cartesian(ref mut c) = self {
@@ -618,6 +626,14 @@ impl ops::Mul<f64> for Mat3D {
     }
 }
 
+impl ops::Mul<Mat3D> for f64 {
+    type Output = Mat3D;
+
+    fn mul(self, rhs: Mat3D) -> Self::Output {
+        rhs.mul(self)
+    }
+}
+
 impl ops::MulAssign<f64> for Mat3D {
     fn mul_assign(&mut self, rhs: f64) {
         *self = self.mul(rhs);
@@ -877,7 +893,83 @@ impl<'a> iter::Iterator for Mat3DIterator<'a> {
 
 #[cfg(test)]
 mod tests {
+    use rand::Rng;
+
     use super::*;
+
+    const EPS: f64 = 1e-10;
+
+    fn new_random_mat3d<R: Rng + ?Sized>(rng: &mut R) -> Mat3D {
+        let mut result = Mat3D::zeros();
+
+        for i in 0..3 {
+            for j in 0..3 {
+                result.0[i][j] = rng.gen::<f64>();
+            }
+        }
+
+        result
+    }
+
+    #[test]
+    fn mat3d_num_mul_test() {
+        let a = Mat3D(
+            [
+                [5.0, 8.0, -4.0],
+                [6.0, 9.0, -5.0],
+                [4.0, 7.0, -3.0]
+            ]
+        );
+
+        let b = 3.0 * a;
+        for (v1, v2) in a.iter().zip(b.iter()) {
+            assert_relative_eq!(3.0 * v1, v2);
+        }
+
+        let b = a * 3.0;
+        for (v1, v2) in a.iter().zip(b.iter()) {
+            assert_relative_eq!(v1 * 3.0, v2);
+        }
+
+        let c = (a / 3.0).unwrap();
+        for (v1, v2) in a.iter().zip(c.iter()) {
+            assert_relative_eq!(v1 / 3.0, v2);
+        }
+
+        let mut rng = rand::thread_rng();
+        for _ in 0..10 {
+            let a = new_random_mat3d(&mut rng);
+            let k: f64 = 200.0 * rng.gen::<f64>() - 100.0;
+
+            let b = k * a;
+            for (v1, v2) in a.iter().zip(b.iter()) {
+                assert_relative_eq!(k * v1, v2);
+            }
+
+            let b = a * k;
+            for (v1, v2) in a.iter().zip(b.iter()) {
+                assert_relative_eq!(v1 * k, v2);
+            }
+
+            let c = a / k;
+            match c {
+                Ok(b) => {
+                    for (v1, v2) in a.iter().zip(b.iter()) {
+                        if k != 0.0 {
+                            assert_relative_eq!(v1 / k, v2);
+                        } else {
+                            panic!("Illegal result for zero division");
+                        }
+                    }
+                },
+                Err(_) => {
+                    if k != 0.0 {
+                        panic!("Illegal result for none zero division");
+                    }
+                }
+            }
+        }
+    }
 
     #[test]
     fn mat3d_mul_test() {
@@ -1033,6 +1125,27 @@ mod tests {
             let c = (k / a).unwrap();
             for (v1, v2) in b.iter().map(|x| x * k).zip(c.iter()) {
                 assert_relative_eq!(v1, v2);
+            }
+        }
+
+        let e = Mat3D::identity();
+        let mut rng = rand::thread_rng();
+        for _ in 0..10 {
+            let a = new_random_mat3d(&mut rng);
+            let r = a.inv();
+            match r {
+                Ok(inv_a) => {
+                    let e_test = a * inv_a;
+                    for (v1, v2) in e_test.iter().zip(e.iter()) {
+                        assert_relative_eq!(v1, v2, epsilon = self::EPS);
+                    }
+
+                    let e_test = inv_a * a;
+                    for (v1, v2) in e_test.iter().zip(e.iter()) {
+                        assert_relative_eq!(v1, v2, epsilon = self::EPS);
+                    }
+                },
+                Err(_) => continue
             }
         }
     }
