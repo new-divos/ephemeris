@@ -145,6 +145,15 @@ impl convert::Into<CartesianVec3D> for Vec3D {
     }
 }
 
+impl convert::Into<Option<CartesianVec3D>> for Vec3D {
+    fn into(self) -> Option<CartesianVec3D> {
+        match self {
+            Vec3D::Cartesian(c) => Some(c),
+            _ => None
+        }
+    }
+}
+
 impl convert::Into<CylindricalVec3D> for Vec3D {
     fn into(self) -> CylindricalVec3D {
         match self {
@@ -171,6 +180,15 @@ impl convert::Into<CylindricalVec3D> for Vec3D {
                     z: s.r * t.0
                 }
             }
+        }
+    }
+}
+
+impl convert::Into<Option<CylindricalVec3D>> for Vec3D {
+    fn into(self) -> Option<CylindricalVec3D> {
+        match self {
+            Vec3D::Cylindrical(c) => Some(c),
+            _ => None
         }
     }
 }
@@ -211,6 +229,15 @@ impl convert::Into<SphericalVec3D> for Vec3D {
                 }
             },
             Vec3D::Spherical(s) => s
+        }
+    }
+}
+
+impl convert::Into<Option<SphericalVec3D>> for Vec3D {
+    fn into(self) -> Option<SphericalVec3D> {
+        match self {
+            Vec3D::Spherical(s) => Some(s),
+            _ => None
         }
     }
 }
@@ -506,6 +533,27 @@ impl Vec3D {
 
     pub fn to_spherical(self) -> Vec3D {
         Vec3D::Spherical(self.into())
+    }
+
+    pub fn is_cartesian(self) -> bool {
+        match self {
+            Vec3D::Cartesian(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_cylindrical(self) -> bool {
+        match self {
+            Vec3D::Cylindrical(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_spherical(self) -> bool {
+        match self {
+            Vec3D::Spherical(_) => true,
+            _ => false
+        }
     }
 
     pub fn dot(self, rhs: Self) -> f64 {
