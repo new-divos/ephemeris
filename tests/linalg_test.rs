@@ -11,7 +11,6 @@ use ephem::base::linalg;
 use ephem::base::consts::MULT_2_PI;
 
 use rand::Rng;
-use ephem::base::linalg::CartesianVec3D;
 
 
 fn new_random_vec3d<R: Rng + ?Sized>(rng: &mut R) -> linalg::Vec3D {
@@ -482,13 +481,13 @@ fn vec3d_operation_cross_test() {
 
     for _ in 0..common::ITERATIONS {
         let v1 = new_random_vec3d(&mut rng);
-        let raw1: CartesianVec3D = v1.into();
+        let raw1: linalg::CartesianVec3D = v1.into();
 
         let v2 = new_random_vec3d(&mut rng);
-        let raw2: CartesianVec3D = v2.into();
+        let raw2: linalg::CartesianVec3D = v2.into();
 
         let r = v1.cross(v2);
-        let result: CartesianVec3D = r.into();
+        let result: linalg::CartesianVec3D = r.into();
 
         let x = raw1.y() * raw2.z() - raw1.z() * raw2.y();
         let y = raw1.z() * raw2.x() - raw1.x() * raw2.z();
@@ -521,6 +520,92 @@ fn create_mat3d_test() {
             assert_eq!(v, 1.0);
         } else {
             assert_eq!(v, 0.0);
+        }
+    }
+
+    let mut rng = rand::thread_rng();
+    for _ in 0..common::ITERATIONS {
+        let v1 = new_random_vec3d(&mut rng);
+        let v2 = new_random_vec3d(&mut rng);
+        let v3 = new_random_vec3d(&mut rng);
+
+        let mr = linalg::Mat3D::from_rows(v1, v2, v3);
+        for (idx, item) in mr.iter().enumerate() {
+            let row = idx / 3;
+            let col = idx % 3;
+
+            let ref_v = match row {
+                0 => &v1,
+                1 => &v2,
+                2 => &v3,
+                _ => panic!("Illegal row number")
+            };
+            let raw: linalg::CartesianVec3D = (*ref_v).into();
+
+            match col {
+                0 => assert_eq!(item, raw.x()),
+                1 => assert_eq!(item, raw.y()),
+                2 => assert_eq!(item, raw.z()),
+                _ => panic!("Illegal column number")
+            };
+        }
+
+        let mc = linalg::Mat3D::from_columns(v1, v2, v3);
+        for (idx, item) in mc.iter().enumerate() {
+            let row = idx / 3;
+            let col = idx % 3;
+
+            let ref_v = match col {
+                0 => &v1,
+                1 => &v2,
+                2 => &v3,
+                _ => panic!("Illegal column number")
+            };
+            let raw: linalg::CartesianVec3D = (*ref_v).into();
+
+            match row {
+                0 => assert_eq!(item, raw.x()),
+                1 => assert_eq!(item, raw.y()),
+                2 => assert_eq!(item, raw.z()),
+                _ => panic!("Illegal row number")
+            }
+        }
+    }
+}
+
+#[test]
+fn mat3d_rotation_test() {
+    let mut rng = rand::thread_rng();
+
+    for _ in 0..common::ITERATIONS {
+        let angle = MULT_2_PI * rng.gen::<f64>();
+        let tr = 1.0 + 2.0 * angle.cos();
+
+        let rx = linalg::Mat3D::r_x(angle);
+        assert_relative_eq!(rx.tr(), tr);
+        assert_relative_eq!(rx.det(), 1.0);
+
+        let irx = rx.inv().unwrap();
+        for (v1, v2) in irx.iter().zip(rx.t().iter()) {
+            assert_relative_eq!(v1, v2);
+        }
+
+        let ry = linalg::Mat3D::r_y(angle);
+        assert_relative_eq!(ry.tr(), tr);
+        assert_relative_eq!(ry.det(), 1.0);
+
+        let iry = ry.inv().unwrap();
+        for (v1, v2) in iry.iter().zip(ry.t().iter()) {
+            assert_relative_eq!(v1, v2);
+        }
+
+        let rz = linalg::Mat3D::r_z(angle);
+        assert_relative_eq!(rz.tr(), tr);
+        assert_relative_eq!(rz.det(), 1.0);
+
+        let irz = rz.inv().unwrap();
+        for (v1, v2) in irz.iter().zip(rz.t().iter()) {
+            assert_relative_eq!(v1, v2);
         }
     }
 }

@@ -855,15 +855,18 @@ impl Mat3D {
         )
     }
 
-    pub fn trans(&self) -> Mat3D {
-        let mut result: Mat3D = *self;
-        for i in 0..3 {
-            for j in 0..3 {
-                result.0[i][j] = result.0[j][i];
-            }
-        }
+    pub fn t(&self) -> Mat3D {
+        Mat3D(
+            [
+                [self.0[0][0], self.0[1][0], self.0[2][0]],
+                [self.0[0][1], self.0[1][1], self.0[2][1]],
+                [self.0[0][2], self.0[1][2], self.0[2][2]]
+            ]
+        )
+    }
 
-        result
+    pub fn tr(&self) -> f64 {
+        self.0[0][0] + self.0[1][1] + self.0[2][2]
     }
 
     pub fn det(&self) -> f64 {
@@ -946,6 +949,7 @@ mod tests {
     use super::*;
 
     const EPS: f64 = 1e-10;
+    const ITERATIONS: i32 = 200;
 
     fn new_random_mat3d<R: Rng + ?Sized>(rng: &mut R) -> Mat3D {
         let mut result = Mat3D::zeros();
@@ -957,6 +961,54 @@ mod tests {
         }
 
         result
+    }
+
+    #[test]
+    fn mat3d_add_test() {
+        let mut rng = rand::thread_rng();
+
+        for _ in 0..ITERATIONS {
+            let mut m1 = new_random_mat3d(&mut rng);
+            let m2 = new_random_mat3d(&mut rng);
+
+            let m3 = m1 + m2;
+            for i in 0..2 {
+                for j in 0..2 {
+                    assert_eq!(m3.0[i][j], m1.0[i][j] + m2.0[i][j]);
+                }
+            }
+
+            m1 += m2;
+            for i in 0..2 {
+                for j in 0..2 {
+                    assert_eq!(m1.0[i][j], m3.0[i][j]);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn mat3d_sub_test() {
+        let mut rng = rand::thread_rng();
+
+        for _ in 0..ITERATIONS {
+            let mut m1 = new_random_mat3d(&mut rng);
+            let m2 = new_random_mat3d(&mut rng);
+
+            let m3 = m1 - m2;
+            for i in 0..2 {
+                for j in 0..2 {
+                    assert_eq!(m3.0[i][j], m1.0[i][j] - m2.0[i][j]);
+                }
+            }
+
+            m1 -= m2;
+            for i in 0..2 {
+                for j in 0..2 {
+                    assert_eq!(m1.0[i][j], m3.0[i][j]);
+                }
+            }
+        }
     }
 
     #[test]
@@ -985,7 +1037,7 @@ mod tests {
         }
 
         let mut rng = rand::thread_rng();
-        for _ in 0..10 {
+        for _ in 0..ITERATIONS {
             let a = new_random_mat3d(&mut rng);
             let k: f64 = 200.0 * rng.gen::<f64>() - 100.0;
 
@@ -1011,9 +1063,7 @@ mod tests {
                     }
                 },
                 Err(_) => {
-                    if k != 0.0 {
-                        panic!("Illegal result for none zero division");
-                    }
+                    assert_eq!(k, 0.0);
                 }
             }
         }
@@ -1078,6 +1128,22 @@ mod tests {
         d *= b;
 
         assert_eq!(d, c);
+    }
+
+    #[test]
+    fn mat3d_transpose_test() {
+        let mut rng = rand::thread_rng();
+
+        for _ in 0..ITERATIONS {
+            let a = new_random_mat3d(&mut rng);
+            let b = a.t();
+
+            for i in 0..2 {
+                for j in 0..2 {
+                    assert_eq!(b.0[i][j], a.0[j][i]);
+                }
+            }
+        }
     }
 
     #[test]
