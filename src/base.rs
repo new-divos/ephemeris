@@ -1,3 +1,4 @@
+pub mod angle;
 pub mod consts;
 pub mod linalg;
 pub mod error;
