@@ -812,6 +812,156 @@ impl convert::Into<Option<AngleArcDegreesMinutes>> for Angle {
     }
 }
 
+impl convert::Into<AngleArcDegreesMinutesSeconds> for Angle {
+    fn into(self) -> AngleArcDegreesMinutesSeconds {
+        todo!();
+    }
+}
+
+impl convert::Into<Option<AngleArcDegreesMinutesSeconds>> for Angle {
+    fn into(self) -> Option<AngleArcDegreesMinutesSeconds> {
+        match self {
+            Angle::ArcDegreesMinutesSeconds(dms) => Some(dms),
+            _ => None
+        }
+    }
+}
+
+impl convert::Into<AngleArcMinutes> for Angle {
+    fn into(self) -> AngleArcMinutes {
+        todo!();
+    }
+}
+
+impl convert::Into<Option<AngleArcMinutes>> for Angle {
+    fn into(self) -> Option<AngleArcMinutes> {
+        match self {
+            Angle::ArcMinutes(m) => Some(m),
+            _ => None
+        }
+    }
+}
+
+impl convert::Into<AngleArcMinutesSeconds> for Angle {
+    fn into(self) -> AngleArcMinutesSeconds {
+        todo!();
+    }
+}
+
+impl convert::Into<Option<AngleArcMinutesSeconds>> for Angle {
+    fn into(self) -> Option<AngleArcMinutesSeconds> {
+        match self {
+            Angle::ArcMinutesSeconds(ms) => Some(ms),
+            _ => None
+        }
+    }
+}
+
+impl convert::Into<AngleArcSeconds> for Angle {
+    fn into(self) -> AngleArcSeconds {
+        todo!();
+    }
+}
+
+impl convert::Into<Option<AngleArcSeconds>> for Angle {
+    fn into(self) -> Option<AngleArcSeconds> {
+        match self {
+            Angle::ArcSeconds(s) => Some(s),
+            _ => None
+        }
+    }
+}
+
+impl convert::Into<AngleTimeHours> for Angle {
+    fn into(self) -> AngleTimeHours {
+        todo!();
+    }
+}
+
+impl convert::Into<Option<AngleTimeHours>> for Angle {
+    fn into(self) -> Option<AngleTimeHours> {
+        match self {
+            Angle::TimeHours(h) => Some(h),
+            _ => None
+        }
+    }
+}
+
+impl convert::Into<AngleTimeHoursMinutes> for Angle {
+    fn into(self) -> AngleTimeHoursMinutes {
+        todo!();
+    }
+}
+
+impl convert::Into<Option<AngleTimeHoursMinutes>> for Angle {
+    fn into(self) -> Option<AngleTimeHoursMinutes> {
+        match self {
+            Angle::TimeHoursMinutes(tm) => Some(tm),
+            _ => None
+        }
+    }
+}
+
+impl convert::Into<AngleTimeHoursMinutesSeconds> for Angle {
+    fn into(self) -> AngleTimeHoursMinutesSeconds {
+        todo!();
+    }
+}
+
+impl convert::Into<Option<AngleTimeHoursMinutesSeconds>> for Angle {
+    fn into(self) -> Option<AngleTimeHoursMinutesSeconds> {
+        match self {
+            Angle::TimeHoursMinutesSeconds(hms) => Some(hms),
+            _ => None
+        }
+    }
+}
+
+impl convert::Into<AngleTimeMinutes> for Angle {
+    fn into(self) -> AngleTimeMinutes {
+        todo!();
+    }
+}
+
+impl convert::Into<Option<AngleTimeMinutes>> for Angle {
+    fn into(self) -> Option<AngleTimeMinutes> {
+        match self {
+            Angle::TimeMinutes(m) => Some(m),
+            _ => None
+        }
+    }
+}
+
+impl convert::Into<AngleTimeMinutesSeconds> for Angle {
+    fn into(self) -> AngleTimeMinutesSeconds {
+        todo!();
+    }
+}
+
+impl convert::Into<Option<AngleTimeMinutesSeconds>> for Angle {
+    fn into(self) -> Option<AngleTimeMinutesSeconds> {
+        match self {
+            Angle::TimeMinutesSeconds(tm) => Some(tm),
+            _ => None
+        }
+    }
+}
+
+impl convert::Into<AngleTimeSeconds> for Angle {
+    fn into(self) -> AngleTimeSeconds {
+        todo!();
+    }
+}
+
+impl convert::Into<Option<AngleTimeSeconds>> for Angle {
+    fn into(self) -> Option<AngleTimeSeconds> {
+        match self {
+            Angle::TimeSeconds(s) => Some(s),
+            _ => None
+        }
+    }
+}
+
 impl Angle {
     pub fn from_r(revolutions: f64) -> Angle {
         Angle::Revolutions(AngleRevolutions(revolutions))
@@ -897,6 +1047,76 @@ impl Angle {
         }
     }
 
+    pub fn is_adms(&self) -> bool {
+        match self {
+            Angle::ArcDegreesMinutesSeconds(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_am(&self) -> bool {
+        match self {
+            Angle::ArcMinutes(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_ams(&self) -> bool {
+        match self {
+            Angle::ArcMinutesSeconds(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_as(&self) -> bool {
+        match self {
+            Angle::ArcSeconds(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_th(&self) -> bool {
+        match self {
+            Angle::TimeHours(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_thm(&self) -> bool {
+        match self {
+            Angle::TimeHoursMinutes(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_thms(&self) -> bool {
+        match self {
+            Angle::TimeHoursMinutesSeconds(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_tm(&self) -> bool {
+        match self {
+            Angle::TimeMinutes(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_tms(&self) -> bool {
+        match self {
+            Angle::TimeMinutesSeconds(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_ts(&self) -> bool {
+        match self {
+            Angle::TimeSeconds(_) => true,
+            _ => false
+        }
+    }
+
     pub fn to_rad(self) -> Angle {
         Angle::Radians(self.into())
     }
@@ -911,5 +1131,45 @@ impl Angle {
 
     pub fn to_adm(self) -> Angle {
         Angle::ArcDegreesMinutes(self.into())
+    }
+
+    pub fn to_adms(self) -> Angle {
+        Angle::ArcDegreesMinutesSeconds(self.into())
+    }
+
+    pub fn to_am(self) -> Angle {
+        Angle::ArcMinutes(self.into())
+    }
+
+    pub fn to_ams(self) -> Angle {
+        Angle::ArcMinutesSeconds(self.into())
+    }
+
+    pub fn to_as(self) -> Angle {
+        Angle::ArcSeconds(self.into())
+    }
+
+    pub fn to_th(self) -> Angle {
+        Angle::TimeHours(self.into())
+    }
+
+    pub fn to_thm(self) -> Angle {
+        Angle::TimeHoursMinutes(self.into())
+    }
+
+    pub fn to_thms(self) -> Angle {
+        Angle::TimeHoursMinutesSeconds(self.into())
+    }
+
+    pub fn to_tm(self) -> Angle {
+        Angle::TimeMinutes(self.into())
+    }
+
+    pub fn to_tms(self) -> Angle {
+        Angle::TimeMinutesSeconds(self.into())
+    }
+
+    pub fn to_ts(self) -> Angle {
+        Angle::TimeSeconds(self.into())
     }
 }
