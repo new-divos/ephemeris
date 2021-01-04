@@ -755,6 +755,63 @@ impl convert::Into<Option<AngleArcDegrees>> for Angle {
     }
 }
 
+impl convert::Into<AngleArcDegreesMinutes> for Angle {
+    fn into(self) -> AngleArcDegreesMinutes {
+        match self {
+            Angle::Radians(r) => {
+                AngleArcDegreesMinutes((DEG * r).into())
+            },
+            Angle::Revolutions(r) => {
+                AngleArcDegreesMinutes((360.0 * r.0).into())
+            },
+            Angle::ArcDegrees(d) => {
+                AngleArcDegreesMinutes(d.0.into())
+            },
+            Angle::ArcDegreesMinutes(dm) => dm,
+            Angle::ArcDegreesMinutesSeconds(dms) => {
+                let ms = ShortAngle(dms.0.1 as i32, dms.0.2);
+                AngleArcDegreesMinutes(ShortAngle(dms.0.0, ms.value()))
+            },
+            Angle::ArcMinutes(m) => {
+                AngleArcDegreesMinutes(ShortAngle(0, m.0).normalize())
+            },
+            Angle::ArcMinutesSeconds(ms) => {
+                AngleArcDegreesMinutes(ShortAngle(0, ms.value()).normalize())
+            },
+            Angle::ArcSeconds(s) => {
+                AngleArcDegreesMinutes(ShortAngle(0, s.0 / 60.0).normalize())
+            },
+            Angle::TimeHours(h) => {
+                AngleArcDegreesMinutes((15.0 * h.0).into())
+            },
+            Angle::TimeHoursMinutes(hm) => {
+                AngleArcDegreesMinutes((15.0 * hm.value()).into())
+            },
+            Angle::TimeHoursMinutesSeconds(hms) => {
+                AngleArcDegreesMinutes((15.0 * hms.value()).into())
+            }
+            Angle::TimeMinutes(m) => {
+                AngleArcDegreesMinutes(ShortAngle(0, 15.0 * m.0).normalize())
+            },
+            Angle::TimeMinutesSeconds(ms) => {
+                AngleArcDegreesMinutes(ShortAngle(0, 15.0 * ms.value()).normalize())
+            },
+            Angle::TimeSeconds(s) => {
+                AngleArcDegreesMinutes(ShortAngle(0, s.0 / 4.0).normalize())
+            }
+        }
+    }
+}
+
+impl convert::Into<Option<AngleArcDegreesMinutes>> for Angle {
+    fn into(self) -> Option<AngleArcDegreesMinutes> {
+        match self {
+            Angle::ArcDegreesMinutes(dm) => Some(dm),
+            _ => None
+        }
+    }
+}
+
 impl Angle {
     pub fn from_r(revolutions: f64) -> Angle {
         Angle::Revolutions(AngleRevolutions(revolutions))
@@ -833,6 +890,13 @@ impl Angle {
         }
     }
 
+    pub fn is_adm(&self) -> bool {
+        match self {
+            Angle::ArcDegreesMinutes(_) => true,
+            _ => false
+        }
+    }
+
     pub fn to_rad(self) -> Angle {
         Angle::Radians(self.into())
     }
@@ -843,5 +907,9 @@ impl Angle {
 
     pub fn to_ad(self) -> Angle {
         Angle::ArcDegrees(self.into())
+    }
+
+    pub fn to_adm(self) -> Angle {
+        Angle::ArcDegreesMinutes(self.into())
     }
 }
