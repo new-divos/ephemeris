@@ -3,6 +3,21 @@ use std::default;
 
 use crate::base::consts::{ARCS, DEG, MULT_2_PI, RAD};
 
+const TSEC: f64 = ARCS / 15.0;
+
+const RAD_IN_AMIN: f64 = RAD / 60.0;
+const RAD_IN_THRS: f64 = 15.0 * RAD;
+const RAD_IN_TMIN: f64 = RAD / 4.0;
+
+const ADEG_IN_REV: f64 = 360.0;
+const AMIN_IN_REV: f64 = ADEG_IN_REV * 60.0;
+const ASEC_IN_REV: f64 = AMIN_IN_REV * 60.0;
+
+const THRS_IN_REV: f64 = 24.0;
+const TMIN_IN_REV: f64 = THRS_IN_REV * 60.0;
+const TSEC_IN_REV: f64 = TMIN_IN_REV * 60.0;
+
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Sign {
     Negative,
@@ -12,6 +27,11 @@ pub enum Sign {
 
 trait AngleSign {
     fn sign(&self) -> Sign;
+}
+
+trait AngleTransform {
+    fn copysign(&self, value: f64) -> Self;
+    fn normalize(&self) -> Self;
 }
 
 impl AngleSign for f64 {
@@ -26,19 +46,15 @@ impl AngleSign for f64 {
     }
 }
 
-trait AngleValue: AngleSign {
-    fn normalize(&self) -> Self;
-    fn units(&self) -> f64;
+#[derive(Debug, Copy, Clone, PartialEq)]
+struct Left(f64);  // Left value.
 
-    fn value(&self) -> f64 {
-        let mut value = self.units();
-        if (*self).sign() == Sign::Negative {
-            value = -value;
-        }
+#[derive(Debug, Copy, Clone, PartialEq)]
+struct Middle(f64);  // Middle value.
 
-        value
-    }
-}
+#[derive(Debug, Copy, Clone, PartialEq)]
+struct Right(f64);  // Right value.
+
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 struct ShortAngle(i32, f64);
@@ -46,22 +62,6 @@ struct ShortAngle(i32, f64);
 impl default::Default for ShortAngle {
     fn default() -> Self {
         Self(0, 0.0)
-    }
-}
-
-impl convert::Into<ShortAngle> for f64 {
-    fn into(self) -> ShortAngle {
-        let u = self.abs();
-        let mut value1 = u.floor();
-        let mut value2 = 60.0 * (u - value1);
-
-        if value1 == 0.0 {
-            value2 = value2.copysign(self);
-        } else {
-            value1 = value1.copysign(self);
-        }
-
-        ShortAngle(value1 as i32, value2)
     }
 }
 
@@ -77,27 +77,72 @@ impl AngleSign for ShortAngle {
     }
 }
 
-impl AngleValue for ShortAngle {
-    fn normalize(&self) -> Self {
-        let total = 60.0 * (self.0 as f64) + self.1;
+impl convert::Into<ShortAngle> for Left {
+    fn into(self) -> ShortAngle {
+        let v = self.0.abs();
+        let u = v.floor();
 
-        let t = total.abs();
-        let mut value1 = (t / 60.0).floor();
-        let mut value2 = t - 60.0 * value1;
-
-        if value1 == 0.0 {
-            value2 = value2.copysign(total);
-        } else {
-            value1 = value1.copysign(total);
-        }
-
-        ShortAngle(value1 as i32, value2)
-    }
-
-    fn units(&self) -> f64 {
-        (self.0.abs() as f64) + self.1.abs() / 60.0
+        let result = ShortAngle(u as i32, 60.0 * (v - u));
+        result.copysign(self.0)
     }
 }
+
+impl convert::Into<Left> for ShortAngle {
+    fn into(self) -> Left {
+        let mut value = (self.0.abs() as f64) + self.1.abs() / 60.0;
+        if self.0 < 0 || (self.0 == 0 && self.1 < 0.0) {
+            value = -value
+        }
+
+        Left(value)
+    }
+}
+
+impl convert::Into<ShortAngle> for Right {
+    fn into(self) -> ShortAngle {
+        let v = self.0.abs();
+        let u = (v / 60.0).floor();
+
+        let result = ShortAngle(u as i32, v - 60.0 * u);
+        result.copysign(self.0)
+    }
+}
+
+impl convert::Into<Right> for ShortAngle {
+    fn into(self) -> Right {
+        if self.0 != 0 {
+            let mut value = 60.0 * (self.0.abs() as f64) + self.1;
+            if self.0 < 0 { value = -value }
+            Right(value)
+        } else {
+            Right(self.1)
+        }
+    }
+}
+
+impl AngleTransform for ShortAngle {
+    fn copysign(&self, value: f64) -> Self {
+        let ShortAngle(value1, value2) = *self;
+
+        if value1 != 0 {
+            let mut value1 = value1.abs();
+            if value < 0.0 { value1 = -value1 }
+            ShortAngle(value1, value2)
+        } else {
+            ShortAngle(value1, value2.copysign(value))
+        }
+    }
+
+    fn normalize(&self) -> Self {
+        let t = 60.0 * (self.0 as f64) + self.1;
+        let v = t.abs();
+        let u = (t / 60.0).floor();
+
+        let result = ShortAngle(u as i32, v - 60.0 * u);
+        result.copysign(t)
+    }
+}
+
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 struct LongAngle(i32, i8, f64);
@@ -105,28 +150,6 @@ struct LongAngle(i32, i8, f64);
 impl default::Default for LongAngle {
     fn default() -> Self {
         Self(0, 0, 0.0)
-    }
-}
-
-impl convert::Into<LongAngle> for f64 {
-    fn into(self) -> LongAngle {
-        let u = self.abs();
-        let mut value1 = u.floor();
-        let value3 = 60.0 * (u - value1);
-        let mut value2 = value3.floor();
-        let mut value3 = 60.0 * (value3 - value2);
-
-        if value1 == 0.0 {
-            if value2 == 0.0 {
-                value3 = value3.copysign(self);
-            } else {
-                value2 = value2.copysign(self);
-            }
-        } else {
-            value1 = value1.copysign(self);
-        }
-
-        LongAngle(value1 as i32, value2 as i8, value3)
     }
 }
 
@@ -144,34 +167,116 @@ impl AngleSign for LongAngle {
     }
 }
 
-impl AngleValue for LongAngle {
-    fn normalize(&self) -> Self {
-        let total = 60.0 * ((self.0 * 60 + self.1 as i32) as f64) + self.2;
-        let t = total.abs();
+impl convert::Into<LongAngle> for Left {
+    fn into(self) -> LongAngle {
+        let v = self.0.abs();
+        let u = v.floor();
+        let w = 60.0 * (v - u);
+        let m = (w / 60.0).floor();
 
-        let value2 = (t / 60.0).floor();
-        let mut value3 = t - 60.0 * value2;
-        let mut value1 = (value2 / 60.0).floor();
-        let mut value2 = value2 - 60.0 * value1;
-
-        if value1 == 0.0 {
-            if value2 == 0.0 {
-                value3 = value3.copysign(total);
-            } else {
-                value2 = value2.copysign(total);
-            }
-        } else {
-            value1 = value1.copysign(total);
-        }
-
-        LongAngle(value1 as i32, value2 as i8, value3)
-    }
-
-    fn units(&self) -> f64 {
-        (self.0.abs() as f64) + ((self.1.abs() as f64)
-            + self.2.abs() / 60.0) / 60.0
+        let result = LongAngle(u as i32, m as i8, 60.0 * (w - m));
+        result.copysign(self.0)
     }
 }
+
+impl convert::Into<Left> for LongAngle {
+    fn into(self) -> Left {
+        let mut value = (self.0.abs() as f64) + ((self.1.abs() as f64) + self.2.abs() / 60.0) / 60.0;
+        if self.0 < 0 || (self.0 == 0 &&
+            (self.1 < 0 || (self.1 == 0 && self.2 < 0.0))
+        ) { value = -value }
+
+        Left(value)
+    }
+}
+
+impl convert::Into<LongAngle> for Middle {
+    fn into(self) -> LongAngle {
+        let v = self.0.abs();
+        let w = v.floor();
+        let u = (w / 60.0).floor();
+        let m = w - 60.0 * u;
+
+        let result = LongAngle(u as i32, m as i8, 60.0 * (v - w));
+        result.copysign(self.0)
+    }
+}
+
+impl convert::Into<Middle> for LongAngle {
+    fn into(self) -> Middle {
+        if self.0 != 0 {
+            let mut value =
+                60.0 * (self.0.abs() as f64) + (self.1.abs() as f64) + self.2.abs() / 60.0;
+            if self.0 < 0 { value = -value }
+            Middle(value)
+        } else if self.1 != 0 {
+            let mut value = (self.1.abs() as f64) + self.2.abs() / 60.0;
+            if self.1 < 0 { value = -value }
+            Middle(value)
+        } else {
+            Middle(self.2 / 60.0)
+        }
+    }
+}
+
+impl convert::Into<LongAngle> for Right {
+    fn into(self) -> LongAngle {
+        let v = self.0.abs();
+        let w = (v / 60.0).floor();
+        let u = (w / 60.0).floor();
+        let m = w - 60.0 * u;
+
+        let result = LongAngle(u as i32, m as i8, v - 60.0 * w);
+        result.copysign(self.0)
+    }
+}
+
+impl convert::Into<Right> for LongAngle {
+    fn into(self) -> Right {
+        if self.0 != 0 {
+            let mut value =
+                self.2.abs() + 60.0 * ((self.1.abs() as f64) + 60.0 * (self.0.abs() as f64));
+            if self.0 < 0 { value = -value }
+            Right(value)
+        } else if self.1 != 0 {
+            let mut value = self.2.abs() + 60.0 * (self.1.abs() as f64);
+            if self.1 < 0 { value = -value }
+            Right(value)
+        } else {
+            Right(self.2)
+        }
+    }
+}
+
+impl AngleTransform for LongAngle {
+    fn copysign(&self, value: f64) -> Self {
+        let LongAngle(value1, value2, value3) = *self;
+
+        if value1 != 0 {
+            let mut value1 = value1.abs();
+            if value < 0.0 { value1 = -value1 };
+            LongAngle(value1, value2, value3)
+        } else if value2 != 0 {
+            let mut value2 = value2.abs();
+            if value < 0.0 { value2 = -value2 }
+            LongAngle(value1, value2, value3)
+        } else {
+            LongAngle(value1, value2, value3.copysign(value))
+        }
+    }
+
+    fn normalize(&self) -> Self {
+        let t = 60.0 * ((self.0 * 60 + self.1 as i32) as f64) + self.2;
+        let v = t.abs();
+        let w = (v / 60.0).floor();
+        let u = (w / 60.0).floor();
+        let m = w - 60.0 * u;
+
+        let result = LongAngle(u as i32, m as i8, v - 60.0 * w);
+        result.copysign(t)
+    }
+}
+
 
 macro_rules! impl_default {
     ($t:ty) => (
@@ -208,6 +313,7 @@ impl AngleRevolutions {
     }
 }
 
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct AngleArcDegrees(f64);
 
@@ -233,6 +339,7 @@ impl AngleArcDegrees {
     }
 }
 
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct AngleArcDegreesMinutes(ShortAngle);
 
@@ -244,17 +351,19 @@ impl default::Default for AngleArcDegreesMinutes {
 
 impl convert::Into<f64> for AngleArcDegreesMinutes {
     fn into(self) -> f64 {
-        self.0.value() * RAD
+        self.value() * RAD
     }
 }
 
 impl AngleArcDegreesMinutes {
     pub fn degrees(&self) -> i32 {
-        self.0.0.abs()
+        let AngleArcDegreesMinutes(ShortAngle(degrees, _)) = *self;
+        degrees.abs()
     }
 
     pub fn minutes(&self) -> f64 {
-        self.0.1.abs()
+        let AngleArcDegreesMinutes(ShortAngle(_, minutes)) = *self;
+        minutes.abs()
     }
 
     pub fn sign(&self) -> Sign {
@@ -262,13 +371,15 @@ impl AngleArcDegreesMinutes {
     }
 
     pub fn value(&self) -> f64 {
-        self.0.value()
+        let Left(value) = self.0.into();
+        value
     }
 
     fn new(degrees: i32, minutes: f64) -> AngleArcDegreesMinutes {
         AngleArcDegreesMinutes(ShortAngle(degrees, minutes).normalize())
     }
 }
+
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct AngleArcDegreesMinutesSeconds(LongAngle);
@@ -281,21 +392,24 @@ impl default::Default for AngleArcDegreesMinutesSeconds {
 
 impl convert::Into<f64> for AngleArcDegreesMinutesSeconds {
     fn into(self) -> f64 {
-        self.0.value() * RAD
+        self.value() * RAD
     }
 }
 
 impl AngleArcDegreesMinutesSeconds {
     pub fn degrees(&self) -> i32 {
-        self.0.0.abs()
+        let AngleArcDegreesMinutesSeconds(LongAngle(degrees, ..)) = *self;
+        degrees.abs()
     }
 
     pub fn minutes(&self) -> i32 {
-        self.0.1.abs() as i32
+        let AngleArcDegreesMinutesSeconds(LongAngle(_, minutes, _)) = *self;
+        minutes.abs() as i32
     }
 
     pub fn seconds(&self) -> f64 {
-        self.0.2.abs()
+        let AngleArcDegreesMinutesSeconds(LongAngle(.., seconds)) = *self;
+        seconds.abs()
     }
 
     pub fn sign(&self) -> Sign {
@@ -303,7 +417,8 @@ impl AngleArcDegreesMinutesSeconds {
     }
 
     pub fn value(&self) -> f64 {
-        self.0.value()
+        let Left(value) = self.0.into();
+        value
     }
 
     fn new(degrees: i32, minutes: i32, seconds: f64) -> AngleArcDegreesMinutesSeconds {
@@ -317,6 +432,7 @@ impl AngleArcDegreesMinutesSeconds {
     }
 }
 
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct AngleArcMinutes(f64);
 
@@ -324,7 +440,7 @@ impl_default!(AngleArcMinutes);
 
 impl convert::Into<f64> for AngleArcMinutes {
     fn into(self) -> f64 {
-        RAD * (self.0 / 60.0)
+        self.0 * RAD_IN_AMIN
     }
 }
 
@@ -342,22 +458,25 @@ impl AngleArcMinutes {
     }
 }
 
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct AngleArcMinutesSeconds(ShortAngle);
 
 impl convert::Into<f64> for AngleArcMinutesSeconds {
     fn into(self) -> f64 {
-        (self.0.value() / 60.0) * RAD
+        self.value() * RAD_IN_AMIN
     }
 }
 
 impl AngleArcMinutesSeconds {
     pub fn minutes(&self) -> i32 {
-        self.0.0.abs()
+        let AngleArcMinutesSeconds(ShortAngle(minutes, _)) = *self;
+        minutes.abs()
     }
 
     pub fn seconds(&self) -> f64 {
-        self.0.1.abs()
+        let AngleArcMinutesSeconds(ShortAngle(_, seconds)) = *self;
+        seconds.abs()
     }
 
     pub fn sign(&self) -> Sign {
@@ -365,13 +484,15 @@ impl AngleArcMinutesSeconds {
     }
 
     pub fn value(&self) -> f64 {
-        self.0.value()
+        let Left(value) = self.0.into();
+        value
     }
 
     fn new(minutes: i32, seconds: f64) -> AngleArcMinutesSeconds {
         AngleArcMinutesSeconds(ShortAngle(minutes, seconds).normalize())
     }
 }
+
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct AngleArcSeconds(f64);
@@ -398,6 +519,7 @@ impl AngleArcSeconds {
     }
 }
 
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct AngleTimeHours(f64);
 
@@ -405,7 +527,7 @@ impl_default!(AngleTimeHours);
 
 impl convert::Into<f64> for AngleTimeHours {
     fn into(self) -> f64 {
-        RAD * (self.0 * 15.0)
+        self.0 * RAD_IN_THRS
     }
 }
 
@@ -423,6 +545,7 @@ impl AngleTimeHours {
     }
 }
 
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct AngleTimeHoursMinutes(ShortAngle);
 
@@ -434,17 +557,19 @@ impl default::Default for AngleTimeHoursMinutes {
 
 impl convert::Into<f64> for AngleTimeHoursMinutes {
     fn into(self) -> f64 {
-        (self.0.value() * 15.0) * RAD
+        self.value() * RAD_IN_THRS
     }
 }
 
 impl AngleTimeHoursMinutes {
     pub fn hours(&self) -> i32 {
-        self.0.0.abs()
+        let AngleTimeHoursMinutes(ShortAngle(hours, _)) = *self;
+        hours.abs()
     }
 
     pub fn minutes(&self) -> f64 {
-        self.0.1.abs()
+        let AngleTimeHoursMinutes(ShortAngle(_, minutes)) = *self;
+        minutes.abs()
     }
 
     pub fn sign(&self) -> Sign {
@@ -452,13 +577,15 @@ impl AngleTimeHoursMinutes {
     }
 
     pub fn value(&self) -> f64 {
-        self.0.value()
+        let Left(value) = self.0.into();
+        value
     }
 
     fn new(hours: i32, minutes: f64) -> AngleTimeHoursMinutes {
         AngleTimeHoursMinutes(ShortAngle(hours, minutes).normalize())
     }
 }
+
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct AngleTimeHoursMinutesSeconds(LongAngle);
@@ -471,21 +598,24 @@ impl default::Default for AngleTimeHoursMinutesSeconds {
 
 impl convert::Into<f64> for AngleTimeHoursMinutesSeconds {
     fn into(self) -> f64 {
-        (self.0.value() * 15.0) * RAD
+        self.value() * RAD_IN_THRS
     }
 }
 
 impl AngleTimeHoursMinutesSeconds {
     pub fn hours(&self) -> i32 {
-        self.0.0.abs()
+        let AngleTimeHoursMinutesSeconds(LongAngle(hours, ..)) = *self;
+        hours.abs()
     }
 
     pub fn minutes(&self) -> i32 {
-        self.0.1.abs() as i32
+        let AngleTimeHoursMinutesSeconds(LongAngle(_, minutes, _)) = *self;
+        minutes.abs() as i32
     }
 
     pub fn seconds(&self) -> f64 {
-        self.0.2.abs()
+        let AngleTimeHoursMinutesSeconds(LongAngle(.., seconds)) = *self;
+        seconds.abs()
     }
 
     pub fn sign(&self) -> Sign {
@@ -493,7 +623,8 @@ impl AngleTimeHoursMinutesSeconds {
     }
 
     pub fn value(&self) -> f64 {
-        self.0.value()
+        let Left(value) = self.0.into();
+        value
     }
 
     fn new(hours: i32, minutes: i32, seconds: f64) -> AngleTimeHoursMinutesSeconds {
@@ -507,6 +638,7 @@ impl AngleTimeHoursMinutesSeconds {
     }
 }
 
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct AngleTimeMinutes(f64);
 
@@ -514,7 +646,7 @@ impl_default!(AngleTimeMinutes);
 
 impl convert::Into<f64> for AngleTimeMinutes {
     fn into(self) -> f64 {
-        RAD * (self.0 / 4.0)
+        self.0 * RAD_IN_TMIN
     }
 }
 
@@ -532,6 +664,7 @@ impl AngleTimeMinutes {
     }
 }
 
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct AngleTimeMinutesSeconds(ShortAngle);
 
@@ -543,17 +676,19 @@ impl default::Default for AngleTimeMinutesSeconds {
 
 impl convert::Into<f64> for AngleTimeMinutesSeconds {
     fn into(self) -> f64 {
-        (self.0.value() / 4.0) * RAD
+        self.value() * RAD_IN_TMIN
     }
 }
 
 impl AngleTimeMinutesSeconds {
     pub fn minutes(&self) -> i32 {
-        self.0.0.abs()
+        let AngleTimeMinutesSeconds(ShortAngle(minutes, _)) = *self;
+        minutes.abs()
     }
 
     pub fn seconds(&self) -> f64 {
-        self.0.1.abs()
+        let AngleTimeMinutesSeconds(ShortAngle(_, seconds)) = *self;
+        seconds.abs()
     }
 
     pub fn sign(&self) -> Sign {
@@ -561,13 +696,15 @@ impl AngleTimeMinutesSeconds {
     }
 
     pub fn value(&self) -> f64 {
-        self.0.value()
+        let Left(value) = self.0.into();
+        value
     }
 
     fn new(minutes: i32, seconds: f64) -> AngleTimeMinutesSeconds {
         AngleTimeMinutesSeconds(ShortAngle(minutes, seconds).normalize())
     }
 }
+
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct AngleTimeSeconds(f64);
@@ -576,7 +713,7 @@ impl_default!(AngleTimeSeconds);
 
 impl convert::Into<f64> for AngleTimeSeconds {
     fn into(self) -> f64 {
-        (self.0 * 15.0) / ARCS
+        self.0 / TSEC
     }
 }
 
@@ -593,6 +730,7 @@ impl AngleTimeSeconds {
         self.0
     }
 }
+
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Angle {
@@ -651,40 +789,46 @@ impl convert::Into<AngleRevolutions> for Angle {
             Angle::Radians(r) => AngleRevolutions(r / MULT_2_PI),
             Angle::Revolutions(r) => r,
             Angle::ArcDegrees(AngleArcDegrees(d)) => {
-                AngleRevolutions(d / 360.0)
+                AngleRevolutions(d / ADEG_IN_REV)
             },
             Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(dm)) => {
-                AngleRevolutions(dm.value() / 360.0)
+                let Left(degrees) = dm.into();
+                AngleRevolutions(degrees / ADEG_IN_REV)
             },
             Angle::ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds(dms)) => {
-                AngleRevolutions(dms.value() / 360.0)
+                let Left(degrees) = dms.into();
+                AngleRevolutions(degrees / ADEG_IN_REV)
             },
             Angle::ArcMinutes(AngleArcMinutes(m)) => {
-                AngleRevolutions(m / 21600.0)
+                AngleRevolutions(m / AMIN_IN_REV)
             },
             Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
-                AngleRevolutions(ms.value() / 21600.0)
+                let Left(minutes) = ms.into();
+                AngleRevolutions(minutes / AMIN_IN_REV)
             },
             Angle::ArcSeconds(AngleArcSeconds(s)) => {
-                AngleRevolutions(s / 1296000.0)
+                AngleRevolutions(s / ASEC_IN_REV)
             },
             Angle::TimeHours(AngleTimeHours(h)) => {
-                AngleRevolutions(h / 24.0)
+                AngleRevolutions(h / THRS_IN_REV)
             },
             Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
-                AngleRevolutions(hm.value() / 24.0)
+                let Left(hours) = hm.into();
+                AngleRevolutions(hours / THRS_IN_REV)
             },
             Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
-                AngleRevolutions(hms.value() / 24.0)
+                let Left(hours) = hms.into();
+                AngleRevolutions(hours / THRS_IN_REV)
             },
             Angle::TimeMinutes(AngleTimeMinutes(m)) => {
-                AngleRevolutions(m / 1440.0)
+                AngleRevolutions(m / TMIN_IN_REV)
             },
             Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
-                AngleRevolutions(ms.value() / 1440.0)
+                let Left(minutes) = ms.into();
+                AngleRevolutions(minutes / TMIN_IN_REV)
             },
             Angle::TimeSeconds(AngleTimeSeconds(s)) => {
-                AngleRevolutions(s / 86400.0)
+                AngleRevolutions(s / TSEC_IN_REV)
             }
         }
     }
@@ -706,20 +850,23 @@ impl convert::Into<AngleArcDegrees> for Angle {
                 AngleArcDegrees(DEG * r)
             },
             Angle::Revolutions(AngleRevolutions(r)) => {
-                AngleArcDegrees(360.0 * r)
+                AngleArcDegrees(ADEG_IN_REV * r)
             },
             Angle::ArcDegrees(d) => d,
             Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(dm)) => {
-                AngleArcDegrees(dm.value())
+                let Left(degrees) = dm.into();
+                AngleArcDegrees(degrees)
             },
             Angle::ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds(dms)) => {
-                AngleArcDegrees(dms.value())
+                let Left(degrees) = dms.into();
+                AngleArcDegrees(degrees)
             },
             Angle::ArcMinutes(AngleArcMinutes(m)) => {
                 AngleArcDegrees(m / 60.0)
             },
             Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
-                AngleArcDegrees(ms.value() / 60.0)
+                let Left(minutes) = ms.into();
+                AngleArcDegrees(minutes / 60.0)
             },
             Angle::ArcSeconds(AngleArcSeconds(s)) => {
                 AngleArcDegrees(s / 3600.0)
@@ -728,16 +875,19 @@ impl convert::Into<AngleArcDegrees> for Angle {
                 AngleArcDegrees(h * 15.0)
             },
             Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
-                AngleArcDegrees(hm.value() * 15.0)
+                let Left(hours) = hm.into();
+                AngleArcDegrees(hours * 15.0)
             },
             Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
-                AngleArcDegrees(hms.value() * 15.0)
+                let Left(hours) = hms.into();
+                AngleArcDegrees(hours * 15.0)
             },
             Angle::TimeMinutes(AngleTimeMinutes(m)) => {
                 AngleArcDegrees(m / 4.0)
             },
             Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
-                AngleArcDegrees(ms.value() / 4.0)
+                let Left(minutes) = ms.into();
+                AngleArcDegrees(minutes / 4.0)
             },
             Angle::TimeSeconds(AngleTimeSeconds(s)) => {
                 AngleArcDegrees(s / 240.0)
@@ -759,7 +909,7 @@ impl convert::Into<AngleArcDegreesMinutes> for Angle {
     fn into(self) -> AngleArcDegreesMinutes {
         match self {
             Angle::Radians(r) => {
-                AngleArcDegreesMinutes((DEG * r).into())
+                AngleArcDegreesMinutes(ShortAngle::from_left_value(DEG * r))
             },
             Angle::Revolutions(AngleRevolutions(r)) => {
                 AngleArcDegreesMinutes((360.0 * r).into())
@@ -772,13 +922,13 @@ impl convert::Into<AngleArcDegreesMinutes> for Angle {
                 AngleArcDegreesMinutesSeconds(LongAngle(d, m, s))
             ) => {
                 let ms = ShortAngle(m as i32, s);
-                AngleArcDegreesMinutes(ShortAngle(d, ms.value()))
+                AngleArcDegreesMinutes(ShortAngle(d, ms.left_value()))
             },
             Angle::ArcMinutes(AngleArcMinutes(m)) => {
                 AngleArcDegreesMinutes(ShortAngle(0, m).normalize())
             },
             Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
-                AngleArcDegreesMinutes(ShortAngle(0, ms.value()).normalize())
+                AngleArcDegreesMinutes(ShortAngle(0, ms.left_value()).normalize())
             },
             Angle::ArcSeconds(AngleArcSeconds(s)) => {
                 AngleArcDegreesMinutes(ShortAngle(0, s / 60.0).normalize())
@@ -787,16 +937,16 @@ impl convert::Into<AngleArcDegreesMinutes> for Angle {
                 AngleArcDegreesMinutes((15.0 * h).into())
             },
             Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
-                AngleArcDegreesMinutes((15.0 * hm.value()).into())
+                AngleArcDegreesMinutes((15.0 * hm.left_value()).into())
             },
             Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
-                AngleArcDegreesMinutes((15.0 * hms.value()).into())
+                AngleArcDegreesMinutes((15.0 * hms.left_value()).into())
             }
             Angle::TimeMinutes(AngleTimeMinutes(m)) => {
                 AngleArcDegreesMinutes(ShortAngle(0, 15.0 * m).normalize())
             },
             Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
-                AngleArcDegreesMinutes(ShortAngle(0, 15.0 * ms.value()).normalize())
+                AngleArcDegreesMinutes(ShortAngle(0, 15.0 * ms.left_value()).normalize())
             },
             Angle::TimeSeconds(AngleTimeSeconds(s)) => {
                 AngleArcDegreesMinutes(ShortAngle(0, s / 4.0).normalize())
@@ -835,7 +985,7 @@ impl convert::Into<AngleArcDegreesMinutesSeconds> for Angle {
                 AngleArcDegreesMinutesSeconds((m / 60.0).into())
             },
             Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
-                AngleArcDegreesMinutesSeconds((ms.value() / 60.0).into())
+                AngleArcDegreesMinutesSeconds((ms.left_value() / 60.0).into())
             },
             Angle::ArcSeconds(AngleArcSeconds(s)) => {
                 AngleArcDegreesMinutesSeconds((s / 3600.0).into())
@@ -844,16 +994,16 @@ impl convert::Into<AngleArcDegreesMinutesSeconds> for Angle {
                 AngleArcDegreesMinutesSeconds((15.0 * h).into())
             },
             Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
-                AngleArcDegreesMinutesSeconds((15.0 * hm.value()).into())
+                AngleArcDegreesMinutesSeconds((15.0 * hm.left_value()).into())
             },
             Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
-                AngleArcDegreesMinutesSeconds((15.0 * hms.value()).into())
+                AngleArcDegreesMinutesSeconds((15.0 * hms.left_value()).into())
             },
             Angle::TimeMinutes(AngleTimeMinutes(m)) => {
                 AngleArcDegreesMinutesSeconds((m / 4.0).into())
             },
             Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
-                AngleArcDegreesMinutesSeconds((ms.value() / 4.0).into())
+                AngleArcDegreesMinutesSeconds((ms.left_value() / 4.0).into())
             },
             Angle::TimeSeconds(AngleTimeSeconds(s)) => {
                 AngleArcDegreesMinutesSeconds((s / 240.0).into())
@@ -873,7 +1023,74 @@ impl convert::Into<Option<AngleArcDegreesMinutesSeconds>> for Angle {
 
 impl convert::Into<AngleArcMinutes> for Angle {
     fn into(self) -> AngleArcMinutes {
-        todo!();
+        match self {
+            Angle::Radians(r) => {
+                AngleArcMinutes(60.0 * DEG * r)
+            },
+            Angle::Revolutions(AngleRevolutions(r)) => {
+                AngleArcMinutes(21600.0 * r)
+            },
+            Angle::ArcDegrees(AngleArcDegrees(d)) => {
+                AngleArcMinutes(60.0 * d)
+            },
+            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(ShortAngle(d, m))) => {
+                if d != 0 {
+                    let mut m = 60.0 * (d.abs() as f64) + m;
+                    if d < 0 { m = -m }
+                    AngleArcMinutes(m)
+                } else {
+                    AngleArcMinutes(m)
+                }
+            },
+            Angle::ArcDegreesMinutesSeconds(
+                AngleArcDegreesMinutesSeconds(LongAngle(d, m, s))
+            ) => {
+                if d != 0 {
+                    let mut m = 60.0 * (d.abs() as f64) + (m as f64) + s / 60.0;
+                    if d < 0 { m = -m }
+                    AngleArcMinutes(m)
+                } else if m != 0 {
+                    let d = m;
+                    let mut m = (m.abs() as f64) + s / 60.0;
+                    if d < 0 { m = -m }
+                    AngleArcMinutes(m)
+                } else {
+                    AngleArcMinutes(s / 60.0)
+                }
+            },
+            Angle::ArcMinutes(m) => m,
+            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ShortAngle(m, s))) => {
+                if m != 0 {
+                    let d = m;
+                    let mut m = (m.abs() as f64) + s / 60.0;
+                    if d < 0 { m = -m }
+                    AngleArcMinutes(m)
+                } else {
+                    AngleArcMinutes(s / 60.0)
+                }
+            },
+            Angle::ArcSeconds(AngleArcSeconds(s)) => {
+                AngleArcMinutes(s / 60.0)
+            },
+            Angle::TimeHours(AngleTimeHours(h)) => {
+                AngleArcMinutes(900.0 * h)
+            },
+            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
+                AngleArcMinutes(900.0 * hm.left_value())
+            },
+            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
+                AngleArcMinutes(900.0 * hms.left_value())
+            },
+            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
+                AngleArcMinutes(15.0 * m)
+            },
+            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
+                AngleArcMinutes(15.0 * ms.left_value())
+            },
+            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
+                AngleArcMinutes(s / 60.0)
+            }
+        }
     }
 }
 
@@ -888,7 +1105,75 @@ impl convert::Into<Option<AngleArcMinutes>> for Angle {
 
 impl convert::Into<AngleArcMinutesSeconds> for Angle {
     fn into(self) -> AngleArcMinutesSeconds {
-        todo!();
+        match self {
+            Angle::Radians(r) => {
+                AngleArcMinutesSeconds((60.0 * DEG * r).into())
+            },
+            Angle::Revolutions(AngleRevolutions(r)) => {
+                AngleArcMinutesSeconds((21600.0 * r).into())
+            },
+            Angle::ArcDegrees(AngleArcDegrees(d)) => {
+                AngleArcMinutesSeconds((60.0 * d).into())
+            },
+            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(ShortAngle(d, m))) => {
+                let m = if d != 0 {
+                    let v = 60.0 * (d.abs() as f64) + m;
+                    if d < 0 { -v } else { v }
+                } else {
+                    m
+                };
+
+                AngleArcMinutesSeconds(m.into())
+            },
+            Angle::ArcDegreesMinutesSeconds(
+                AngleArcDegreesMinutesSeconds(LongAngle(d, m, s))
+            ) => {
+                if d != 0 {
+                    let mut m = 60.0 * (d.abs() as f64) + (m as f64) + s / 60.0;
+                    if d < 0 { m = -m }
+                    AngleArcMinutes(m)
+                } else if m != 0 {
+                    let d = m;
+                    let mut m = (m.abs() as f64) + s / 60.0;
+                    if d < 0 { m = -m }
+                    AngleArcMinutes(m)
+                } else {
+                    AngleArcMinutes(s / 60.0)
+                }
+            },
+            Angle::ArcMinutes(m) => m,
+            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ShortAngle(m, s))) => {
+                if m != 0 {
+                    let d = m;
+                    let mut m = (m.abs() as f64) + s / 60.0;
+                    if d < 0 { m = -m }
+                    AngleArcMinutes(m)
+                } else {
+                    AngleArcMinutes(s / 60.0)
+                }
+            },
+            Angle::ArcSeconds(AngleArcSeconds(s)) => {
+                AngleArcMinutes(s / 60.0)
+            },
+            Angle::TimeHours(AngleTimeHours(h)) => {
+                AngleArcMinutes(900.0 * h)
+            },
+            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
+                AngleArcMinutes(900.0 * hm.left_value())
+            },
+            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
+                AngleArcMinutes(900.0 * hms.left_value())
+            },
+            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
+                AngleArcMinutes(15.0 * m)
+            },
+            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
+                AngleArcMinutes(15.0 * ms.left_value())
+            },
+            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
+                AngleArcMinutes(s / 60.0)
+            }
+        }
     }
 }
 
