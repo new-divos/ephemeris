@@ -650,41 +650,41 @@ impl convert::Into<AngleRevolutions> for Angle {
         match self {
             Angle::Radians(r) => AngleRevolutions(r / MULT_2_PI),
             Angle::Revolutions(r) => r,
-            Angle::ArcDegrees(d) => {
-                AngleRevolutions(d.0 / 360.0)
+            Angle::ArcDegrees(AngleArcDegrees(d)) => {
+                AngleRevolutions(d / 360.0)
             },
-            Angle::ArcDegreesMinutes(dm) => {
-                AngleRevolutions(dm.0.value() / 360.0)
+            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(dm)) => {
+                AngleRevolutions(dm.value() / 360.0)
             },
-            Angle::ArcDegreesMinutesSeconds(dms) => {
-                AngleRevolutions(dms.0.value() / 360.0)
+            Angle::ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds(dms)) => {
+                AngleRevolutions(dms.value() / 360.0)
             },
-            Angle::ArcMinutes(m) => {
-                AngleRevolutions(m.0 / (360.0 * 60.0))
+            Angle::ArcMinutes(AngleArcMinutes(m)) => {
+                AngleRevolutions(m / 21600.0)
             },
-            Angle::ArcMinutesSeconds(ms) => {
-                AngleRevolutions(ms.0.value() / (360.0 * 60.0))
+            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
+                AngleRevolutions(ms.value() / 21600.0)
             },
-            Angle::ArcSeconds(s) => {
-                AngleRevolutions(s.0 / (360.0 * 3600.0))
+            Angle::ArcSeconds(AngleArcSeconds(s)) => {
+                AngleRevolutions(s / 1296000.0)
             },
-            Angle::TimeHours(h) => {
-                AngleRevolutions(h.0 / 24.0)
+            Angle::TimeHours(AngleTimeHours(h)) => {
+                AngleRevolutions(h / 24.0)
             },
-            Angle::TimeHoursMinutes(hm) => {
-                AngleRevolutions(hm.0.value() / 24.0)
+            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
+                AngleRevolutions(hm.value() / 24.0)
             },
-            Angle::TimeHoursMinutesSeconds(hms) => {
-                AngleRevolutions(hms.0.value() / 24.0)
+            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
+                AngleRevolutions(hms.value() / 24.0)
             },
-            Angle::TimeMinutes(m) => {
-                AngleRevolutions(m.0 / (24.0 * 60.0))
+            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
+                AngleRevolutions(m / 1440.0)
             },
-            Angle::TimeMinutesSeconds(ms) => {
-                AngleRevolutions(ms.0.value() / (24.0 * 60.0))
+            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
+                AngleRevolutions(ms.value() / 1440.0)
             },
-            Angle::TimeSeconds(s) => {
-                AngleRevolutions(s.0 / (24.0 * 3600.0))
+            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
+                AngleRevolutions(s / 86400.0)
             }
         }
     }
@@ -705,42 +705,42 @@ impl convert::Into<AngleArcDegrees> for Angle {
             Angle::Radians(r) => {
                 AngleArcDegrees(DEG * r)
             },
-            Angle::Revolutions(r) => {
-                AngleArcDegrees(360.0 * r.0)
+            Angle::Revolutions(AngleRevolutions(r)) => {
+                AngleArcDegrees(360.0 * r)
             },
             Angle::ArcDegrees(d) => d,
-            Angle::ArcDegreesMinutes(dm) => {
-                AngleArcDegrees(dm.0.value())
+            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(dm)) => {
+                AngleArcDegrees(dm.value())
             },
-            Angle::ArcDegreesMinutesSeconds(dms) => {
-                AngleArcDegrees(dms.0.value())
+            Angle::ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds(dms)) => {
+                AngleArcDegrees(dms.value())
             },
-            Angle::ArcMinutes(m) => {
-                AngleArcDegrees(m.0 / 60.0)
+            Angle::ArcMinutes(AngleArcMinutes(m)) => {
+                AngleArcDegrees(m / 60.0)
             },
-            Angle::ArcMinutesSeconds(ms) => {
-                AngleArcDegrees(ms.0.value() / 60.0)
+            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
+                AngleArcDegrees(ms.value() / 60.0)
             },
-            Angle::ArcSeconds(s) => {
-                AngleArcDegrees(s.0 / 3600.0)
+            Angle::ArcSeconds(AngleArcSeconds(s)) => {
+                AngleArcDegrees(s / 3600.0)
             },
-            Angle::TimeHours(h) => {
-                AngleArcDegrees(h.0 * 15.0)
+            Angle::TimeHours(AngleTimeHours(h)) => {
+                AngleArcDegrees(h * 15.0)
             },
-            Angle::TimeHoursMinutes(hm) => {
-                AngleArcDegrees(hm.0.value() * 15.0)
+            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
+                AngleArcDegrees(hm.value() * 15.0)
             },
-            Angle::TimeHoursMinutesSeconds(hms) => {
-                AngleArcDegrees(hms.0.value() * 15.0)
+            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
+                AngleArcDegrees(hms.value() * 15.0)
             },
-            Angle::TimeMinutes(m) => {
-                AngleArcDegrees(m.0 / 4.0)
+            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
+                AngleArcDegrees(m / 4.0)
             },
-            Angle::TimeMinutesSeconds(ms) => {
-                AngleArcDegrees(ms.0.value() / 4.0)
+            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
+                AngleArcDegrees(ms.value() / 4.0)
             },
-            Angle::TimeSeconds(s) => {
-                AngleArcDegrees(s.0 / 240.0)
+            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
+                AngleArcDegrees(s / 240.0)
             }
         }
     }
@@ -761,43 +761,45 @@ impl convert::Into<AngleArcDegreesMinutes> for Angle {
             Angle::Radians(r) => {
                 AngleArcDegreesMinutes((DEG * r).into())
             },
-            Angle::Revolutions(r) => {
-                AngleArcDegreesMinutes((360.0 * r.0).into())
+            Angle::Revolutions(AngleRevolutions(r)) => {
+                AngleArcDegreesMinutes((360.0 * r).into())
             },
-            Angle::ArcDegrees(d) => {
-                AngleArcDegreesMinutes(d.0.into())
+            Angle::ArcDegrees(AngleArcDegrees(d)) => {
+                AngleArcDegreesMinutes(d.into())
             },
             Angle::ArcDegreesMinutes(dm) => dm,
-            Angle::ArcDegreesMinutesSeconds(dms) => {
-                let ms = ShortAngle(dms.0.1 as i32, dms.0.2);
-                AngleArcDegreesMinutes(ShortAngle(dms.0.0, ms.value()))
+            Angle::ArcDegreesMinutesSeconds(
+                AngleArcDegreesMinutesSeconds(LongAngle(d, m, s))
+            ) => {
+                let ms = ShortAngle(m as i32, s);
+                AngleArcDegreesMinutes(ShortAngle(d, ms.value()))
             },
-            Angle::ArcMinutes(m) => {
-                AngleArcDegreesMinutes(ShortAngle(0, m.0).normalize())
+            Angle::ArcMinutes(AngleArcMinutes(m)) => {
+                AngleArcDegreesMinutes(ShortAngle(0, m).normalize())
             },
-            Angle::ArcMinutesSeconds(ms) => {
+            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
                 AngleArcDegreesMinutes(ShortAngle(0, ms.value()).normalize())
             },
-            Angle::ArcSeconds(s) => {
-                AngleArcDegreesMinutes(ShortAngle(0, s.0 / 60.0).normalize())
+            Angle::ArcSeconds(AngleArcSeconds(s)) => {
+                AngleArcDegreesMinutes(ShortAngle(0, s / 60.0).normalize())
             },
-            Angle::TimeHours(h) => {
-                AngleArcDegreesMinutes((15.0 * h.0).into())
+            Angle::TimeHours(AngleTimeHours(h)) => {
+                AngleArcDegreesMinutes((15.0 * h).into())
             },
-            Angle::TimeHoursMinutes(hm) => {
+            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
                 AngleArcDegreesMinutes((15.0 * hm.value()).into())
             },
-            Angle::TimeHoursMinutesSeconds(hms) => {
+            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
                 AngleArcDegreesMinutes((15.0 * hms.value()).into())
             }
-            Angle::TimeMinutes(m) => {
-                AngleArcDegreesMinutes(ShortAngle(0, 15.0 * m.0).normalize())
+            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
+                AngleArcDegreesMinutes(ShortAngle(0, 15.0 * m).normalize())
             },
-            Angle::TimeMinutesSeconds(ms) => {
+            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
                 AngleArcDegreesMinutes(ShortAngle(0, 15.0 * ms.value()).normalize())
             },
-            Angle::TimeSeconds(s) => {
-                AngleArcDegreesMinutes(ShortAngle(0, s.0 / 4.0).normalize())
+            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
+                AngleArcDegreesMinutes(ShortAngle(0, s / 4.0).normalize())
             }
         }
     }
@@ -814,7 +816,49 @@ impl convert::Into<Option<AngleArcDegreesMinutes>> for Angle {
 
 impl convert::Into<AngleArcDegreesMinutesSeconds> for Angle {
     fn into(self) -> AngleArcDegreesMinutesSeconds {
-        todo!();
+        match self {
+            Angle::Radians(r) => {
+                AngleArcDegreesMinutesSeconds((DEG * r).into())
+            },
+            Angle::Revolutions(AngleRevolutions(r)) => {
+                AngleArcDegreesMinutesSeconds((360.0 * r).into())
+            }
+            Angle::ArcDegrees(AngleArcDegrees(d)) => {
+                AngleArcDegreesMinutesSeconds(d.into())
+            },
+            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(ShortAngle(d, m))) => {
+                let ShortAngle(m, s) = m.into();
+                AngleArcDegreesMinutesSeconds(LongAngle(d, m as i8, s))
+            },
+            Angle::ArcDegreesMinutesSeconds(dms) => dms,
+            Angle::ArcMinutes(AngleArcMinutes(m)) => {
+                AngleArcDegreesMinutesSeconds((m / 60.0).into())
+            },
+            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
+                AngleArcDegreesMinutesSeconds((ms.value() / 60.0).into())
+            },
+            Angle::ArcSeconds(AngleArcSeconds(s)) => {
+                AngleArcDegreesMinutesSeconds((s / 3600.0).into())
+            },
+            Angle::TimeHours(AngleTimeHours(h)) => {
+                AngleArcDegreesMinutesSeconds((15.0 * h).into())
+            },
+            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
+                AngleArcDegreesMinutesSeconds((15.0 * hm.value()).into())
+            },
+            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
+                AngleArcDegreesMinutesSeconds((15.0 * hms.value()).into())
+            },
+            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
+                AngleArcDegreesMinutesSeconds((m / 4.0).into())
+            },
+            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
+                AngleArcDegreesMinutesSeconds((ms.value() / 4.0).into())
+            },
+            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
+                AngleArcDegreesMinutesSeconds((s / 240.0).into())
+            }
+        }
     }
 }
 
