@@ -6,14 +6,13 @@ pub mod error;
 use std::convert::From;
 use std::default::Default;
 use std::ops::{Add, AddAssign, Mul, MulAssign, Neg};
-use std::result;
 
 use num_traits::float::Float;
 
 use crate::base::error::Error;
 
 
-type Result<T> = result::Result<T, Error>;
+type Result<T> = std::result::Result<T, Error>;
 
 
 pub trait Real<T = Self> where T: Float
@@ -51,7 +50,7 @@ impl_real!(f32);
 /// Pair: Calculates cos(alpha+beta) and sin(alpha+beta) using addition
 /// theorems
 ///
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct PertPair(f64, f64);
 
 impl From<f64> for PertPair {
