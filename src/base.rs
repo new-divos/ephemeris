@@ -5,73 +5,65 @@ pub mod error;
 
 use std::convert::From;
 use std::default::Default;
-use std::ops::{Add, AddAssign, Neg};
+use std::ops::{Add, AddAssign, Mul, MulAssign, Neg};
 use std::result;
+
+use num_traits::float::Float;
 
 use crate::base::error::Error;
 
+
 type Result<T> = result::Result<T, Error>;
 
-///
-/// Frac: Gives the fractional part of a number
-///
-pub trait Fractional {
-    fn fractional(self) -> Self;
+
+pub trait Real<T = Self> where T: Float
+{
+    ///
+    /// frac: Gives the fractional part of a number
+    ///
+    fn frac(self) -> Self;
+
+    ///
+    /// fmod: calculates x mod y
+    ///
+    fn fmod(self, rhs: Self) -> Self;
 }
 
-macro_rules! impl_fractional {
+macro_rules! impl_real {
     ($t:ty) => (
-        impl Fractional for $t {
-            fn fractional(self) -> Self {
+        impl Real for $t {
+            fn frac(self) -> Self {
                 self - self.floor()
             }
-        }
-    );
-}
 
-impl_fractional!(f32);
-impl_fractional!(f64);
-
-///
-/// FMod: calculates x mod y
-///
-pub trait Modulo {
-    fn modulo(self, rhs: Self) -> Self;
-}
-
-macro_rules! impl_modulo {
-    ($t:ty) => (
-        impl Modulo for $t {
-            fn modulo(self, rhs: Self) -> Self {
+            fn fmod(self, rhs: Self) -> Self {
                 self - rhs * (self / rhs).floor()
             }
         }
     );
 }
 
-impl_modulo!(f32);
-impl_modulo!(f64);
+impl_real!(f64);
+impl_real!(f32);
+
 
 ///
 /// Pair: Calculates cos(alpha+beta) and sin(alpha+beta) using addition
 /// theorems
 ///
 #[derive(Debug, Copy, Clone)]
-pub struct PertPair {
-    c: f64,
-    s: f64
-}
+pub struct PertPair(f64, f64);
 
 impl From<f64> for PertPair {
     fn from(angle: f64) -> Self {
-        let v = angle.sin_cos();
-        Self { c: v.1, s: v.0 }
+        let (s, c) = angle.sin_cos();
+        Self(s, c)
     }
 }
 
 impl Default for PertPair {
     fn default() -> Self {
-        Self { c: 1.0, s: 0.0 }
+        Self::from_zero()
     }
 }
 
@@ -79,7 +71,7 @@ impl Neg for PertPair {
     type Output = Self;
 
     fn neg(self) -> Self {
-        PertPair { c: self.c, s: -self.s }
+        Self(-self.0, self.1)
     }
 }
 
@@ -87,10 +79,10 @@ impl Add for PertPair {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self {
-        Self {
-            c: self.c * rhs.c - self.s * rhs.s,
-            s: self.s * rhs.c + self.c * rhs.s
-        }
+        Self(
+            self.0 * rhs.1 + self.1 * rhs.0,
+            self.1 * rhs.1 - self.0 * rhs.0
+        )
     }
 }
 
@@ -100,12 +92,61 @@ impl AddAssign for PertPair {
     }
 }
 
+impl Mul<i32> for PertPair {
+    type Output = Self;
+
+    fn mul(self, rhs: i32) -> Self {
+        if rhs == 0 {
+            Self::from_zero()
+        } else if rhs == 1 {
+            self
+        } else if rhs == 2 {
+            Self(
+                2.0 * self.0 * self.1,
+                self.1 * self.1 - self.0 * self.0
+            )
+        } else if rhs < 0 {
+            let pair = self.mul(-rhs);
+            pair.neg()
+        } else if rhs & 1 == 0 {
+            let pair = self.mul(rhs >> 1);
+            pair.mul(2)
+        } else {
+            let pair = self.mul(rhs - 1);
+            pair.add(self)
+        }
+    }
+}
+
+impl Mul<PertPair> for i32 {
+    type Output = PertPair;
+
+    fn mul(self, rhs: PertPair) -> PertPair {
+        rhs.mul(self)
+    }
+}
+
+impl MulAssign<i32> for PertPair {
+    fn mul_assign(&mut self, rhs: i32) {
+        *self = self.mul(rhs);
+    }
+}
+
 impl PertPair {
-    pub fn c(&self) -> f64 {
-        self.c
+    pub fn from_zero() -> PertPair {
+        PertPair(0.0, 1.0)
     }
 
-    pub fn s(&self) -> f64 {
-        self.s
+    pub fn sin(&self) -> f64 {
+        self.0
+    }
+
+    pub fn cos(&self) -> f64 {
+        self.1
+    }
+
+    pub fn sin_cos(&self) -> (f64, f64) {
+        let PertPair(s, c) = *self;
+        (s, c)
     }
 }
