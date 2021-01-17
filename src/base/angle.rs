@@ -2,11 +2,11 @@ use std::convert;
 
 use crate::base::consts::{ARCS, DEG, MULT_2_PI, RAD};
 
-const TSEC: f64 = ARCS / 15.0;
+const TIMES: f64 = ARCS / 15.0;
 
-const RAD_IN_AMIN: f64 = RAD / 60.0;
-const RAD_IN_THRS: f64 = 15.0 * RAD;
-const RAD_IN_TMIN: f64 = RAD / 4.0;
+const RAD_FOR_ARCM: f64 = RAD / 60.0;
+const RAD_FOR_TIMEH: f64 = 15.0 * RAD;
+const RAD_FOR_TIMEM: f64 = RAD / 4.0;
 const AMIN_IN_RAD: f64 = 60.0 * DEG;
 const AMIN_IN_THRS: f64 = 15.0 * 60.0;
 const ASEC_IN_TMIN: f64 = 15.0 * 60.0;
@@ -152,9 +152,9 @@ impl AngleTransform for ShortAngle {
 }
 
 impl ShortAngle {
-    fn unpack(&self) -> (i32, f64) {
+    fn unpack(&self) -> (Sign, i32, f64) {
         let ShortAngle(value1, value2) = *self;
-        (value1, value2)
+        (self.sign(), value1.abs(), value2.abs())
     }
 }
 
@@ -288,435 +288,227 @@ impl AngleTransform for LongAngle {
 }
 
 impl LongAngle {
-    fn unpack(&self) -> (i32, i32, f64) {
+    fn unpack(&self) -> (Sign, i32, i32, f64) {
         let LongAngle(value1, value2, value3) = *self;
-        (value1, value2 as i32, value3)
+        (self.sign(), value1.abs(), (value2 as i32).abs(), value3.abs())
     }
 }
+
+
+macro_rules! impl_into {
+    ($t:ty; 0 * $e:expr) => {
+        impl convert::Into<f64> for $t {
+            fn into(self) -> f64 {
+                self.0 * $e
+            }
+        }
+    };
+    ($t:ty; 0 / $e:expr) => {
+        impl convert::Into<f64> for $t {
+            fn into(self) -> f64 {
+                self.0 / $e
+            }
+        }
+    };
+    ($t:ty; Left * $e:expr) => {
+        impl convert::Into<f64> for $t {
+            fn into(self) -> f64 {
+                let Left(value) = self.0.into();
+                value * $e
+            }
+        }
+    };
+    ($t:ty, Left / $e:expr) => {
+        impl convert::Into<f64> for $t {
+            fn into(self) -> f64 {
+                let Left(value) = self.0.into();
+                value / $e
+            }
+        }
+    };
+}
+
+macro_rules! impl_angle {
+    ($t:ty; $value:ident) => {
+        impl $t {
+            pub fn $value(&self) -> f64 {
+                self.0.abs()
+            }
+
+            pub fn sign(&self) -> Sign {
+                self.0.sign()
+            }
+
+            pub fn value(&self) -> f64 {
+                self.0
+            }
+
+            pub fn unpack(&self) -> (Sign, f64) {
+                (self.0.sign(), self.0.abs())
+            }
+        }
+    };
+    ($t:ty; $value1:ident, $value2:ident) => {
+        impl $t {
+            pub fn $value1(&self) -> i32 {
+                let Self(ShortAngle(value, _)) = *self;
+                value.abs()
+            }
+
+            pub fn $value2(&self) -> f64 {
+                let Self(ShortAngle(_, value)) = *self;
+                value.abs()
+            }
+
+            pub fn sigh(&self) -> Sign {
+                self.0.sign()
+            }
+
+            pub fn value(&self) -> f64 {
+                let Left(value) = self.0.into();
+                value
+            }
+
+            pub fn unpack(&self) -> (Sign, i32, f64) {
+                self.0.unpack()
+            }
+
+            fn new($value1: i32, $value2: f64) -> Self {
+                Self(ShortAngle($value1, $value2).normalize())
+            }
+        }
+    };
+    ($t:ty; $value1:ident, $value2:ident, $value3:ident) => {
+        impl $t {
+            pub fn $value1(&self) -> i32 {
+                let Self(LongAngle(value, ..)) = *self;
+                value.abs()
+            }
+
+            pub fn $value2(&self) -> i32 {
+                let Self(LongAngle(_, value, _)) = *self;
+                (value as i32).abs()
+            }
+
+            pub fn $value3(&self) -> f64 {
+                let Self(LongAngle(.., value)) = *self;
+                value.abs()
+            }
+
+            pub fn sign(&self) -> Sign {
+                self.0.sign()
+            }
+
+            pub fn value(&self) -> f64 {
+                let Left(value) = self.0.into();
+                value
+            }
+
+            pub fn unpack(&self) -> (Sign, i32, i32, f64) {
+                self.0.unpack()
+            }
+
+            fn new($value1: i32, $value2: i32, $value3: f64) -> Self {
+                let delta = $value2 / 60;
+                let $value1 = $value1 + delta;
+                let $value2 = ($value2 - 60 * delta) as i8;
+
+                Self(LongAngle($value1, $value2, $value3).normalize())
+            }
+        }
+    }
+}
+
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct AngleRevolutions(f64);
 
-impl convert::Into<f64> for AngleRevolutions {
-    fn into(self) -> f64 {
-        MULT_2_PI * self.0
-    }
-}
-
-impl AngleRevolutions {
-    fn revolutions(&self) -> f64 {
-        self.0.abs()
-    }
-
-    fn sign(&self) -> Sign {
-        self.0.sign()
-    }
-
-    fn value(&self) -> f64 {
-        self.0
-    }
-}
+impl_into!(AngleRevolutions; 0 * MULT_2_PI);
+impl_angle!(AngleRevolutions; revolutions);
 
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct AngleArcDegrees(f64);
 
-impl convert::Into<f64> for AngleArcDegrees {
-    fn into(self) -> f64 {
-        RAD * self.0
-    }
-}
-
-impl AngleArcDegrees {
-    fn degrees(&self) -> f64 {
-        self.0.abs()
-    }
-
-    fn sign(&self) -> Sign {
-        self.0.sign()
-    }
-
-    fn value(&self) -> f64 {
-        self.0
-    }
-}
+impl_into!(AngleArcDegrees; 0 * RAD);
+impl_angle!(AngleArcDegrees; degrees);
 
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct AngleArcDegreesMinutes(ShortAngle);
 
-impl convert::Into<f64> for AngleArcDegreesMinutes {
-    fn into(self) -> f64 {
-        self.value() * RAD
-    }
-}
-
-impl AngleArcDegreesMinutes {
-    pub fn degrees(&self) -> i32 {
-        let AngleArcDegreesMinutes(ShortAngle(degrees, _)) = *self;
-        degrees.abs()
-    }
-
-    pub fn minutes(&self) -> f64 {
-        let AngleArcDegreesMinutes(ShortAngle(_, minutes)) = *self;
-        minutes.abs()
-    }
-
-    pub fn sign(&self) -> Sign {
-        self.0.sign()
-    }
-
-    pub fn value(&self) -> f64 {
-        let Left(value) = self.0.into();
-        value
-    }
-
-    pub fn unpack(&self) -> (i32, f64) {
-        self.0.unpack()
-    }
-
-    fn new(degrees: i32, minutes: f64) -> AngleArcDegreesMinutes {
-        AngleArcDegreesMinutes(ShortAngle(degrees, minutes).normalize())
-    }
-}
+impl_into!(AngleArcDegreesMinutes; Left * RAD);
+impl_angle!(AngleArcDegreesMinutes; degrees, minutes);
 
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct AngleArcDegreesMinutesSeconds(LongAngle);
 
-impl convert::Into<f64> for AngleArcDegreesMinutesSeconds {
-    fn into(self) -> f64 {
-        self.value() * RAD
-    }
-}
-
-impl AngleArcDegreesMinutesSeconds {
-    pub fn degrees(&self) -> i32 {
-        let AngleArcDegreesMinutesSeconds(LongAngle(degrees, ..)) = *self;
-        degrees.abs()
-    }
-
-    pub fn minutes(&self) -> i32 {
-        let AngleArcDegreesMinutesSeconds(LongAngle(_, minutes, _)) = *self;
-        minutes.abs() as i32
-    }
-
-    pub fn seconds(&self) -> f64 {
-        let AngleArcDegreesMinutesSeconds(LongAngle(.., seconds)) = *self;
-        seconds.abs()
-    }
-
-    pub fn sign(&self) -> Sign {
-        self.0.sign()
-    }
-
-    pub fn value(&self) -> f64 {
-        let Left(value) = self.0.into();
-        value
-    }
-
-    pub fn unpack(&self) -> (i32, i32, f64) {
-        self.0.unpack()
-    }
-
-    fn new(degrees: i32, minutes: i32, seconds: f64) -> AngleArcDegreesMinutesSeconds {
-        let delta = minutes / 60;
-        let degrees = degrees + delta;
-        let minutes = (minutes - 60 * delta) as i8;
-
-        AngleArcDegreesMinutesSeconds(
-            LongAngle(degrees, minutes, seconds).normalize()
-        )
-    }
-}
+impl_into!(AngleArcDegreesMinutesSeconds; Left * RAD);
+impl_angle!(AngleArcDegreesMinutesSeconds; degrees, minutes, seconds);
 
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct AngleArcMinutes(f64);
 
-impl convert::Into<f64> for AngleArcMinutes {
-    fn into(self) -> f64 {
-        self.0 * RAD_IN_AMIN
-    }
-}
-
-impl AngleArcMinutes {
-    fn minutes(&self) -> f64 {
-        self.0.abs()
-    }
-
-    fn sign(&self) -> Sign {
-        self.0.sign()
-    }
-
-    fn value(&self) -> f64 {
-        self.0
-    }
-}
+impl_into!(AngleArcMinutes; 0 * RAD_FOR_ARCM);
+impl_angle!(AngleArcMinutes; minutes);
 
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct AngleArcMinutesSeconds(ShortAngle);
 
-impl convert::Into<f64> for AngleArcMinutesSeconds {
-    fn into(self) -> f64 {
-        self.value() * RAD_IN_AMIN
-    }
-}
-
-impl AngleArcMinutesSeconds {
-    pub fn minutes(&self) -> i32 {
-        let AngleArcMinutesSeconds(ShortAngle(minutes, _)) = *self;
-        minutes.abs()
-    }
-
-    pub fn seconds(&self) -> f64 {
-        let AngleArcMinutesSeconds(ShortAngle(_, seconds)) = *self;
-        seconds.abs()
-    }
-
-    pub fn sign(&self) -> Sign {
-        self.0.sign()
-    }
-
-    pub fn value(&self) -> f64 {
-        let Left(value) = self.0.into();
-        value
-    }
-
-    pub fn unpack(&self) -> (i32, f64) {
-        self.0.unpack()
-    }
-
-    fn new(minutes: i32, seconds: f64) -> AngleArcMinutesSeconds {
-        AngleArcMinutesSeconds(ShortAngle(minutes, seconds).normalize())
-    }
-}
+impl_into!(AngleArcMinutesSeconds; Left * RAD_FOR_ARCM);
+impl_angle!(AngleArcMinutesSeconds; minutes, seconds);
 
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct AngleArcSeconds(f64);
 
-impl convert::Into<f64> for AngleArcSeconds {
-    fn into(self) -> f64 {
-        self.0 / ARCS
-    }
-}
-
-impl AngleArcSeconds {
-    fn seconds(&self) -> f64 {
-        self.0.abs()
-    }
-
-    fn sign(&self) -> Sign {
-        self.0.sign()
-    }
-
-    fn value(&self) -> f64 {
-        self.0
-    }
-}
+impl_into!(AngleArcSeconds; 0 / ARCS);
+impl_angle!(AngleArcSeconds; seconds);
 
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct AngleTimeHours(f64);
 
-impl convert::Into<f64> for AngleTimeHours {
-    fn into(self) -> f64 {
-        self.0 * RAD_IN_THRS
-    }
-}
-
-impl AngleTimeHours {
-    fn hours(&self) -> f64 {
-        self.0.abs()
-    }
-
-    fn sign(&self) -> Sign {
-        self.0.sign()
-    }
-
-    fn value(&self) -> f64 {
-        self.0
-    }
-}
+impl_into!(AngleTimeHours; 0 * RAD_FOR_TIMEH);
+impl_angle!(AngleTimeHours; hours);
 
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct AngleTimeHoursMinutes(ShortAngle);
 
-impl convert::Into<f64> for AngleTimeHoursMinutes {
-    fn into(self) -> f64 {
-        self.value() * RAD_IN_THRS
-    }
-}
-
-impl AngleTimeHoursMinutes {
-    pub fn hours(&self) -> i32 {
-        let AngleTimeHoursMinutes(ShortAngle(hours, _)) = *self;
-        hours.abs()
-    }
-
-    pub fn minutes(&self) -> f64 {
-        let AngleTimeHoursMinutes(ShortAngle(_, minutes)) = *self;
-        minutes.abs()
-    }
-
-    pub fn sign(&self) -> Sign {
-        self.0.sign()
-    }
-
-    pub fn value(&self) -> f64 {
-        let Left(value) = self.0.into();
-        value
-    }
-
-    pub fn unpack(&self) -> (i32, f64) {
-        self.0.unpack()
-    }
-
-    fn new(hours: i32, minutes: f64) -> AngleTimeHoursMinutes {
-        AngleTimeHoursMinutes(ShortAngle(hours, minutes).normalize())
-    }
-}
+impl_into!(AngleTimeHoursMinutes; Left * RAD_FOR_TIMEH);
+impl_angle!(AngleTimeHoursMinutes; hours, minutes);
 
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct AngleTimeHoursMinutesSeconds(LongAngle);
 
-impl convert::Into<f64> for AngleTimeHoursMinutesSeconds {
-    fn into(self) -> f64 {
-        self.value() * RAD_IN_THRS
-    }
-}
-
-impl AngleTimeHoursMinutesSeconds {
-    pub fn hours(&self) -> i32 {
-        let AngleTimeHoursMinutesSeconds(LongAngle(hours, ..)) = *self;
-        hours.abs()
-    }
-
-    pub fn minutes(&self) -> i32 {
-        let AngleTimeHoursMinutesSeconds(LongAngle(_, minutes, _)) = *self;
-        minutes.abs() as i32
-    }
-
-    pub fn seconds(&self) -> f64 {
-        let AngleTimeHoursMinutesSeconds(LongAngle(.., seconds)) = *self;
-        seconds.abs()
-    }
-
-    pub fn sign(&self) -> Sign {
-        self.0.sign()
-    }
-
-    pub fn value(&self) -> f64 {
-        let Left(value) = self.0.into();
-        value
-    }
-
-    pub fn unpack(&self) -> (i32, i32, f64) {
-        self.0.unpack()
-    }
-
-    fn new(hours: i32, minutes: i32, seconds: f64) -> AngleTimeHoursMinutesSeconds {
-        let delta = minutes / 60;
-        let hours = hours + delta;
-        let minutes = (minutes - 60 * delta) as i8;
-
-        AngleTimeHoursMinutesSeconds(
-            LongAngle(hours, minutes, seconds).normalize()
-        )
-    }
-}
+impl_into!(AngleTimeHoursMinutesSeconds; Left * RAD_FOR_TIMEH);
+impl_angle!(AngleTimeHoursMinutesSeconds; hours, minutes, seconds);
 
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct AngleTimeMinutes(f64);
 
-impl convert::Into<f64> for AngleTimeMinutes {
-    fn into(self) -> f64 {
-        self.0 * RAD_IN_TMIN
-    }
-}
-
-impl AngleTimeMinutes {
-    fn minutes(&self) -> f64 {
-        self.0.abs()
-    }
-
-    fn sign(&self) -> Sign {
-        self.0.sign()
-    }
-
-    fn value(&self) -> f64 {
-        self.0
-    }
-}
+impl_into!(AngleTimeMinutes; 0 * RAD_FOR_TIMEM);
+impl_angle!(AngleTimeMinutes; minutes);
 
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct AngleTimeMinutesSeconds(ShortAngle);
 
-impl convert::Into<f64> for AngleTimeMinutesSeconds {
-    fn into(self) -> f64 {
-        self.value() * RAD_IN_TMIN
-    }
-}
-
-impl AngleTimeMinutesSeconds {
-    pub fn minutes(&self) -> i32 {
-        let AngleTimeMinutesSeconds(ShortAngle(minutes, _)) = *self;
-        minutes.abs()
-    }
-
-    pub fn seconds(&self) -> f64 {
-        let AngleTimeMinutesSeconds(ShortAngle(_, seconds)) = *self;
-        seconds.abs()
-    }
-
-    pub fn sign(&self) -> Sign {
-        self.0.sign()
-    }
-
-    pub fn value(&self) -> f64 {
-        let Left(value) = self.0.into();
-        value
-    }
-
-    pub fn unpack(&self) -> (i32, f64) {
-        self.0.unpack()
-    }
-
-    fn new(minutes: i32, seconds: f64) -> AngleTimeMinutesSeconds {
-        AngleTimeMinutesSeconds(ShortAngle(minutes, seconds).normalize())
-    }
-}
+impl_into!(AngleTimeMinutesSeconds; Left * RAD_FOR_TIMEM);
+impl_angle!(AngleTimeMinutesSeconds; minutes, seconds);
 
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct AngleTimeSeconds(f64);
 
-impl convert::Into<f64> for AngleTimeSeconds {
-    fn into(self) -> f64 {
-        self.0 / TSEC
-    }
-}
-
-impl AngleTimeSeconds {
-    fn seconds(&self) -> f64 {
-        self.0.abs()
-    }
-
-    fn sign(&self) -> Sign {
-        self.0.sign()
-    }
-
-    fn value(&self) -> f64 {
-        self.0
-    }
-}
-
+impl_into!(AngleTimeSeconds; 0 / TIMES);
+impl_angle!(AngleTimeSeconds; seconds);
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Angle {
