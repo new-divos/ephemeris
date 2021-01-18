@@ -6,11 +6,10 @@ mod common;
 extern crate approx;
 
 use std::f64::consts::{PI, FRAC_PI_2};
+use rand::Rng;
 
 use ephem::base::linalg;
 use ephem::base::consts::MULT_2_PI;
-
-use rand::Rng;
 
 
 fn new_random_vec3d<R: Rng + ?Sized>(rng: &mut R) -> linalg::Vec3D {

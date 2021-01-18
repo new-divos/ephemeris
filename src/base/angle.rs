@@ -2,6 +2,7 @@ use std::convert;
 
 use crate::base::consts::{ARCS, DEG, MULT_2_PI, RAD};
 
+
 const TIMES: f64 = ARCS / 15.0;
 
 const RAD_FOR_ARCM: f64 = RAD / 60.0;
@@ -128,33 +129,27 @@ impl convert::Into<Right> for ShortAngle {
     }
 }
 
-impl AngleTransform for ShortAngle {
-    fn copysign(&self, value: f64) -> Self {
-        let ShortAngle(value1, value2) = *self;
-
-        if value1 != 0 {
-            let mut value1 = value1.abs();
-            if value < 0.0 { value1 = -value1 }
-            ShortAngle(value1, value2)
-        } else {
-            ShortAngle(value1, value2.copysign(value))
-        }
-    }
-
-    fn normalize(&self) -> Self {
-        let t = 60.0 * (self.0 as f64) + self.1;
-        let v = t.abs();
-        let u = (t / 60.0).floor();
-
-        let result = ShortAngle(u as i32, v - 60.0 * u);
-        result.copysign(t)
-    }
-}
-
 impl ShortAngle {
     fn unpack(&self) -> (Sign, i32, f64) {
         let ShortAngle(value1, value2) = *self;
         (self.sign(), value1.abs(), value2.abs())
+    }
+
+    fn copysign(&self, value: f64) -> Self {
+        let ShortAngle(value1, value2) = *self;
+
+        let mut value1 = value1.abs();
+        let mut value2 = value2.abs();
+
+        if value < 0.0 {
+            if value1 == 0 {
+                value2 = -value2;
+            } else {
+                value1 = -value1;
+            }
+        }
+
+        ShortAngle(value1, value2)
     }
 }
 
@@ -181,7 +176,7 @@ impl convert::Into<LongAngle> for Left {
         let v = self.0.abs();
         let u = v.floor();
         let w = 60.0 * (v - u);
-        let m = (w / 60.0).floor();
+        let m = w.floor();
 
         let result = LongAngle(u as i32, m as i8, 60.0 * (w - m));
         result.copysign(self.0)
@@ -245,11 +240,11 @@ impl convert::Into<Right> for LongAngle {
     fn into(self) -> Right {
         if self.0 != 0 {
             let mut value =
-                self.2.abs() + 60.0 * ((self.1.abs() as f64) + 60.0 * (self.0.abs() as f64));
+                self.2 + 60.0 * ((self.1 as f64) + 60.0 * (self.0.abs() as f64));
             if self.0 < 0 { value = -value }
             Right(value)
         } else if self.1 != 0 {
-            let mut value = self.2.abs() + 60.0 * (self.1.abs() as f64);
+            let mut value = self.2 + 60.0 * (self.1.abs() as f64);
             if self.1 < 0 { value = -value }
             Right(value)
         } else {
@@ -258,7 +253,7 @@ impl convert::Into<Right> for LongAngle {
     }
 }
 
-impl AngleTransform for LongAngle {
+impl LongAngle {
     fn copysign(&self, value: f64) -> Self {
         let LongAngle(value1, value2, value3) = *self;
 
@@ -275,19 +270,6 @@ impl AngleTransform for LongAngle {
         }
     }
 
-    fn normalize(&self) -> Self {
-        let t = 60.0 * ((self.0 * 60 + self.1 as i32) as f64) + self.2;
-        let v = t.abs();
-        let w = (v / 60.0).floor();
-        let u = (w / 60.0).floor();
-        let m = w - 60.0 * u;
-
-        let result = LongAngle(u as i32, m as i8, v - 60.0 * w);
-        result.copysign(t)
-    }
-}
-
-impl LongAngle {
     fn unpack(&self) -> (Sign, i32, i32, f64) {
         let LongAngle(value1, value2, value3) = *self;
         (self.sign(), value1.abs(), (value2 as i32).abs(), value3.abs())
@@ -331,18 +313,22 @@ macro_rules! impl_into {
 macro_rules! impl_angle {
     ($t:ty; $value:ident) => {
         impl $t {
+            #[inline]
             pub fn $value(&self) -> f64 {
                 self.0.abs()
             }
 
+            #[inline]
             pub fn sign(&self) -> Sign {
                 self.0.sign()
             }
 
+            #[inline]
             pub fn value(&self) -> f64 {
                 self.0
             }
 
+            #[inline]
             pub fn unpack(&self) -> (Sign, f64) {
                 (self.0.sign(), self.0.abs())
             }
@@ -360,6 +346,7 @@ macro_rules! impl_angle {
                 value.abs()
             }
 
+            #[inline]
             pub fn sigh(&self) -> Sign {
                 self.0.sign()
             }
@@ -369,12 +356,19 @@ macro_rules! impl_angle {
                 value
             }
 
+            #[inline]
             pub fn unpack(&self) -> (Sign, i32, f64) {
                 self.0.unpack()
             }
 
+            pub fn raw(&self) -> (i32, f64) {
+                let ShortAngle(value1, value2) = self.0;
+                (value1, value2)
+            }
+
             fn new($value1: i32, $value2: f64) -> Self {
-                Self(ShortAngle($value1, $value2).normalize())
+                let value: Right = ShortAngle($value1, $value2).into();
+                Self(value.into())
             }
         }
     };
@@ -395,6 +389,7 @@ macro_rules! impl_angle {
                 value.abs()
             }
 
+            #[inline]
             pub fn sign(&self) -> Sign {
                 self.0.sign()
             }
@@ -404,8 +399,14 @@ macro_rules! impl_angle {
                 value
             }
 
+            #[inline]
             pub fn unpack(&self) -> (Sign, i32, i32, f64) {
                 self.0.unpack()
+            }
+
+            pub fn raw(&self) -> (i32, i32, f64) {
+                let LongAngle(value1, value2, value3) = self.0;
+                (value1, value2 as i32, value3)
             }
 
             fn new($value1: i32, $value2: i32, $value3: f64) -> Self {
@@ -413,7 +414,8 @@ macro_rules! impl_angle {
                 let $value1 = $value1 + delta;
                 let $value2 = ($value2 - 60 * delta) as i8;
 
-                Self(LongAngle($value1, $value2, $value3).normalize())
+                let value: Right = LongAngle($value1, $value2, $value3).into();
+                Self(value.into())
             }
         }
     }
@@ -1339,5 +1341,134 @@ impl Angle {
 
     pub fn to_ts(self) -> Angle {
         Angle::TimeSeconds(self.into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rand::{Rng, thread_rng};
+    use rand::distributions::Uniform;
+
+    use super::*;
+
+    const EPS: f64 = 1e-10;
+    const ITERATIONS: i32 = 200;
+
+    #[test]
+    fn short_angle_test() {
+        let short = ShortAngle(30, 30.0);
+        let Left(t) = short.into();
+        assert_relative_eq!(t, 30.5);
+        let Right(t) = short.into();
+        assert_relative_eq!(t, 30.0 * 60.0 + 30.0);
+
+        let short: ShortAngle = Left(30.5).into();
+        assert_eq!(short.0, 30);
+        assert_relative_eq!(short.1, 30.0);
+        let short: ShortAngle = Right(30.0 * 60.0 + 30.0).into();
+        assert_eq!(short.0, 30);
+        assert_relative_eq!(short.1, 30.0);
+
+        let short = ShortAngle(-30, 36.0);
+        let Left(t) = short.into();
+        assert_relative_eq!(t, -30.6);
+        let Right(t) = short.into();
+        assert_relative_eq!(t, -(30.0 * 60.0 + 36.0));
+
+        let short: ShortAngle = Left(-30.6).into();
+        assert_eq!(short.0, -30);
+        assert_relative_eq!(short.1, 36.0, epsilon = EPS);
+        let short: ShortAngle = Right(-(30.0 * 60.0 + 36.0)).into();
+        assert_eq!(short.0, -30);
+        assert_relative_eq!(short.1, 36.0, epsilon = EPS);
+
+        let short = ShortAngle(0, 36.0);
+        let Left(t) = short.into();
+        assert_relative_eq!(t, 0.6);
+        let Right(t) = short.into();
+        assert_relative_eq!(t, 36.0);
+
+        let short: ShortAngle = Left(0.6).into();
+        assert_eq!(short.0, 0);
+        assert_relative_eq!(short.1, 36.0, epsilon = EPS);
+        let short: ShortAngle = Right(36.0).into();
+        assert_eq!(short.0, 0);
+        assert_relative_eq!(short.1, 36.0, epsilon = EPS);
+
+        let short = ShortAngle(0, -36.0);
+        let Left(t) = short.into();
+        assert_relative_eq!(t, -0.6);
+        let Right(t) = short.into();
+        assert_relative_eq!(t, -36.0);
+
+        let short: ShortAngle = Left(-0.6).into();
+        assert_eq!(short.0, 0);
+        assert_relative_eq!(short.1, -36.0, epsilon = EPS);
+        let short: ShortAngle = Right(-36.0).into();
+        assert_eq!(short.0, 0);
+        assert_relative_eq!(short.1, -36.0, epsilon = EPS);
+
+        let mut rng = thread_rng();
+        let side = Uniform::new(-360.0_f64, 360.0_f64);
+
+        let high = Uniform::new(-360i32, 360i32);
+        let low = Uniform::new(0.0_f64, 60.0_f64);
+
+        for _ in 0..ITERATIONS {
+            let left_value = rng.sample(side);
+
+            let short: ShortAngle = Left(left_value).into();
+            let Left(t) = short.into();
+            assert_relative_eq!(t, left_value);
+
+            let value1 = rng.sample(high);
+            let value2 = rng.sample(low);
+
+            let short = ShortAngle(value1, value2);
+            let value: Left = short.into();
+            let ShortAngle(t1, t2) = value.into();
+            assert_eq!(t1, value1);
+            assert_relative_eq!(t2, value2, epsilon = EPS);
+
+            let right_value = 60.0 * left_value;
+
+            let short: ShortAngle = Right(right_value).into();
+            let Right(t) = short.into();
+            assert_relative_eq!(t, right_value);
+            let Left(t) = short.into();
+            assert_relative_eq!(t, left_value);
+
+            let short = ShortAngle(value1, value2);
+            let value: Right = short.into();
+            let ShortAngle(t1, t2) = value.into();
+            assert_eq!(t1, value1);
+            assert_relative_eq!(t2, value2, epsilon = EPS);
+        }
+    }
+
+    #[test]
+    fn long_angle_test() {
+        let long = LongAngle(16, 14, 4.2);
+        let Left(t) = long.into();
+        assert_relative_eq!(t, 16.2345);
+        let Middle(t) = long.into();
+        assert_relative_eq!(t, 60.0 * 16.0 + 14.07);
+        let Right(t) = long.into();
+        assert_relative_eq!(t, 4.2 + 60.0 * (14.0 + 60.0 * 16.0));
+
+        let long: LongAngle = Left(16.2345).into();
+        assert_eq!(long.0, 16);
+        assert_eq!(long.1, 14);
+        assert_relative_eq!(long.2, 4.2, epsilon = EPS);
+
+        let long: LongAngle = Middle(60.0 * 16.0 + 14.07).into();
+        assert_eq!(long.0, 16);
+        assert_eq!(long.1, 14);
+        assert_relative_eq!(long.2, 4.2, epsilon = EPS);
+
+        let long: LongAngle = Right(4.2 + 60.0 * (14.0 + 60.0 * 16.0)).into();
+        assert_eq!(long.0, 16);
+        assert_eq!(long.1, 14);
+        assert_relative_eq!(long.2, 4.2, epsilon = EPS);
     }
 }
