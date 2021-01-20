@@ -1351,7 +1351,7 @@ mod tests {
 
     use super::*;
 
-    const EPS: f64 = 1e-10;
+    const EPS: f64 = 1e-8;
     const ITERATIONS: i32 = 200;
 
     #[test]
@@ -1411,8 +1411,8 @@ mod tests {
         let mut rng = thread_rng();
         let side = Uniform::new(-360.0_f64, 360.0_f64);
 
-        let high = Uniform::new(-360i32, 360i32);
-        let low = Uniform::new(0.0_f64, 60.0_f64);
+        let left = Uniform::new(-360i32, 360i32);
+        let right = Uniform::new(0.0_f64, 60.0_f64);
 
         for _ in 0..ITERATIONS {
             let left_value = rng.sample(side);
@@ -1421,8 +1421,8 @@ mod tests {
             let Left(t) = short.into();
             assert_relative_eq!(t, left_value);
 
-            let value1 = rng.sample(high);
-            let value2 = rng.sample(low);
+            let value1 = rng.sample(left);
+            let value2 = rng.sample(right);
 
             let short = ShortAngle(value1, value2);
             let value: Left = short.into();
@@ -1470,5 +1470,178 @@ mod tests {
         assert_eq!(long.0, 16);
         assert_eq!(long.1, 14);
         assert_relative_eq!(long.2, 4.2, epsilon = EPS);
+
+        let long = LongAngle(-16, 14, 4.2);
+        let Left(t) = long.into();
+        assert_relative_eq!(t, -16.2345);
+        let Middle(t) = long.into();
+        assert_relative_eq!(t, -(60.0 * 16.0 + 14.07));
+        let Right(t) = long.into();
+        assert_relative_eq!(t, -(4.2 + 60.0 * (14.0 + 60.0 * 16.0)));
+
+        let long: LongAngle = Left(-16.2345).into();
+        assert_eq!(long.0, -16);
+        assert_eq!(long.1, 14);
+        assert_relative_eq!(long.2, 4.2, epsilon = EPS);
+
+        let long: LongAngle = Middle(-(60.0 * 16.0 + 14.07)).into();
+        assert_eq!(long.0, -16);
+        assert_eq!(long.1, 14);
+        assert_relative_eq!(long.2, 4.2, epsilon = EPS);
+
+        let long: LongAngle = Right(-(4.2 + 60.0 * (14.0 + 60.0 * 16.0))).into();
+        assert_eq!(long.0, -16);
+        assert_eq!(long.1, 14);
+        assert_relative_eq!(long.2, 4.2, epsilon = EPS);
+
+        let long = LongAngle(0, 14, 4.2);
+        let Left(t) = long.into();
+        assert_relative_eq!(t, 0.2345);
+        let Middle(t) = long.into();
+        assert_relative_eq!(t, 14.07);
+        let Right(t) = long.into();
+        assert_relative_eq!(t, 4.2 + 60.0 * 14.0);
+
+        let long: LongAngle = Left(0.2345).into();
+        assert_eq!(long.0, 0);
+        assert_eq!(long.1, 14);
+        assert_relative_eq!(long.2, 4.2, epsilon = EPS);
+
+        let long: LongAngle = Middle(14.07).into();
+        assert_eq!(long.0, 0);
+        assert_eq!(long.1, 14);
+        assert_relative_eq!(long.2, 4.2, epsilon = EPS);
+
+        let long: LongAngle = Right(4.2 + 60.0 * 14.0).into();
+        assert_eq!(long.0, 0);
+        assert_eq!(long.1, 14);
+        assert_relative_eq!(long.2, 4.2, epsilon = EPS);
+
+        let long = LongAngle(0, -14, 4.2);
+        let Left(t) = long.into();
+        assert_relative_eq!(t, -0.2345);
+        let Middle(t) = long.into();
+        assert_relative_eq!(t, -14.07);
+        let Right(t) = long.into();
+        assert_relative_eq!(t, -(4.2 + 60.0 * 14.0));
+
+        let long: LongAngle = Left(-0.2345).into();
+        assert_eq!(long.0, 0);
+        assert_eq!(long.1, -14);
+        assert_relative_eq!(long.2, 4.2, epsilon = EPS);
+
+        let long: LongAngle = Middle(-14.07).into();
+        assert_eq!(long.0, 0);
+        assert_eq!(long.1, -14);
+        assert_relative_eq!(long.2, 4.2, epsilon = EPS);
+
+        let long: LongAngle = Right(-(4.2 + 60.0 * 14.0)).into();
+        assert_eq!(long.0, 0);
+        assert_eq!(long.1, -14);
+        assert_relative_eq!(long.2, 4.2, epsilon = EPS);
+
+        let long = LongAngle(0, 0, 36.0);
+        let Left(t) = long.into();
+        assert_relative_eq!(t, 0.01);
+        let Middle(t) = long.into();
+        assert_relative_eq!(t, 0.6);
+        let Right(t) = long.into();
+        assert_relative_eq!(t, 36.0);
+
+        let long: LongAngle = Left(0.01).into();
+        assert_eq!(long.0, 0);
+        assert_eq!(long.1, 0);
+        assert_relative_eq!(long.2, 36.0, epsilon = EPS);
+
+        let long: LongAngle = Middle(0.6).into();
+        assert_eq!(long.0, 0);
+        assert_eq!(long.1, 0);
+        assert_relative_eq!(long.2, 36.0, epsilon = EPS);
+
+        let long: LongAngle = Right(36.0).into();
+        assert_eq!(long.0, 0);
+        assert_eq!(long.1, 0);
+        assert_relative_eq!(long.2, 36.0, epsilon = EPS);
+
+        let long = LongAngle(0, 0, -36.0);
+        let Left(t) = long.into();
+        assert_relative_eq!(t, -0.01);
+        let Middle(t) = long.into();
+        assert_relative_eq!(t, -0.6);
+        let Right(t) = long.into();
+        assert_relative_eq!(t, -36.0);
+
+        let long: LongAngle = Left(-0.01).into();
+        assert_eq!(long.0, 0);
+        assert_eq!(long.1, 0);
+        assert_relative_eq!(long.2, -36.0, epsilon = EPS);
+
+        let long: LongAngle = Middle(-0.6).into();
+        assert_eq!(long.0, 0);
+        assert_eq!(long.1, 0);
+        assert_relative_eq!(long.2, -36.0, epsilon = EPS);
+
+        let long: LongAngle = Right(-36.0).into();
+        assert_eq!(long.0, 0);
+        assert_eq!(long.1, 0);
+        assert_relative_eq!(long.2, -36.0, epsilon = EPS);
+
+        let mut rng = thread_rng();
+        let side = Uniform::new(-360.0_f64, 360.0_f64);
+
+        let left = Uniform::new(-360i32, 360i32);
+        let middle = Uniform::new(0i8, 60i8);
+        let right = Uniform::new(0.0_f64, 60.0_f64);
+
+        for _ in 0..ITERATIONS {
+            let left_value = rng.sample(side);
+
+            let long: LongAngle = Left(left_value).into();
+            let Left(t) = long.into();
+            assert_relative_eq!(t, left_value);
+
+            let value1 = rng.sample(left);
+            let value2 = rng.sample(middle);
+            let value3 = rng.sample(right);
+
+            let long = LongAngle(value1, value2, value3);
+            let value: Left = long.into();
+            let LongAngle(t1, t2, t3) = value.into();
+            assert_eq!(t1, value1);
+            assert_eq!(t2, value2);
+            assert_relative_eq!(t3, value3, epsilon = EPS);
+
+            let middle_value = 60.0 * left_value;
+
+            let long: LongAngle = Middle(middle_value).into();
+            let Middle(t) = long.into();
+            assert_relative_eq!(t, middle_value);
+            let Left(t) = long.into();
+            assert_relative_eq!(t, left_value);
+
+            let long = LongAngle(value1, value2, value3);
+            let value: Middle = long.into();
+            let LongAngle(t1, t2, t3) = value.into();
+            assert_eq!(t1, value1);
+            assert_eq!(t2, value2);
+            assert_relative_eq!(t3, value3, epsilon = EPS);
+
+            let right_value = 60.0 * middle_value;
+
+            let long: LongAngle = Right(right_value).into();
+            let Right(t) = long.into();
+            assert_relative_eq!(t, right_value);
+            let Middle(t) = long.into();
+            assert_relative_eq!(t, middle_value);
+            let Left(t) = long.into();
+            assert_relative_eq!(t, left_value);
+
+            let long = LongAngle(value1, value2, value3);
+            let value: Right = long.into();
+            let LongAngle(t1, t2, t3) = value.into();
+            assert_eq!(t1, value1);
+            assert_eq!(t2, value2);
+            assert_relative_eq!(t3, value3, epsilon = EPS);
+        }
     }
 }
