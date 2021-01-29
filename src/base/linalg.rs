@@ -6,7 +6,7 @@ use std::ops;
 use std::ops::{Add, Mul, Sub};
 
 use crate::base::{Real, Result};
-use crate::base::consts::MULT_2_PI;
+use crate::base::consts::PI2;
 use crate::base::error::Error;
 
 pub trait Norm {
@@ -166,7 +166,7 @@ impl convert::Into<CylindricalVec3D> for Vec3D {
 
                 CylindricalVec3D {
                     rho: c.x.hypot(c.y),
-                    phi: phi.fmod(MULT_2_PI),
+                    phi: phi.fmod(PI2),
                     z: c.z
                 }
             },
@@ -213,7 +213,7 @@ impl convert::Into<SphericalVec3D> for Vec3D {
                     c.z.atan2(rho)
                 };
 
-                SphericalVec3D { r, phi: phi.fmod(MULT_2_PI), theta }
+                SphericalVec3D { r, phi: phi.fmod(PI2), theta }
             },
             Vec3D::Cylindrical(ref c) => {
                 let theta = if c.rho == 0.0 && c.z == 0.0 {
@@ -435,7 +435,7 @@ impl Vec3D {
             Vec3D::Cylindrical(
                 CylindricalVec3D {
                     rho,
-                    phi: phi.fmod(MULT_2_PI),
+                    phi: phi.fmod(PI2),
                     z
                 }
             )
@@ -458,7 +458,7 @@ impl Vec3D {
             Vec3D::Spherical(
                 SphericalVec3D {
                     r,
-                    phi: phi.fmod(MULT_2_PI),
+                    phi: phi.fmod(PI2),
                     theta
                 }
             )
@@ -516,7 +516,7 @@ impl Vec3D {
             Vec3D::Spherical(
                 SphericalVec3D {
                     r: 1.0,
-                    phi: phi.fmod(MULT_2_PI),
+                    phi: phi.fmod(PI2),
                     theta
                 }
             )

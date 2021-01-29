@@ -9,7 +9,7 @@ use std::f64::consts::{PI, FRAC_PI_2};
 use rand::Rng;
 
 use ephem::base::linalg;
-use ephem::base::consts::MULT_2_PI;
+use ephem::base::consts::PI2;
 
 
 fn new_random_vec3d<R: Rng + ?Sized>(rng: &mut R) -> linalg::Vec3D {
@@ -113,7 +113,7 @@ fn create_cylindrical_vec3d_test() {
     let mut rng = rand::thread_rng();
     for _ in 0..common::ITERATIONS {
         let rho = 100.0 * rng.gen::<f64>();
-        let phi = MULT_2_PI * rng.gen::<f64>();
+        let phi = PI2 * rng.gen::<f64>();
         let z = 200.0 * rng.gen::<f64>() - 100.0;
 
         let c = linalg::Vec3D::cylindrical(rho, phi, z).unwrap();
@@ -145,7 +145,7 @@ fn create_spherical_vec3d_test() {
     let mut rng = rand::thread_rng();
     for _ in 0..common::ITERATIONS {
         let r = 100.0 * rng.gen::<f64>();
-        let phi = MULT_2_PI * rng.gen::<f64>();
+        let phi = PI2 * rng.gen::<f64>();
         let theta = PI * rng.gen::<f64>() - FRAC_PI_2;
 
         let s = linalg::Vec3D::spherical(r, phi, theta).unwrap();
@@ -172,7 +172,7 @@ fn create_spherical_vec3d_test() {
     }
 
     for _ in 0..common::ITERATIONS {
-        let phi = MULT_2_PI * rng.gen::<f64>();
+        let phi = PI2 * rng.gen::<f64>();
         let theta = PI * rng.gen::<f64>() - FRAC_PI_2;
 
         let u = linalg::Vec3D::unit(phi, theta).unwrap();
@@ -577,7 +577,7 @@ fn mat3d_rotation_test() {
     let mut rng = rand::thread_rng();
 
     for _ in 0..common::ITERATIONS {
-        let angle = MULT_2_PI * rng.gen::<f64>();
+        let angle = PI2 * rng.gen::<f64>();
         let tr = 1.0 + 2.0 * angle.cos();
 
         let rx = linalg::Mat3D::r_x(angle);

@@ -1,6 +1,6 @@
 use std::convert;
 
-use crate::base::consts::{ARCS, DEG, MULT_2_PI, RAD};
+use crate::base::consts::{ARCS, DEG, PI2, RAD};
 
 
 const TIMES: f64 = ARCS / 15.0;
@@ -428,7 +428,7 @@ macro_rules! impl_angle {
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct AngleRevolutions(f64);
 
-impl_into!(AngleRevolutions; 0 * MULT_2_PI);
+impl_into!(AngleRevolutions; 0 * PI2);
 impl_angle!(AngleRevolutions; revolutions);
 
 
@@ -569,7 +569,7 @@ impl convert::Into<f64> for Angle {
 impl convert::Into<AngleRevolutions> for Angle {
     fn into(self) -> AngleRevolutions {
         match self {
-            Angle::Radians(r) => AngleRevolutions(r / MULT_2_PI),
+            Angle::Radians(r) => AngleRevolutions(r / PI2),
             Angle::Revolutions(r) => r,
             Angle::ArcDegrees(AngleArcDegrees(d)) => {
                 AngleRevolutions(d / ADEG_IN_REV)
