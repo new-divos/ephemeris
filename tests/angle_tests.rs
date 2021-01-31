@@ -657,3 +657,62 @@ fn into_adms_test() {
         );
     }
 }
+
+#[test]
+fn into_am_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-60.0 * 360.0_f64, 60.0 * 360.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let minutes = rng.sample(band);
+        let degrees = minutes / 60.0;
+
+        let a_rad = Angle::from(degrees * RAD);
+        test_value::<AngleArcMinutes>(a_rad, minutes);
+
+        let a_rev = Angle::from_r(degrees / 360.0);
+        test_value::<AngleArcMinutes>(a_rev, minutes);
+
+        let a_ad = Angle::from_ad(degrees);
+        test_value::<AngleArcMinutes>(a_ad, minutes);
+
+        let (angle_degrees, angle_minutes) = to_short(degrees);
+        let a_adm = Angle::from_adm(angle_degrees, angle_minutes);
+        test_value::<AngleArcMinutes>(a_adm, minutes);
+
+        let (angle_degrees, angle_minutes, angle_seconds) = to_long(degrees);
+        let a_adms = Angle::from_adms(angle_degrees, angle_minutes, angle_seconds);
+        test_value::<AngleArcMinutes>(a_adms, minutes);
+
+        let (angle_minutes, angle_seconds) = to_short(minutes);
+        let a_ams = Angle::from_ams(angle_minutes, angle_seconds);
+        test_value::<AngleArcMinutes>(a_ams, minutes);
+
+        let a_as = Angle::from_as(minutes * 60.0);
+        test_value::<AngleArcMinutes>(a_as, minutes);
+
+        let hours = degrees / 15.0;
+
+        let a_th = Angle::from_th(hours);
+        test_value::<AngleArcMinutes>(a_th, minutes);
+
+        let (angle_hours, angle_minutes) = to_short(hours);
+        let a_thm = Angle::from_thm(angle_hours, angle_minutes);
+        test_value::<AngleArcMinutes>(a_thm, minutes);
+
+        let (angle_hours, angle_minutes, angle_seconds) = to_long(hours);
+        let a_thms = Angle::from_thms(angle_hours, angle_minutes, angle_seconds);
+        test_value::<AngleArcMinutes>(a_thms, minutes);
+
+        let angle_minutes = minutes / 15.0;
+        let a_tm = Angle::from_tm(angle_minutes);
+        test_value::<AngleArcMinutes>(a_tm, minutes);
+
+        let (angle_minutes, angle_seconds) = to_short(angle_minutes);
+        let a_tms = Angle::from_tms(angle_minutes, angle_seconds);
+        test_value::<AngleArcMinutes>(a_tms, minutes);
+
+        let a_ts = Angle::from_ts(minutes * 4.0);
+        test_value::<AngleArcMinutes>(a_ts, minutes);
+    }
+}
