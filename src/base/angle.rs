@@ -1137,7 +1137,7 @@ impl convert::Into<AngleTimeHoursMinutes> for Angle {
                 AngleTimeHoursMinutes(Right(minutes).into())
             },
             Angle::TimeSeconds(AngleTimeSeconds(s)) => {
-                AngleTimeHoursMinutes(Right(s / 15.0).into())
+                AngleTimeHoursMinutes(Right(s / 60.0).into())
             }
         }
     }
