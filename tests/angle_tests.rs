@@ -241,14 +241,15 @@ fn into_r_test() {
 
     for _ in 0..common::ITERATIONS {
         let revolutions = rng.sample(band);
+        let test = |angle: Angle| test_value::<AngleRevolutions>(
+            angle, revolutions);
 
         let a_rad = Angle::from(PI2 * revolutions);
-        test_value::<AngleRevolutions>(a_rad, revolutions);
+        test(a_rad);
 
         let degrees = 360.0 * revolutions;
-
         let a_ad = Angle::from_ad(degrees);
-        test_value::<AngleRevolutions>(a_ad, revolutions);
+        test(a_ad);
 
         let (angular_degrees, angular_minutes) = to_short(degrees);
         let a_adm = Angle::from_adm(angular_degrees, angular_minutes);
@@ -257,7 +258,7 @@ fn into_r_test() {
             angular_degrees,
             angular_minutes
         );
-        test_value::<AngleRevolutions>(a_adm, revolutions);
+        test(a_adm);
 
         let (angular_degrees, angular_minutes, angular_seconds) =
             to_long(degrees);
@@ -268,12 +269,11 @@ fn into_r_test() {
             angular_minutes,
             angular_seconds
         );
-        test_value::<AngleRevolutions>(a_adms, revolutions);
+        test(a_adms);
 
         let minutes = 60.0 * degrees;
-
         let a_am = Angle::from_am(minutes);
-        test_value::<AngleRevolutions>(a_am, revolutions);
+        test(a_am);
 
         let (angular_minutes, angular_seconds) = to_short(minutes);
         let a_ams = Angle::from_ams(angular_minutes, angular_seconds);
@@ -282,17 +282,15 @@ fn into_r_test() {
             angular_minutes,
             angular_seconds
         );
-        test_value::<AngleRevolutions>(a_ams, revolutions);
+        test(a_ams);
 
         let seconds = 60.0 * minutes;
-
         let a_as = Angle::from_as(seconds);
-        test_value::<AngleRevolutions>(a_as, revolutions);
+        test(a_as);
 
         let hours = 24.0 * revolutions;
-
         let a_th = Angle::from_th(hours);
-        test_value::<AngleRevolutions>(a_th, revolutions);
+        test(a_th);
 
         let (angular_hours, angular_minutes) = to_short(hours);
         let a_thm = Angle::from_thm(angular_hours, angular_minutes);
@@ -301,7 +299,7 @@ fn into_r_test() {
             angular_hours,
             angular_minutes
         );
-        test_value::<AngleRevolutions>(a_thm, revolutions);
+        test(a_thm);
 
         let (angular_hours, angular_minutes, angular_seconds) = to_long(hours);
         let a_thms = Angle::from_thms(angular_hours, angular_minutes, angular_seconds);
@@ -311,12 +309,11 @@ fn into_r_test() {
             angular_minutes,
             angular_seconds
         );
-        test_value::<AngleRevolutions>(a_thms, revolutions);
+        test(a_thms);
 
         let minutes = 60.0 * hours;
-
         let a_tm = Angle::from_tm(minutes);
-        test_value::<AngleRevolutions>(a_tm, revolutions);
+        test(a_tm);
 
         let (angular_minutes, angular_seconds) = to_short(minutes);
         let a_tms = Angle::from_tms(angular_minutes, angular_seconds);
@@ -325,12 +322,12 @@ fn into_r_test() {
             angular_minutes,
             angular_seconds
         );
-        test_value::<AngleRevolutions>(a_tms, revolutions);
+        test(a_tms);
 
         let seconds = 60.0 * minutes;
 
         let a_ts = Angle::from_ts(seconds);
-        test_value::<AngleRevolutions>(a_ts, revolutions);
+        test(a_ts);
     }
 }
 
@@ -342,62 +339,57 @@ fn into_ad_test() {
 
     for _ in 0..common::ITERATIONS {
         let degrees = rng.sample(band);
+        let test = |angle: Angle| test_value::<AngleArcDegrees>(
+            angle, degrees);
 
         let a_rad = Angle::from(RAD * degrees);
-        test_value::<AngleArcDegrees>(a_rad, degrees);
+        test(a_rad);
 
         let a_rev = Angle::from_r(degrees / 360.0);
-        test_value::<AngleArcDegrees>(a_rev, degrees);
+        test(a_rev);
 
         let (angular_degrees, angular_minutes) = to_short(degrees);
         let a_adm = Angle::from_adm(angular_degrees, angular_minutes);
-        test_value::<AngleArcDegrees>(a_adm, degrees);
+        test(a_adm);
 
         let (angular_degrees, angular_minutes, angular_seconds) =
             to_long(degrees);
         let a_adms = Angle::from_adms(angular_degrees, angular_minutes, angular_seconds);
-        test_value::<AngleArcDegrees>(a_adms, degrees);
+        test(a_adms);
 
         let minutes = 60.0 * degrees;
-
         let a_am = Angle::from_am(minutes);
-        test_value::<AngleArcDegrees>(a_am, degrees);
+        test(a_am);
 
         let (angular_minutes, angular_seconds) = to_short(minutes);
         let a_ams = Angle::from_ams(angular_minutes, angular_seconds);
-        test_value::<AngleArcDegrees>(a_ams, degrees);
+        test(a_ams);
 
-        let seconds = 60.0 * minutes;
-
-        let a_as = Angle::from_as(seconds);
-        test_value::<AngleArcDegrees>(a_as, degrees);
+        let a_as = Angle::from_as(minutes * 60.0);
+        test(a_as);
 
         let hours = degrees / 15.0;
-
         let a_th = Angle::from_th(hours);
-        test_value::<AngleArcDegrees>(a_th, degrees);
+        test(a_th);
 
         let (angular_hours, angular_minutes) = to_short(hours);
         let a_thm = Angle::from_thm(angular_hours, angular_minutes);
-        test_value::<AngleArcDegrees>(a_thm, degrees);
+        test(a_thm);
 
         let (angular_hours, angular_minutes, angular_seconds) = to_long(hours);
         let a_thms = Angle::from_thms(angular_hours, angular_minutes, angular_seconds);
-        test_value::<AngleArcDegrees>(a_thms, degrees);
+        test(a_thms);
 
         let minutes = 60.0 * hours;
-
         let a_tm = Angle::from_tm(minutes);
-        test_value::<AngleArcDegrees>(a_tm, degrees);
+        test(a_tm);
 
         let (angular_minutes, angular_seconds) = to_short(minutes);
         let a_tms = Angle::from_tms(angular_minutes, angular_seconds);
-        test_value::<AngleArcDegrees>(a_tms, degrees);
+        test(a_tms);
 
-        let seconds = 60.0 * minutes;
-
-        let a_ts = Angle::from_ts(seconds);
-        test_value::<AngleArcDegrees>(a_ts, degrees);
+        let a_ts = Angle::from_ts(minutes * 60.0);
+        test(a_ts);
     }
 }
 
@@ -412,117 +404,61 @@ fn into_adm_test() {
         let degrees = rng.sample(degrees_band);
         let minutes = rng.sample(minutes_band);
 
+        let test = |angle: Angle| test_short::<AngleArcDegreesMinutes>(
+            angle, degrees, minutes);
+
         let total_degrees = from_short(degrees, minutes);
 
         let a_rad = Angle::from(RAD * total_degrees);
-        test_short::<AngleArcDegreesMinutes>(
-            a_rad,
-            degrees,
-            minutes
-        );
+        test(a_rad);
 
         let a_rev = Angle::from_r(total_degrees / 360.0);
-        test_short::<AngleArcDegreesMinutes>(
-            a_rev,
-            degrees,
-            minutes
-        );
+        test(a_rev);
 
         let a_ad = Angle::from_ad(total_degrees);
-        test_short::<AngleArcDegreesMinutes>(
-            a_ad,
-            degrees,
-            minutes
-        );
+        test(a_ad);
 
         let angular_minutes = minutes.floor();
         let angular_seconds = 60.0 * (minutes - angular_minutes);
         let angular_minutes = angular_minutes as i32;
 
         let a_adms = Angle::from_adms(degrees, angular_minutes, angular_seconds);
-        test_short::<AngleArcDegreesMinutes>(
-            a_adms,
-            degrees,
-            minutes
-        );
+        test(a_adms);
 
         let total_minutes = 60.0 * total_degrees;
-
         let a_am = Angle::from_am(total_minutes);
-        test_short::<AngleArcDegreesMinutes>(
-            a_am,
-            degrees,
-            minutes
-        );
+        test(a_am);
 
         let (angular_minutes, angular_seconds) = to_short(total_minutes);
         let a_ams = Angle::from_ams(angular_minutes, angular_seconds);
-        test_short::<AngleArcDegreesMinutes>(
-            a_ams,
-            degrees,
-            minutes
-        );
+        test(a_ams);
 
-        let total_seconds = 60.0 * total_minutes;
-
-        let a_as = Angle::from_as(total_seconds);
-        test_short::<AngleArcDegreesMinutes>(
-            a_as,
-            degrees,
-            minutes
-        );
+        let a_as = Angle::from_as(total_minutes * 60.0);
+        test(a_as);
 
         let total_hours = total_degrees / 15.0;
-
         let a_th = Angle::from_th(total_hours);
-        test_short::<AngleArcDegreesMinutes>(
-            a_th,
-            degrees,
-            minutes
-        );
+        test(a_th);
 
         let (angular_hours, angular_minutes) = to_short(total_hours);
         let a_thm = Angle::from_thm(angular_hours, angular_minutes);
-        test_short::<AngleArcDegreesMinutes>(
-            a_thm,
-            degrees,
-            minutes
-        );
+        test(a_thm);
 
         let (angular_hours, angular_minutes, angular_seconds) =
             to_long(total_hours);
         let a_thms = Angle::from_thms(angular_hours, angular_minutes, angular_seconds);
-        test_short::<AngleArcDegreesMinutes>(
-            a_thms,
-            degrees,
-            minutes
-        );
+        test(a_thms);
 
         let total_minutes = 60.0 * total_hours;
-
         let a_tm = Angle::from_tm(total_minutes);
-        test_short::<AngleArcDegreesMinutes>(
-            a_tm,
-            degrees,
-            minutes
-        );
+        test(a_tm);
 
         let (angular_minutes, angular_seconds) = to_short(total_minutes);
         let a_tms = Angle::from_tms(angular_minutes, angular_seconds);
-        test_short::<AngleArcDegreesMinutes>(
-            a_tms,
-            degrees,
-            minutes
-        );
+        test(a_tms);
 
-        let total_seconds = 60.0 * total_minutes;
-
-        let a_ts = Angle::from_ts(total_seconds);
-        test_short::<AngleArcDegreesMinutes>(
-            a_ts,
-            degrees,
-            minutes
-        );
+        let a_ts = Angle::from_ts(total_minutes * 60.0);
+        test(a_ts);
     }
 }
 
@@ -539,127 +475,59 @@ fn into_adms_test() {
         let minutes = rng.sample(minutes_band);
         let seconds = rng.sample(seconds_band);
 
+        let test = |angle: Angle| test_long::<AngleArcDegreesMinutesSeconds>(
+            angle, degrees, minutes, seconds);
+
         let total_degrees = from_long(degrees, minutes, seconds);
 
         let a_rad = Angle::from(total_degrees * RAD);
-        test_long::<AngleArcDegreesMinutesSeconds>(
-            a_rad,
-            degrees,
-            minutes,
-            seconds
-        );
+        test(a_rad);
 
         let a_rev = Angle::from_r(total_degrees / 360.0);
-        test_long::<AngleArcDegreesMinutesSeconds>(
-            a_rev,
-            degrees,
-            minutes,
-            seconds
-        );
+        test(a_rev);
 
         let a_ad = Angle::from_ad(total_degrees);
-        test_long::<AngleArcDegreesMinutesSeconds>(
-            a_ad,
-            degrees,
-            minutes,
-            seconds
-        );
+        test(a_ad);
 
         let angular_minutes = from_short(minutes, seconds);
         let a_adm = Angle::from_adm(degrees, angular_minutes);
-        test_long::<AngleArcDegreesMinutesSeconds>(
-            a_adm,
-            degrees,
-            minutes,
-            seconds
-        );
+        test(a_adm);
 
         let total_minutes = total_degrees * 60.0;
-
         let a_am = Angle::from_am(total_minutes);
-        test_long::<AngleArcDegreesMinutesSeconds>(
-            a_am,
-            degrees,
-            minutes,
-            seconds
-        );
+        test(a_am);
 
         let angular_minutes = from_ishort(degrees, minutes);
         let a_ams = Angle::from_ams(angular_minutes, seconds);
-        test_long::<AngleArcDegreesMinutesSeconds>(
-            a_ams,
-            degrees,
-            minutes,
-            seconds
-        );
+        test(a_ams);
 
-        let total_seconds = total_minutes * 60.0;
-
-        let a_as = Angle::from_as(total_seconds);
-        test_long::<AngleArcDegreesMinutesSeconds>(
-            a_as,
-            degrees,
-            minutes,
-            seconds
-        );
+        let a_as = Angle::from_as(total_minutes * 60.0);
+        test(a_as);
 
         let total_hours = total_degrees / 15.0;
 
         let a_th = Angle::from_th(total_hours);
-        test_long::<AngleArcDegreesMinutesSeconds>(
-            a_th,
-            degrees,
-            minutes,
-            seconds
-        );
+        test(a_th);
 
         let (angular_hours, angular_minutes) = to_short(total_hours);
         let a_thm = Angle::from_thm(angular_hours, angular_minutes);
-        test_long::<AngleArcDegreesMinutesSeconds>(
-            a_thm,
-            degrees,
-            minutes,
-            seconds
-        );
+        test(a_thm);
 
         let (angular_hours, angular_minutes, angular_seconds) =
             to_long(total_hours);
         let a_thms = Angle::from_thms(angular_hours, angular_minutes, angular_seconds);
-        test_long::<AngleArcDegreesMinutesSeconds>(
-            a_thms,
-            degrees,
-            minutes,
-            seconds
-        );
+        test(a_thms);
 
         let total_minutes = 60.0 * total_hours;
-
         let a_tm = Angle::from_tm(total_minutes);
-        test_long::<AngleArcDegreesMinutesSeconds>(
-            a_tm,
-            degrees,
-            minutes,
-            seconds
-        );
+        test(a_tm);
 
         let (angular_minutes, angular_seconds) = to_short(total_minutes);
         let a_tms = Angle::from_tms(angular_minutes, angular_seconds);
-        test_long::<AngleArcDegreesMinutesSeconds>(
-            a_tms,
-            degrees,
-            minutes,
-            seconds
-        );
+        test(a_tms);
 
-        let total_seconds = 60.0 * total_minutes;
-
-        let a_ts = Angle::from_ts(total_seconds);
-        test_long::<AngleArcDegreesMinutesSeconds>(
-            a_ts,
-            degrees,
-            minutes,
-            seconds
-        );
+        let a_ts = Angle::from_ts(total_minutes * 60.0);
+        test(a_ts);
     }
 }
 
@@ -671,56 +539,58 @@ fn into_am_test() {
 
     for _ in 0..common::ITERATIONS {
         let minutes = rng.sample(band);
+        let test = |angle: Angle| test_value::<AngleArcMinutes>(
+            angle, minutes);
+
         let degrees = minutes / 60.0;
 
         let a_rad = Angle::from(degrees * RAD);
-        test_value::<AngleArcMinutes>(a_rad, minutes);
+        test(a_rad);
 
         let a_rev = Angle::from_r(degrees / 360.0);
-        test_value::<AngleArcMinutes>(a_rev, minutes);
+        test(a_rev);
 
         let a_ad = Angle::from_ad(degrees);
-        test_value::<AngleArcMinutes>(a_ad, minutes);
+        test(a_ad);
 
         let (angular_degrees, angular_minutes) = to_short(degrees);
         let a_adm = Angle::from_adm(angular_degrees, angular_minutes);
-        test_value::<AngleArcMinutes>(a_adm, minutes);
+        test(a_adm);
 
         let (angular_degrees, angular_minutes, angular_seconds) =
             to_long(degrees);
         let a_adms = Angle::from_adms(angular_degrees, angular_minutes, angular_seconds);
-        test_value::<AngleArcMinutes>(a_adms, minutes);
+        test(a_adms);
 
         let (angular_minutes, angular_seconds) = to_short(minutes);
         let a_ams = Angle::from_ams(angular_minutes, angular_seconds);
-        test_value::<AngleArcMinutes>(a_ams, minutes);
+        test(a_ams);
 
         let a_as = Angle::from_as(minutes * 60.0);
-        test_value::<AngleArcMinutes>(a_as, minutes);
+        test(a_as);
 
         let hours = degrees / 15.0;
-
         let a_th = Angle::from_th(hours);
-        test_value::<AngleArcMinutes>(a_th, minutes);
+        test(a_th);
 
         let (angular_hours, angular_minutes) = to_short(hours);
         let a_thm = Angle::from_thm(angular_hours, angular_minutes);
-        test_value::<AngleArcMinutes>(a_thm, minutes);
+        test(a_thm);
 
         let (angular_hours, angular_minutes, angular_seconds) = to_long(hours);
         let a_thms = Angle::from_thms(angular_hours, angular_minutes, angular_seconds);
-        test_value::<AngleArcMinutes>(a_thms, minutes);
+        test(a_thms);
 
         let angular_minutes = minutes / 15.0;
         let a_tm = Angle::from_tm(angular_minutes);
-        test_value::<AngleArcMinutes>(a_tm, minutes);
+        test(a_tm);
 
         let (angular_minutes, angular_seconds) = to_short(angular_minutes);
         let a_tms = Angle::from_tms(angular_minutes, angular_seconds);
-        test_value::<AngleArcMinutes>(a_tms, minutes);
+        test(a_tms);
 
         let a_ts = Angle::from_ts(minutes * 4.0);
-        test_value::<AngleArcMinutes>(a_ts, minutes);
+        test(a_ts);
     }
 }
 
@@ -735,109 +605,59 @@ fn into_ams_test() {
         let minutes = rng.sample(minutes_band);
         let seconds = rng.sample(seconds_band);
 
+        let test = |angle: Angle| test_short::<AngleArcMinutesSeconds>(
+            angle, minutes, seconds);
+
         let total_minutes = from_short(minutes, seconds);
         let total_degrees = total_minutes / 60.0;
 
         let a_rad = Angle::from(total_degrees * RAD);
-        test_short::<AngleArcMinutesSeconds>(
-            a_rad,
-            minutes,
-            seconds
-        );
+        test(a_rad);
 
         let a_rev = Angle::from_r(total_degrees / 360.0);
-        test_short::<AngleArcMinutesSeconds>(
-            a_rev,
-            minutes,
-            seconds
-        );
+        test(a_rev);
 
         let a_ad = Angle::from_ad(total_degrees);
-        test_short::<AngleArcMinutesSeconds>(
-            a_ad,
-            minutes,
-            seconds
-        );
+        test(a_ad);
 
         let (angular_degrees, angular_minutes) = to_short(total_degrees);
         let a_adm = Angle::from_adm(angular_degrees, angular_minutes);
-        test_short::<AngleArcMinutesSeconds>(
-            a_adm,
-            minutes,
-            seconds
-        );
+        test(a_adm);
 
         let (angular_degrees, angular_minutes, angular_seconds) =
             to_long(total_degrees);
         let a_adms = Angle::from_adms(angular_degrees, angular_minutes, angular_seconds);
-        test_short::<AngleArcMinutesSeconds>(
-            a_adms,
-            minutes,
-            seconds
-        );
+        test(a_adms);
 
         let a_am = Angle::from_am(total_minutes);
-        test_short::<AngleArcMinutesSeconds>(
-            a_am,
-            minutes,
-            seconds
-        );
+        test(a_am);
 
         let a_as = Angle::from_as(60.0 * total_minutes);
-        test_short::<AngleArcMinutesSeconds>(
-            a_as,
-            minutes,
-            seconds
-        );
+        test(a_as);
 
         let total_hours = total_degrees / 15.0;
-
         let a_th = Angle::from_th(total_hours);
-        test_short::<AngleArcMinutesSeconds>(
-            a_th,
-            minutes,
-            seconds
-        );
+        test(a_th);
 
         let (angular_hours, angular_minutes) = to_short(total_hours);
         let a_thm = Angle::from_thm(angular_hours, angular_minutes);
-        test_short::<AngleArcMinutesSeconds>(
-            a_thm,
-            minutes,
-            seconds
-        );
+        test(a_thm);
 
         let (angular_hours, angular_minutes, angular_seconds) =
             to_long(total_hours);
         let a_thms = Angle::from_thms(angular_hours, angular_minutes, angular_seconds);
-        test_short::<AngleArcMinutesSeconds>(
-            a_thms,
-            minutes,
-            seconds
-        );
+        test(a_thms);
 
         let total_minutes = total_minutes / 15.0;
         let a_tm = Angle::from_tm(total_minutes);
-        test_short::<AngleArcMinutesSeconds>(
-            a_tm,
-            minutes,
-            seconds
-        );
+        test(a_tm);
 
         let (angular_minutes, angular_seconds) = to_short(total_minutes);
         let a_tms = Angle::from_tms(angular_minutes, angular_seconds);
-        test_short::<AngleArcMinutesSeconds>(
-            a_tms,
-            minutes,
-            seconds
-        );
+        test(a_tms);
 
         let a_ts = Angle::from_ts(60.0 * total_minutes);
-        test_short::<AngleArcMinutesSeconds>(
-            a_ts,
-            minutes,
-            seconds
-        );
+        test(a_ts);
     }
 }
 
@@ -849,56 +669,59 @@ fn into_as_test() {
 
     for _ in 0..common::ITERATIONS {
         let seconds = rng.sample(band);
+        let test = |angle: Angle| test_value::<AngleArcSeconds>(
+            angle, seconds);
+
         let minutes = seconds / 60.0;
         let degrees = minutes / 60.0;
 
         let a_rad = Angle::from(seconds / ARCS);
-        test_value::<AngleArcSeconds>(a_rad, seconds);
+        test(a_rad);
 
         let a_rev = Angle::from_r(degrees / 360.0);
-        test_value::<AngleArcSeconds>(a_rev, seconds);
+        test(a_rev);
 
         let a_ad = Angle::from_ad(degrees);
-        test_value::<AngleArcSeconds>(a_ad, seconds);
+        test(a_ad);
 
         let (angular_degrees, angular_minutes) = to_short(degrees);
         let a_adm = Angle::from_adm(angular_degrees, angular_minutes);
-        test_value::<AngleArcSeconds>(a_adm, seconds);
+        test(a_adm);
 
         let (angular_degrees, angular_minutes, angular_seconds) =
             to_long(degrees);
         let a_adms = Angle::from_adms(angular_degrees, angular_minutes, angular_seconds);
-        test_value::<AngleArcSeconds>(a_adms, seconds);
+        test(a_adms);
 
         let a_am = Angle::from_am(minutes);
-        test_value::<AngleArcSeconds>(a_am, seconds);
+        test(a_am);
 
         let (angular_minutes, angular_seconds) = to_short(minutes);
         let a_ams = Angle::from_ams(angular_minutes, angular_seconds);
-        test_value::<AngleArcSeconds>(a_ams, seconds);
+        test(a_ams);
 
         let hours = degrees / 15.0;
         let a_th = Angle::from_th(hours);
-        test_value::<AngleArcSeconds>(a_th, seconds);
+        test(a_th);
 
         let (angular_hours, angular_minutes) = to_short(hours);
         let a_thm = Angle::from_thm(angular_hours, angular_minutes);
-        test_value::<AngleArcSeconds>(a_thm, seconds);
+        test(a_thm);
 
         let (angular_hours, angular_minutes, angular_seconds) = to_long(hours);
         let a_thms = Angle::from_thms(angular_hours, angular_minutes, angular_seconds);
-        test_value::<AngleArcSeconds>(a_thms, seconds);
+        test(a_thms);
 
         let minutes = minutes / 15.0;
         let a_tm = Angle::from_tm(minutes);
-        test_value::<AngleArcSeconds>(a_tm, seconds);
+        test(a_tm);
 
         let (angular_minutes, angular_seconds) = to_short(minutes);
         let a_tms = Angle::from_tms(angular_minutes, angular_seconds);
-        test_value::<AngleArcSeconds>(a_tms, seconds);
+        test(a_tms);
 
         let a_ts = Angle::from_ts(seconds / 15.0);
-        test_value::<AngleArcSeconds>(a_ts, seconds);
+        test(a_ts);
     }
 }
 
@@ -910,55 +733,57 @@ fn into_th_test() {
 
     for _ in 0..common::ITERATIONS {
         let hours = rng.sample(band);
-
-        let a_rad = Angle::from(hours * 15.0 * RAD);
-        test_value::<AngleTimeHours>(a_rad, hours);
-
-        let a_rev = Angle::from_r(hours / 24.0);
-        test_value::<AngleTimeHours>(a_rev, hours);
+        let test = |angle: Angle| test_value::<AngleTimeHours>(
+            angle, hours);
 
         let degrees = hours * 15.0;
+        let a_rad = Angle::from(degrees * RAD);
+        test(a_rad);
+
+        let a_rev = Angle::from_r(hours / 24.0);
+        test(a_rev);
+
         let a_ad = Angle::from_ad(degrees);
-        test_value::<AngleTimeHours>(a_ad, hours);
+        test(a_ad);
 
         let (angular_degrees, angular_minutes) = to_short(degrees);
         let a_adm = Angle::from_adm(angular_degrees, angular_minutes);
-        test_value::<AngleTimeHours>(a_adm, hours);
+        test(a_adm);
 
         let (angular_degrees, angular_minutes, angular_seconds) =
             to_long(degrees);
         let a_adms = Angle::from_adms(angular_degrees, angular_minutes, angular_seconds);
-        test_value::<AngleTimeHours>(a_adms, hours);
+        test(a_adms);
 
         let minutes = degrees * 60.0;
         let a_am = Angle::from_am(minutes);
-        test_value::<AngleTimeHours>(a_am, hours);
+        test(a_am);
 
         let (angular_minutes, angular_seconds) = to_short(minutes);
         let a_ams = Angle::from_ams(angular_minutes, angular_seconds);
-        test_value::<AngleTimeHours>(a_ams, hours);
+        test(a_ams);
 
         let a_as = Angle::from_as(minutes * 60.0);
-        test_value::<AngleTimeHours>(a_as, hours);
+        test(a_as);
 
         let (angular_hours, angular_minutes) = to_short(hours);
         let a_adm = Angle::from_thm(angular_hours, angular_minutes);
-        test_value::<AngleTimeHours>(a_adm, hours);
+        test(a_adm);
 
         let (angular_hours, angular_minutes, angular_seconds) = to_long(hours);
         let a_thms = Angle::from_thms(angular_hours, angular_minutes, angular_seconds);
-        test_value::<AngleTimeHours>(a_thms, hours);
+        test(a_thms);
 
         let minutes = hours * 60.0;
         let a_tm = Angle::from_tm(minutes);
-        test_value::<AngleTimeHours>(a_tm, hours);
+        test(a_tm);
 
         let (angular_minutes, angular_seconds) = to_short(minutes);
         let a_tms = Angle::from_tms(angular_minutes, angular_seconds);
-        test_value::<AngleTimeHours>(a_tms, hours);
+        test(a_tms);
 
         let a_ts = Angle::from_ts(minutes * 60.0);
-        test_value::<AngleTimeHours>(a_ts, hours);
+        test(a_ts);
     }
 }
 
@@ -973,109 +798,59 @@ fn into_thm_test() {
         let hours = rng.sample(hours_band);
         let minutes = rng.sample(minutes_band);
 
+        let test = |angle: Angle| test_short::<AngleTimeHoursMinutes>(
+            angle, hours, minutes);
+
         let total_hours = from_short(hours, minutes);
         let total_degrees = total_hours * 15.0;
 
         let a_rad = Angle::from(total_degrees * RAD);
-        test_short::<AngleTimeHoursMinutes>(
-            a_rad,
-            hours,
-            minutes
-        );
+        test(a_rad);
 
         let a_rev = Angle::from_r(total_hours / 24.0);
-        test_short::<AngleTimeHoursMinutes>(
-            a_rev,
-            hours,
-            minutes
-        );
+        test(a_rev);
 
-        let a_ad = Angle::from_ad(total_hours * 15.0);
-        test_short::<AngleTimeHoursMinutes>(
-            a_ad,
-            hours,
-            minutes
-        );
+        let a_ad = Angle::from_ad(total_degrees);
+        test(a_ad);
 
         let (angular_degrees, angular_minutes) = to_short(total_degrees);
         let a_adm = Angle::from_adm(angular_degrees, angular_minutes);
-        test_short::<AngleTimeHoursMinutes>(
-            a_adm,
-            hours,
-            minutes
-        );
+        test(a_adm);
 
         let (angular_degrees, angular_minutes, angular_seconds) =
-
             to_long(total_degrees);
         let a_adms = Angle::from_adms(angular_degrees, angular_minutes, angular_seconds);
-        test_short::<AngleTimeHoursMinutes>(
-            a_adms,
-            hours,
-            minutes
-        );
+        test(a_adms);
 
         let total_minutes = total_degrees * 60.0;
         let a_am = Angle::from_am(total_minutes);
-        test_short::<AngleTimeHoursMinutes>(
-            a_am,
-            hours,
-            minutes
-        );
+        test(a_am);
 
         let (angular_minutes, angular_seconds) = to_short(total_minutes);
         let a_ams = Angle::from_ams(angular_minutes, angular_seconds);
-        test_short::<AngleTimeHoursMinutes>(
-            a_ams,
-            hours,
-            minutes
-        );
+        test(a_ams);
 
         let a_as = Angle::from_as(total_minutes * 60.0);
-        test_short::<AngleTimeHoursMinutes>(
-            a_as,
-            hours,
-            minutes
-        );
+        test(a_as);
 
         let a_th = Angle::from_th(total_hours);
-        test_short::<AngleTimeHoursMinutes>(
-            a_th,
-            hours,
-            minutes
-        );
+        test(a_th);
 
         let (angular_hours, angular_minutes, angular_seconds) =
             to_long(total_hours);
         let a_thms = Angle::from_thms(angular_hours, angular_minutes, angular_seconds);
-        test_short::<AngleTimeHoursMinutes>(
-            a_thms,
-            hours,
-            minutes
-        );
+        test(a_thms);
 
         let total_minutes = total_hours * 60.0;
         let a_tm = Angle::from_tm(total_minutes);
-        test_short::<AngleTimeHoursMinutes>(
-            a_tm,
-            hours,
-            minutes
-        );
+        test(a_tm);
 
         let (angular_minutes, angular_seconds) = to_short(total_minutes);
         let a_tms = Angle::from_tms(angular_minutes, angular_seconds);
-        test_short::<AngleTimeHoursMinutes>(
-            a_tms,
-            hours,
-            minutes
-        );
+        test(a_tms);
 
         let a_ts = Angle::from_ts(total_minutes * 60.0);
-        test_short::<AngleTimeHoursMinutes>(
-            a_ts,
-            hours,
-            minutes
-        );
+        test(a_ts);
     }
 }
 
@@ -1092,120 +867,58 @@ fn into_thms_test() {
         let minutes = rng.sample(minutes_band);
         let seconds = rng.sample(seconds_band);
 
+        let test = |angle: Angle| test_long::<AngleTimeHoursMinutesSeconds>(
+            angle, hours, minutes, seconds);
+
         let total_hours = from_long(hours, minutes, seconds);
         let total_degrees = total_hours * 15.0;
 
         let a_rad = Angle::from(total_degrees * RAD);
-        test_long::<AngleTimeHoursMinutesSeconds>(
-            a_rad,
-            hours,
-            minutes,
-            seconds
-        );
+        test(a_rad);
 
         let a_rev = Angle::from_r(total_hours / 24.0);
-        test_long::<AngleTimeHoursMinutesSeconds>(
-            a_rev,
-            hours,
-            minutes,
-            seconds
-        );
+        test(a_rev);
 
         let a_ad = Angle::from_ad(total_degrees);
-        test_long::<AngleTimeHoursMinutesSeconds>(
-            a_ad,
-            hours,
-            minutes,
-            seconds
-        );
+        test(a_ad);
 
         let (angular_degrees, angular_minutes) = to_short(total_degrees);
         let a_adm = Angle::from_adm(angular_degrees, angular_minutes);
-        test_long::<AngleTimeHoursMinutesSeconds>(
-            a_adm,
-            hours,
-            minutes,
-            seconds
-        );
+        test(a_adm);
 
         let (angular_degrees, angular_minutes, angular_seconds) =
             to_long(total_degrees);
         let a_adms = Angle::from_adms(angular_degrees, angular_minutes, angular_seconds);
-        test_long::<AngleTimeHoursMinutesSeconds>(
-            a_adms,
-            hours,
-            minutes,
-            seconds
-        );
+        test(a_adms);
 
         let total_minutes = total_degrees * 60.0;
         let a_am = Angle::from_am(total_minutes);
-        test_long::<AngleTimeHoursMinutesSeconds>(
-            a_am,
-            hours,
-            minutes,
-            seconds
-        );
+        test(a_am);
 
         let (angular_minutes, angular_seconds) = to_short(total_minutes);
         let a_ams = Angle::from_ams(angular_minutes, angular_seconds);
-        test_long::<AngleTimeHoursMinutesSeconds>(
-            a_ams,
-            hours,
-            minutes,
-            seconds
-        );
+        test(a_ams);
 
         let a_as = Angle::from_as(total_minutes * 60.0);
-        test_long::<AngleTimeHoursMinutesSeconds>(
-            a_as,
-            hours,
-            minutes,
-            seconds
-        );
+        test(a_as);
 
         let a_th = Angle::from_th(total_hours);
-        test_long::<AngleTimeHoursMinutesSeconds>(
-            a_th,
-            hours,
-            minutes,
-            seconds
-        );
+        test(a_th);
 
         let (angular_hours, angular_minutes) = to_short(total_hours);
         let a_thm = Angle::from_thm(angular_hours, angular_minutes);
-        test_long::<AngleTimeHoursMinutesSeconds>(
-            a_thm,
-            hours,
-            minutes,
-            seconds
-        );
+        test(a_thm);
 
         let total_minutes = total_hours * 60.0;
         let a_tm = Angle::from_tm(total_minutes);
-        test_long::<AngleTimeHoursMinutesSeconds>(
-            a_tm,
-            hours,
-            minutes,
-            seconds
-        );
+        test(a_tm);
 
         let (angular_minutes, angular_seconds) = to_short(total_minutes);
         let a_tms = Angle::from_tms(angular_minutes, angular_seconds);
-        test_long::<AngleTimeHoursMinutesSeconds>(
-            a_tms,
-            hours,
-            minutes,
-            seconds
-        );
+        test(a_tms);
 
         let a_ts = Angle::from_ts(total_minutes * 60.0);
-        test_long::<AngleTimeHoursMinutesSeconds>(
-            a_ts,
-            hours,
-            minutes,
-            seconds
-        );
+        test(a_ts);
     }
 }
 
