@@ -3,6 +3,11 @@ name = "ephem_derive"
 version = "0.1.0-alpha"
 authors = ["Roman A. Voronkin <roman.voronkin@gmail.com>"]
 edition = "2018"
+description = """
+Helper crate for proc-macro library for reading attributes into structs when
+implementing custom derives. Use https://crates.io/crates/ephem in your code.
+"""
+license = "MIT"
 
 [lib]
 proc-macro = true
