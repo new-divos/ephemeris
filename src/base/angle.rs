@@ -1300,7 +1300,7 @@ impl convert::Into<AngleTimeMinutesSeconds> for Angle {
             },
             Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
                 let Left(minutes) = ms.into();
-                AngleTimeMinutesSeconds(Left(minutes).into())
+                AngleTimeMinutesSeconds(Left(minutes / 15.0).into())
             },
             Angle::ArcSeconds(AngleArcSeconds(s)) => {
                 AngleTimeMinutesSeconds(Left(s / TMMTOARCS).into())
@@ -1361,7 +1361,7 @@ impl convert::Into<AngleTimeSeconds> for Angle {
             },
             Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
                 let Right(seconds) = ms.into();
-                AngleTimeSeconds(seconds)
+                AngleTimeSeconds(seconds / 15.0)
             },
             Angle::ArcSeconds(AngleArcSeconds(s)) => {
                 AngleTimeSeconds(s / 15.0)
