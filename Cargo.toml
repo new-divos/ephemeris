@@ -6,12 +6,14 @@ authors = ["Roman A. Voronkin <roman.voronkin@gmail.com>"]
 license-file = "LICENSE"
 edition = "2018"
 
+[workspace]
+
 [lib]
 name = "ephem"
 
 [dependencies]
 chrono = "0.4"
-ephem_derive = { version = "0.1.0-alpha", path = "ephem_derive" }
+ephem_derive = { path = "ephem_derive" }
 num-traits = "0.2.14"
 
 [dev-dependencies]
