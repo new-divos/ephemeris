@@ -6,6 +6,8 @@ pub mod base;
 #[macro_use]
 extern crate approx;
 
+#[macro_use]
+extern crate ephem_derive;
 extern crate num_traits;
 
 #[cfg(test)]

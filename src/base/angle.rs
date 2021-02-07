@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::convert;
 use std::f64::consts::PI;
 
@@ -138,6 +139,19 @@ impl convert::Into<(Sign, i32, f64)> for ShortAngle {
     }
 }
 
+impl PartialOrd for ShortAngle {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self.1.is_nan() || other.1.is_nan() {
+            None
+        } else {
+            let Left(value1) = (*self).into();
+            let Left(value2) = (*other).into();
+
+            value1.partial_cmp(&value2)
+        }
+    }
+}
+
 impl ShortAngle {
     fn copysign(&self, value: f64) -> Self {
         let ShortAngle(value1, value2) = *self;
@@ -271,6 +285,19 @@ impl convert::Into<(Sign, i32, i32, f64)> for LongAngle {
     }
 }
 
+impl PartialOrd for LongAngle {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self.2.is_nan() || other.2.is_nan() {
+            None
+        } else {
+            let Left(value1) = (*self).into();
+            let Left(value2) = (*other).into();
+
+            value1.partial_cmp(&value2)
+        }
+    }
+}
+
 impl LongAngle {
     fn copysign(&self, value: f64) -> Self {
         let LongAngle(value1, value2, value3) = *self;
@@ -289,30 +316,6 @@ impl LongAngle {
     }
 }
 
-
-macro_rules! impl_into {
-    ($t:ty) => {
-        impl convert::Into<f64> for $t {
-            fn into(self) -> f64 {
-                self.value()
-            }
-        }
-    };
-    ($t:ty; $value:ident) => {
-        impl convert::Into<(Sign, f64)> for $t {
-            fn into(self) -> (Sign, f64) {
-                (self.sign(), self.$value())
-            }
-        }
-    };
-    ($t:ty; $r:ty) => {
-        impl convert::Into<$r> for $t {
-            fn into(self) -> $r {
-                self.0.into()
-            }
-        }
-    };
-}
 
 macro_rules! impl_angle {
     ($t:ty; $value:ident) => {
@@ -401,114 +404,106 @@ macro_rules! impl_angle {
 }
 
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+trait AngleOrd {}
+trait AngleValue {}
+
+trait UnpackAngleValue {}
+trait UnpackShortAngle {}
+trait RawShortAngle {}
+trait UnpackLongAngle {}
+trait RawLongAngle {}
+
+
+#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd,
+    AngleValue, UnpackAngleValue)]
 pub struct AngleRevolutions(f64);
 
-impl_into!(AngleRevolutions);
-impl_into!(AngleRevolutions; revolutions);
 impl_angle!(AngleRevolutions; revolutions);
 
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd,
+    AngleValue, UnpackAngleValue)]
 pub struct AngleArcDegrees(f64);
 
-impl_into!(AngleArcDegrees);
-impl_into!(AngleArcDegrees; degrees);
 impl_angle!(AngleArcDegrees; degrees);
 
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Copy, Clone, Default, PartialEq,
+    AngleOrd, AngleValue, RawShortAngle, UnpackShortAngle)]
 pub struct AngleArcDegreesMinutes(ShortAngle);
 
-impl_into!(AngleArcDegreesMinutes);
-impl_into!(AngleArcDegreesMinutes; (i32, f64));
-impl_into!(AngleArcDegreesMinutes; (Sign, i32, f64));
 impl_angle!(AngleArcDegreesMinutes; degrees, minutes);
 
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Copy, Clone, Default, PartialEq,
+    AngleOrd, AngleValue, RawLongAngle, UnpackLongAngle)]
 pub struct AngleArcDegreesMinutesSeconds(LongAngle);
 
-impl_into!(AngleArcDegreesMinutesSeconds);
-impl_into!(AngleArcDegreesMinutesSeconds; (i32, i32, f64));
-impl_into!(AngleArcDegreesMinutesSeconds; (Sign, i32, i32, f64));
 impl_angle!(AngleArcDegreesMinutesSeconds; degrees, minutes, seconds);
 
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd,
+    AngleValue, UnpackAngleValue)]
 pub struct AngleArcMinutes(f64);
 
-impl_into!(AngleArcMinutes);
-impl_into!(AngleArcMinutes; minutes);
 impl_angle!(AngleArcMinutes; minutes);
 
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Copy, Clone, Default, PartialEq,
+    AngleOrd, AngleValue, RawShortAngle, UnpackShortAngle)]
 pub struct AngleArcMinutesSeconds(ShortAngle);
 
-impl_into!(AngleArcMinutesSeconds);
-impl_into!(AngleArcMinutesSeconds; (i32, f64));
-impl_into!(AngleArcMinutesSeconds; (Sign, i32, f64));
 impl_angle!(AngleArcMinutesSeconds; minutes, seconds);
 
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd,
+    AngleValue, UnpackAngleValue)]
 pub struct AngleArcSeconds(f64);
 
-impl_into!(AngleArcSeconds);
-impl_into!(AngleArcSeconds; seconds);
 impl_angle!(AngleArcSeconds; seconds);
 
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd,
+    AngleValue, UnpackAngleValue)]
 pub struct AngleTimeHours(f64);
 
-impl_into!(AngleTimeHours);
-impl_into!(AngleTimeHours; hours);
 impl_angle!(AngleTimeHours; hours);
 
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Copy, Clone, Default, PartialEq,
+    AngleOrd, AngleValue, RawShortAngle, UnpackShortAngle)]
 pub struct AngleTimeHoursMinutes(ShortAngle);
 
-impl_into!(AngleTimeHoursMinutes);
-impl_into!(AngleTimeHoursMinutes; (i32, f64));
-impl_into!(AngleTimeHoursMinutes; (Sign, i32, f64));
 impl_angle!(AngleTimeHoursMinutes; hours, minutes);
 
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Copy, Clone, Default, PartialEq,
+    AngleOrd, AngleValue, RawLongAngle, UnpackLongAngle)]
 pub struct AngleTimeHoursMinutesSeconds(LongAngle);
 
-impl_into!(AngleTimeHoursMinutesSeconds);
-impl_into!(AngleTimeHoursMinutesSeconds; (i32, i32, f64));
-impl_into!(AngleTimeHoursMinutesSeconds; (Sign, i32, i32, f64));
 impl_angle!(AngleTimeHoursMinutesSeconds; hours, minutes, seconds);
 
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd,
+    AngleValue, UnpackAngleValue)]
 pub struct AngleTimeMinutes(f64);
 
-impl_into!(AngleTimeMinutes);
-impl_into!(AngleTimeMinutes; minutes);
 impl_angle!(AngleTimeMinutes; minutes);
 
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Copy, Clone, Default, PartialEq,
+    AngleOrd, AngleValue, RawShortAngle, UnpackShortAngle)]
 pub struct AngleTimeMinutesSeconds(ShortAngle);
 
-impl_into!(AngleTimeMinutesSeconds);
-impl_into!(AngleTimeMinutesSeconds; (i32, f64));
-impl_into!(AngleTimeMinutesSeconds; (Sign, i32, f64));
 impl_angle!(AngleTimeMinutesSeconds; minutes, seconds);
 
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd,
+    AngleValue, UnpackAngleValue)]
 pub struct AngleTimeSeconds(f64);
 
-impl_into!(AngleTimeSeconds);
-impl_into!(AngleTimeSeconds; seconds);
 impl_angle!(AngleTimeSeconds; seconds);
+
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Angle {
@@ -1398,6 +1393,19 @@ impl convert::Into<Option<AngleTimeSeconds>> for Angle {
     }
 }
 
+impl PartialOrd for Angle {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self.is_nan() || other.is_nan() {
+            None
+        } else {
+            let value1: f64 = (*self).into();
+            let value2: f64 = (*other).into();
+
+            value1.partial_cmp(&value2)
+        }
+    }
+}
+
 impl Angle {
     pub fn from_r(revolutions: f64) -> Angle {
         Angle::Revolutions(AngleRevolutions(revolutions))
@@ -1608,7 +1616,39 @@ impl Angle {
     pub fn to_ts(self) -> Angle {
         Angle::TimeSeconds(self.into())
     }
+
+    fn is_nan(&self) -> bool {
+        match *self {
+            Angle::Radians(r) => r.is_nan(),
+            Angle::Revolutions(AngleRevolutions(r)) => r.is_nan(),
+            Angle::ArcDegrees(AngleArcDegrees(d)) => d.is_nan(),
+            Angle::ArcDegreesMinutes(
+                AngleArcDegreesMinutes(ShortAngle(_, m))
+            ) => m.is_nan(),
+            Angle::ArcDegreesMinutesSeconds(
+                AngleArcDegreesMinutesSeconds(LongAngle(_, _, s))
+            ) => s.is_nan(),
+            Angle::ArcMinutes(AngleArcMinutes(m)) => m.is_nan(),
+            Angle::ArcMinutesSeconds(
+                AngleArcMinutesSeconds(ShortAngle(_, s))
+            ) => s.is_nan(),
+            Angle::ArcSeconds(AngleArcSeconds(s)) => s.is_nan(),
+            Angle::TimeHours(AngleTimeHours(h)) => h.is_nan(),
+            Angle::TimeHoursMinutes(
+                AngleTimeHoursMinutes(ShortAngle(_, m))
+            ) => m.is_nan(),
+            Angle::TimeHoursMinutesSeconds(
+                AngleTimeHoursMinutesSeconds(LongAngle(_, _, s))
+            ) => s.is_nan(),
+            Angle::TimeMinutes(AngleTimeMinutes(m)) => m.is_nan(),
+            Angle::TimeMinutesSeconds(
+                AngleTimeMinutesSeconds(ShortAngle(_, s))
+            ) => s.is_nan(),
+            Angle::TimeSeconds(AngleTimeSeconds(s)) => s.is_nan()
+        }
+    }
 }
+
 
 #[cfg(test)]
 mod tests {
