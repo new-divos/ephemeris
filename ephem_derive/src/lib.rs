@@ -6,6 +6,9 @@ extern crate syn;
 
 use crate::proc_macro::TokenStream;
 
+//
+// Angular values
+//
 
 #[proc_macro_derive(AngleOrd)]
 pub fn angle_ord_derive(input: TokenStream) -> TokenStream {
@@ -52,61 +55,44 @@ pub fn unpack_angle_value_derive(input: TokenStream) -> TokenStream {
 }
 
 
+macro_rules! impl_angular_conv {
+    ($ast:expr, $t:ty) => {{
+        let name = &$ast.ident;
+
+        (quote! {
+            impl ::std::convert::Into<$t> for #name {
+                fn into(self) -> $t {
+                    self.0.into()
+                }
+            }
+        }).into()
+    }};
+}
+
+
 #[proc_macro_derive(UnpackShortAngle)]
 pub fn unpack_short_angle_derive(input: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse(input).unwrap();
-
-    let name = &ast.ident;
-    (quote! {
-        impl ::std::convert::Into<(Sign, i32, f64)> for #name {
-            fn into(self) -> (Sign, i32, f64) {
-                self.0.into()
-            }
-        }
-    }).into()
+    impl_angular_conv!(ast, (Sign, i32, f64))
 }
 
 
 #[proc_macro_derive(RawShortAngle)]
 pub fn raw_short_angle_derive(input: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse(input).unwrap();
-
-    let name = &ast.ident;
-    (quote! {
-        impl ::std::convert::Into<(i32, f64)> for #name {
-            fn into(self) -> (i32, f64) {
-                self.0.into()
-            }
-        }
-    }).into()
+    impl_angular_conv!(ast, (i32, f64))
 }
 
 
 #[proc_macro_derive(UnpackLongAngle)]
 pub fn unpack_long_angle_derive(input: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse(input).unwrap();
-
-    let name = &ast.ident;
-    (quote! {
-        impl ::std::convert::Into<(Sign, i32, i32, f64)> for #name {
-            fn into(self) -> (Sign, i32, i32, f64) {
-                self.0.into()
-            }
-        }
-    }).into()
+    impl_angular_conv!(ast, (Sign, i32, i32, f64))
 }
 
 
 #[proc_macro_derive(RawLongAngle)]
 pub fn raw_long_angle_derive(input: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse(input).unwrap();
-
-    let name = &ast.ident;
-    (quote! {
-        impl ::std::convert::Into<(i32, i32, f64)> for #name {
-            fn into(self) -> (i32, i32, f64) {
-                self.0.into()
-            }
-        }
-    }).into()
+    impl_angular_conv!(ast, (i32, i32, f64))
 }

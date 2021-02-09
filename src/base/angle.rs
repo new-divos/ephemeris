@@ -1626,7 +1626,7 @@ impl Angle {
                 AngleArcDegreesMinutes(ShortAngle(_, m))
             ) => m.is_nan(),
             Angle::ArcDegreesMinutesSeconds(
-                AngleArcDegreesMinutesSeconds(LongAngle(_, _, s))
+                AngleArcDegreesMinutesSeconds(LongAngle(.., s))
             ) => s.is_nan(),
             Angle::ArcMinutes(AngleArcMinutes(m)) => m.is_nan(),
             Angle::ArcMinutesSeconds(
@@ -1638,7 +1638,7 @@ impl Angle {
                 AngleTimeHoursMinutes(ShortAngle(_, m))
             ) => m.is_nan(),
             Angle::TimeHoursMinutesSeconds(
-                AngleTimeHoursMinutesSeconds(LongAngle(_, _, s))
+                AngleTimeHoursMinutesSeconds(LongAngle(.., s))
             ) => s.is_nan(),
             Angle::TimeMinutes(AngleTimeMinutes(m)) => m.is_nan(),
             Angle::TimeMinutesSeconds(

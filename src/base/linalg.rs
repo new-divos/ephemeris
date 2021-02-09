@@ -4,6 +4,7 @@ use std::default;
 use std::iter;
 use std::ops;
 use std::ops::{Add, Mul, Sub};
+// use std::cmp::Ordering;
 
 use crate::base::{Real, Result};
 use crate::base::consts::PI2;
@@ -13,11 +14,19 @@ pub trait Norm {
     fn norm(&self) -> f64;
 }
 
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct CartesianVec3D {
     x: f64,
     y: f64,
     z: f64
+}
+
+impl convert::Into<(f64, f64, f64)> for CartesianVec3D {
+    fn into(self) -> (f64, f64, f64) {
+        let CartesianVec3D{ x, y, z } = self;
+        (x, y, z)
+    }
 }
 
 impl Norm for CartesianVec3D {
@@ -47,6 +56,13 @@ pub struct CylindricalVec3D {
     z: f64
 }
 
+impl convert::Into<(f64, f64, f64)> for CylindricalVec3D {
+    fn into(self) -> (f64, f64, f64) {
+        let CylindricalVec3D { rho, phi, z } = self;
+        (rho, phi, z)
+    }
+}
+
 impl Norm for CylindricalVec3D {
     fn norm(&self) -> f64 {
         self.rho.hypot(self.z)
@@ -72,6 +88,13 @@ pub struct SphericalVec3D {
     r: f64,
     phi: f64,
     theta: f64
+}
+
+impl convert::Into<(f64, f64, f64)> for SphericalVec3D {
+    fn into(self) -> (f64, f64, f64) {
+        let SphericalVec3D{ r, phi, theta } = self;
+        (r, phi, theta)
+    }
 }
 
 impl Norm for SphericalVec3D {
@@ -103,10 +126,10 @@ pub enum Vec3D {
 
 impl Norm for Vec3D {
     fn norm(&self) -> f64 {
-        match *self {
-            Vec3D::Cartesian(ref c) => c.norm(),
-            Vec3D::Cylindrical(ref c) => c.norm(),
-            Vec3D::Spherical(ref s) => s.norm()
+        match self {
+            Vec3D::Cartesian(c) => c.norm(),
+            Vec3D::Cylindrical(c) => c.norm(),
+            Vec3D::Spherical(s) => s.norm()
         }
     }
 }
@@ -121,24 +144,24 @@ impl convert::Into<CartesianVec3D> for Vec3D {
     fn into(self) -> CartesianVec3D {
         match self {
             Vec3D::Cartesian(c) => c,
-            Vec3D::Cylindrical(ref c) => {
-                let p = c.phi.sin_cos();
+            Vec3D::Cylindrical(CylindricalVec3D{ rho, phi, z }) => {
+                let (phi_sin, phi_cos) = phi.sin_cos();
 
                 CartesianVec3D {
-                    x: c.rho * p.1,
-                    y: c.rho * p.0,
-                    z: c.z
+                    x: rho * phi_cos,
+                    y: rho * phi_sin,
+                    z
                 }
             },
-            Vec3D::Spherical(ref s) => {
-                let p = s.phi.sin_cos();
-                let t = s.theta.sin_cos();
-                let rho = s.r * t.1;
+            Vec3D::Spherical(SphericalVec3D{ r, phi, theta }) => {
+                let (phi_sin, phi_cos) = phi.sin_cos();
+                let (theta_sin, theta_cos) = theta.sin_cos();
+                let rho = r * theta_cos;
 
                 CartesianVec3D {
-                    x: rho * p.1,
-                    y: rho * p.0,
-                    z: s.r * t.0
+                    x: rho * phi_cos,
+                    y: rho * phi_sin,
+                    z: r * theta_sin
                 }
             }
         }
@@ -157,27 +180,27 @@ impl convert::Into<Option<CartesianVec3D>> for Vec3D {
 impl convert::Into<CylindricalVec3D> for Vec3D {
     fn into(self) -> CylindricalVec3D {
         match self {
-            Vec3D::Cartesian(ref c) => {
-                let phi = if c.x == 0.0 && c.y == 0.0 {
+            Vec3D::Cartesian(CartesianVec3D{ x, y, z }) => {
+                let phi = if x == 0.0 && y == 0.0 {
                     0.0
                 } else {
-                    c.y.atan2(c.x)
+                    y.atan2(x)
                 };
 
                 CylindricalVec3D {
-                    rho: c.x.hypot(c.y),
+                    rho: x.hypot(y),
                     phi: phi.fmod(PI2),
-                    z: c.z
+                    z
                 }
             },
             Vec3D::Cylindrical(c) => c,
-            Vec3D::Spherical(ref s) => {
-                let t = s.theta.sin_cos();
+            Vec3D::Spherical(SphericalVec3D{ r, phi, theta }) => {
+                let (theta_sin, theta_cos) = theta.sin_cos();
 
                 CylindricalVec3D {
-                    rho: s.r * t.1,
-                    phi: s.phi,
-                    z: s.r * t.0
+                    rho: r * theta_cos,
+                    phi,
+                    z: r * theta_sin
                 }
             }
         }
@@ -196,37 +219,33 @@ impl convert::Into<Option<CylindricalVec3D>> for Vec3D {
 impl convert::Into<SphericalVec3D> for Vec3D {
     fn into(self) -> SphericalVec3D {
         match self {
-            Vec3D::Cartesian(ref c) => {
-                let rho_sq = c.x.powi(2) + c.y.powi(2);
-                let r = (rho_sq + c.z.powi(2)).sqrt();
+            Vec3D::Cartesian(CartesianVec3D{ x, y, z }) => {
+                let rho_sq = x * x + y * y;
+                let r = (rho_sq + z * z).sqrt();
 
-                let phi = if c.x == 0.0 && c.y == 0.0 {
+                let phi = if x == 0.0 && y == 0.0 {
                     0.0
                 } else {
-                    c.y.atan2(c.x)
+                    y.atan2(x)
                 };
 
                 let rho = rho_sq.sqrt();
-                let theta = if rho == 0.0 && c.z == 0.0 {
+                let theta = if rho == 0.0 && z == 0.0 {
                     0.0
                 } else {
-                    c.z.atan2(rho)
+                    z.atan2(rho)
                 };
 
                 SphericalVec3D { r, phi: phi.fmod(PI2), theta }
             },
-            Vec3D::Cylindrical(ref c) => {
-                let theta = if c.rho == 0.0 && c.z == 0.0 {
+            Vec3D::Cylindrical(CylindricalVec3D{ rho, phi, z }) => {
+                let theta = if rho == 0.0 && z == 0.0 {
                     0.0
                 } else {
-                    c.z.atan2(c.rho)
+                    z.atan2(rho)
                 };
 
-                SphericalVec3D {
-                    r: c.rho.hypot(c.z),
-                    phi: c.phi,
-                    theta
-                }
+                SphericalVec3D { r: rho.hypot(z), phi, theta }
             },
             Vec3D::Spherical(s) => s
         }
@@ -247,7 +266,7 @@ impl ops::Neg for Vec3D {
 
     fn neg(self) -> Self {
         let lhs: CartesianVec3D = self.into();
-        Vec3D::cartesian(-lhs.x, -lhs.y, -lhs.z)
+        Vec3D::from_c(-lhs.x, -lhs.y, -lhs.z)
     }
 }
 
@@ -258,7 +277,7 @@ impl ops::Add for Vec3D {
         let lhs: CartesianVec3D = self.into();
         let rhs: CartesianVec3D = rhs.into();
 
-        Vec3D::cartesian(
+        Vec3D::from_c(
             lhs.x + rhs.x,
             lhs.y + rhs.y,
             lhs.z + rhs.z
@@ -283,10 +302,10 @@ impl ops::AddAssign for Vec3D {
 
             match *self {
                 Vec3D::Cylindrical(_) => {
-                    *self = Vec3D::Cartesian(lhs).to_cylindrical();
+                    *self = Vec3D::Cartesian(lhs).to_y();
                 },
                 Vec3D::Spherical(_) => {
-                    *self = Vec3D::Cartesian(lhs).to_spherical();
+                    *self = Vec3D::Cartesian(lhs).to_s();
                 },
                 _ => panic!(
                         "Invalid Vec3D conversion for addition with assignment"
@@ -303,7 +322,7 @@ impl ops::Sub for Vec3D {
         let lhs: CartesianVec3D = self.into();
         let rhs: CartesianVec3D = rhs.into();
 
-        Vec3D::cartesian(
+        Vec3D::from_c(
             lhs.x - rhs.x,
             lhs.y - rhs.y,
             lhs.z - rhs.z
@@ -328,14 +347,12 @@ impl ops::SubAssign for Vec3D {
 
             match *self {
                 Vec3D::Cylindrical(_) => {
-                    *self = Vec3D::Cartesian(lhs).to_cylindrical();
+                    *self = Vec3D::Cartesian(lhs).to_y();
                 },
                 Vec3D::Spherical(_) => {
-                    *self = Vec3D::Cartesian(lhs).to_spherical();
+                    *self = Vec3D::Cartesian(lhs).to_s();
                 },
-                _ => panic!(
-                    "Invalid Vec3D conversion for subtraction with assignment"
-                )
+                _ => unreachable!()
             }
         }
     }
@@ -347,7 +364,7 @@ impl ops::Mul<f64> for Vec3D {
     fn mul(self, rhs: f64) -> Self {
         let lhs: CartesianVec3D = self.into();
 
-        Vec3D::cartesian(
+        Vec3D::from_c(
             lhs.x * rhs,
             lhs.y * rhs,
             lhs.z * rhs
@@ -378,14 +395,12 @@ impl ops::MulAssign<f64> for Vec3D {
 
             match *self {
                 Vec3D::Cylindrical(_) => {
-                    *self = Vec3D::Cartesian(lhs).to_cylindrical();
+                    *self = Vec3D::Cartesian(lhs).to_y();
                 },
                 Vec3D::Spherical(_) => {
-                    *self = Vec3D::Cartesian(lhs).to_spherical();
+                    *self = Vec3D::Cartesian(lhs).to_s();
                 },
-                _ => panic!(
-                    "Invalid Vec3D conversion for multiplication with assignment"
-                )
+                _ => unreachable!()
             }
         }
     }
@@ -401,7 +416,7 @@ impl ops::Div<f64> for Vec3D {
 
         let lhs: CartesianVec3D = self.into();
         Ok(
-            Vec3D::cartesian(
+            Vec3D::from_c(
                 lhs.x / rhs,
                 lhs.y / rhs,
                 lhs.z / rhs
@@ -420,11 +435,11 @@ impl ops::Div<Mat3D> for Vec3D {
 }
 
 impl Vec3D {
-    pub fn cartesian(x: f64, y: f64, z: f64) -> Vec3D {
+    pub fn from_c(x: f64, y: f64, z: f64) -> Vec3D {
         Vec3D::Cartesian(CartesianVec3D { x, y, z })
     }
 
-    pub fn cylindrical(rho: f64, phi: f64, z: f64) -> Result<Vec3D> {
+    pub fn from_y(rho: f64, phi: f64, z: f64) -> Result<Vec3D> {
         if rho < 0.0 {
             return Err(Error::CannotCreateVec3DError(
                 Error::new_attribute_info("rho", rho)
@@ -433,16 +448,12 @@ impl Vec3D {
 
         Ok(
             Vec3D::Cylindrical(
-                CylindricalVec3D {
-                    rho,
-                    phi: phi.fmod(PI2),
-                    z
-                }
+                CylindricalVec3D { rho, phi: phi.fmod(PI2), z }
             )
         )
     }
 
-    pub fn spherical(r: f64, phi: f64, theta: f64) -> Result<Vec3D> {
+    pub fn from_s(r: f64, phi: f64, theta: f64) -> Result<Vec3D> {
         if r < 0.0 {
             return Err(Error::CannotCreateVec3DError(
                 Error::new_attribute_info("r", r)
@@ -456,52 +467,32 @@ impl Vec3D {
 
         Ok(
             Vec3D::Spherical(
-                SphericalVec3D {
-                    r,
-                    phi: phi.fmod(PI2),
-                    theta
-                }
+                SphericalVec3D { r, phi: phi.fmod(PI2), theta }
             )
         )
     }
 
     pub fn zero() -> Vec3D {
         Vec3D::Cartesian(
-            CartesianVec3D {
-                x: 0.0,
-                y: 0.0,
-                z: 0.0
-            }
+            CartesianVec3D { x: 0.0, y: 0.0, z: 0.0 }
         )
     }
 
     pub fn unit_x() -> Vec3D {
         Vec3D::Cartesian(
-            CartesianVec3D {
-                x: 1.0,
-                y: 0.0,
-                z: 0.0
-            }
+            CartesianVec3D { x: 1.0, y: 0.0, z: 0.0 }
         )
     }
 
     pub fn unit_y() -> Vec3D {
         Vec3D::Cartesian(
-            CartesianVec3D {
-                x: 0.0,
-                y: 1.0,
-                z: 0.0
-            }
+            CartesianVec3D { x: 0.0, y: 1.0, z: 0.0 }
         )
     }
 
     pub fn unit_z() -> Vec3D {
         Vec3D::Cartesian(
-            CartesianVec3D {
-                x: 0.0,
-                y: 0.0,
-                z: 1.0
-            }
+            CartesianVec3D { x: 0.0, y: 0.0, z: 1.0 }
         )
     }
 
@@ -523,33 +514,33 @@ impl Vec3D {
         )
     }
 
-    pub fn to_cartesian(self) -> Vec3D {
+    pub fn to_c(self) -> Vec3D {
         Vec3D::Cartesian(self.into())
     }
 
-    pub fn to_cylindrical(self) -> Vec3D {
+    pub fn to_y(self) -> Vec3D {
         Vec3D::Cylindrical(self.into())
     }
 
-    pub fn to_spherical(self) -> Vec3D {
+    pub fn to_s(self) -> Vec3D {
         Vec3D::Spherical(self.into())
     }
 
-    pub fn is_cartesian(self) -> bool {
+    pub fn is_c(self) -> bool {
         match self {
             Vec3D::Cartesian(_) => true,
             _ => false
         }
     }
 
-    pub fn is_cylindrical(self) -> bool {
+    pub fn is_y(self) -> bool {
         match self {
             Vec3D::Cylindrical(_) => true,
             _ => false
         }
     }
 
-    pub fn is_spherical(self) -> bool {
+    pub fn is_s(self) -> bool {
         match self {
             Vec3D::Spherical(_) => true,
             _ => false
@@ -567,7 +558,7 @@ impl Vec3D {
         let lhs: CartesianVec3D = self.into();
         let rhs: CartesianVec3D = rhs.into();
 
-        Vec3D::cartesian(
+        Vec3D::from_c(
             lhs.y * rhs.z - lhs.z * rhs.y,
             lhs.z * rhs.x - lhs.x * rhs.z,
             lhs.x * rhs.y - lhs.y * rhs.x
@@ -703,7 +694,7 @@ impl ops::Mul<Vec3D> for Mat3D {
             }
         }
 
-        Vec3D::cartesian(
+        Vec3D::from_c(
             values[0],
             values[1],
             values[2]
