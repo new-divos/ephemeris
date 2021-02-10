@@ -307,9 +307,7 @@ impl ops::AddAssign for Vec3D {
                 Vec3D::Spherical(_) => {
                     *self = Vec3D::Cartesian(lhs).to_s();
                 },
-                _ => panic!(
-                        "Invalid Vec3D conversion for addition with assignment"
-                    )
+                _ => unreachable!()
             }
         }
     }
@@ -694,11 +692,7 @@ impl ops::Mul<Vec3D> for Mat3D {
             }
         }
 
-        Vec3D::from_c(
-            values[0],
-            values[1],
-            values[2]
-        )
+        Vec3D::from_c(values[0], values[1], values[2])
     }
 }
 
@@ -811,39 +805,59 @@ impl Mat3D {
     }
 
     pub fn r_x(angle: f64) -> Mat3D {
-        let v = angle.sin_cos();
+        let (angle_sin, angle_cos) = angle.sin_cos();
 
         Mat3D(
             [
-                [1.0,  0.0, 0.0],
-                [0.0,  v.1, v.0],
-                [0.0, -v.0, v.1]
+                [1.0,        0.0,       0.0],
+                [0.0,  angle_cos, angle_sin],
+                [0.0, -angle_sin, angle_cos]
             ]
         )
     }
 
     pub fn r_y(angle: f64) -> Mat3D {
-        let v = angle.sin_cos();
+        let (angle_sin, angle_cos) = angle.sin_cos();
 
         Mat3D(
             [
-                [v.1, 0.0, -v.0],
-                [0.0, 1.0,  0.0],
-                [v.0, 0.0,  v.1]
+                [angle_cos, 0.0, -angle_sin],
+                [      0.0, 1.0,        0.0],
+                [angle_sin, 0.0,  angle_cos]
             ]
         )
     }
 
     pub fn r_z(angle: f64) -> Mat3D {
-        let v = angle.sin_cos();
+        let (angle_sin, angle_cos) = angle.sin_cos();
 
         Mat3D(
             [
-                [ v.1, v.0, 0.0],
-                [-v.0, v.1, 0.0],
-                [ 0.0, 0.0, 1.0]
+                [ angle_cos, angle_sin, 0.0],
+                [-angle_sin, angle_cos, 0.0],
+                [       0.0,       0.0, 1.0]
             ]
         )
+    }
+
+    #[inline]
+    fn wrap_index(index: isize) -> usize {
+        let mut index = index % 3;
+        if index < 0 {
+            index += 3;
+        }
+
+        index as usize
+    }
+
+    pub fn row(&self, index: isize) -> Vec3D {
+        let index = Mat3D::wrap_index(index);
+        Vec3D::from_c(self.0[index][0], self.0[index][1], self.0[index][2])
+    }
+
+    pub fn column(&self, index: isize) -> Vec3D {
+        let index = Mat3D::wrap_index(index);
+        Vec3D::from_c(self.0[0][index], self.0[1][index], self.0[2][index])
     }
 
     pub fn t(&self) -> Mat3D {
