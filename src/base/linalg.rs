@@ -1283,4 +1283,38 @@ mod tests {
             assert_eq!((i + 1) as f64, m);
         }
     }
+
+    #[test]
+    fn mat3d_row_column_test() {
+        let a = Mat3D(
+            [
+                [1.0, 2.0, 3.0],
+                [4.0, 5.0, 6.0],
+                [7.0, 8.0, 9.0]
+            ]
+        );
+
+        let indices: Vec<isize> = vec![0, 1, 2, -1, -2, -3];
+        let matrix_indices: Vec<usize> = vec![0, 1, 2, 2, 1, 0];
+
+        for (idx, matrix_idx) in indices.iter().zip(matrix_indices.iter()) {
+            let row = a.row(*idx);
+            if let Vec3D::Cartesian(CartesianVec3D{ x, y, z }) = row {
+                assert_eq!(x, a.0[*matrix_idx][0]);
+                assert_eq!(y, a.0[*matrix_idx][1]);
+                assert_eq!(z, a.0[*matrix_idx][2]);
+            } else {
+                unreachable!();
+            }
+
+            let col = a.column(*idx);
+            if let Vec3D::Cartesian(CartesianVec3D { x, y, z }) = col {
+                assert_eq!(x, a.0[0][*matrix_idx]);
+                assert_eq!(y, a.0[1][*matrix_idx]);
+                assert_eq!(z, a.0[2][*matrix_idx]);
+            } else {
+                unreachable!();
+            }
+        }
+    }
 }
