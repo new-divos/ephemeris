@@ -12,8 +12,8 @@ use ephem::base::linalg;
 use ephem::base::consts::PI2;
 
 
-fn new_random_vec3d<R: Rng + ?Sized>(rng: &mut R) -> linalg::Vec3D {
-    linalg::Vec3D::from_c(
+fn new_random_vec3d<R: Rng + ?Sized>(rng: &mut R) -> linalg::Vector3D {
+    linalg::Vector3D::from_c(
         200.0 * rng.gen::<f64>() - 100.0,
         200.0 * rng.gen::<f64>() - 100.0,
         200.0 * rng.gen::<f64>() - 100.0
@@ -22,7 +22,7 @@ fn new_random_vec3d<R: Rng + ?Sized>(rng: &mut R) -> linalg::Vec3D {
 
 #[test]
 fn create_cartesian_vec3d_test() {
-    let z = linalg::Vec3D::zero();
+    let z = linalg::Vector3D::zero();
     assert!(z.is_c());
     let raw: linalg::CartesianVec3D = z.into();
     assert_eq!(raw.x(), 0.0);
@@ -35,7 +35,7 @@ fn create_cartesian_vec3d_test() {
     assert_eq!(raw.y(), 0.0);
     assert_eq!(raw.z(), 0.0);
 
-    let ux = linalg::Vec3D::unit_x();
+    let ux = linalg::Vector3D::unit_x();
     assert!(ux.is_c());
     let raw: linalg::CartesianVec3D = ux.into();
     assert_eq!(raw.x(), 1.0);
@@ -48,7 +48,7 @@ fn create_cartesian_vec3d_test() {
     assert_eq!(raw.y(), 0.0);
     assert_eq!(raw.z(), 0.0);
 
-    let uy = linalg::Vec3D::unit_y();
+    let uy = linalg::Vector3D::unit_y();
     assert!(uy.is_c());
     let raw: linalg::CartesianVec3D = uy.into();
     assert_eq!(raw.x(), 0.0);
@@ -61,7 +61,7 @@ fn create_cartesian_vec3d_test() {
     assert_eq!(raw.y(), 1.0);
     assert_eq!(raw.z(), 0.0);
 
-    let uz = linalg::Vec3D::unit_z();
+    let uz = linalg::Vector3D::unit_z();
     assert!(uz.is_c());
     let raw: linalg::CartesianVec3D = uz.into();
     assert_eq!(raw.x(), 0.0);
@@ -74,7 +74,7 @@ fn create_cartesian_vec3d_test() {
     assert_eq!(raw.y(), 0.0);
     assert_eq!(raw.z(), 1.0);
 
-    let v = linalg::Vec3D::from_c(1.0, 2.0, 3.0);
+    let v = linalg::Vector3D::from_c(1.0, 2.0, 3.0);
     assert!(v.is_c());
     let raw: linalg::CartesianVec3D = v.into();
     assert_eq!(raw.x(), 1.0);
@@ -93,7 +93,7 @@ fn create_cartesian_vec3d_test() {
         let y = 200.0 * rng.gen::<f64>() - 100.0;
         let z = 200.0 * rng.gen::<f64>() - 100.0;
 
-        let v = linalg::Vec3D::from_c(x, y, z);
+        let v = linalg::Vector3D::from_c(x, y, z);
         assert!(v.is_c());
         let raw: linalg::CartesianVec3D = v.into();
         assert_eq!(raw.x(), x);
@@ -116,7 +116,7 @@ fn create_cylindrical_vec3d_test() {
         let phi = PI2 * rng.gen::<f64>();
         let z = 200.0 * rng.gen::<f64>() - 100.0;
 
-        let c = linalg::Vec3D::from_y(rho, phi, z).unwrap();
+        let c = linalg::Vector3D::from_y(rho, phi, z).unwrap();
         assert!(c.is_y());
 
         let raw: linalg::CylindricalVec3D = c.into();
@@ -148,7 +148,7 @@ fn create_spherical_vec3d_test() {
         let phi = PI2 * rng.gen::<f64>();
         let theta = PI * rng.gen::<f64>() - FRAC_PI_2;
 
-        let s = linalg::Vec3D::from_s(r, phi, theta).unwrap();
+        let s = linalg::Vector3D::from_s(r, phi, theta).unwrap();
         assert!(s.is_s());
 
         let raw: linalg::SphericalVec3D = s.into();
@@ -175,7 +175,7 @@ fn create_spherical_vec3d_test() {
         let phi = PI2 * rng.gen::<f64>();
         let theta = PI * rng.gen::<f64>() - FRAC_PI_2;
 
-        let u = linalg::Vec3D::unit(phi, theta).unwrap();
+        let u = linalg::Vector3D::unit(phi, theta).unwrap();
         assert!(u.is_s());
 
         let raw: linalg::SphericalVec3D = u.into();
@@ -388,7 +388,7 @@ fn vec3d_operation_mul_test() {
 fn vec3d_operation_div_test() {
     let mut rng = rand::thread_rng();
 
-    let v = linalg::Vec3D::from_c(1.0, 2.0, 3.0);
+    let v = linalg::Vector3D::from_c(1.0, 2.0, 3.0);
     let r = v / 0.0;
     assert!(r.is_err());
 
@@ -434,45 +434,45 @@ fn vec3d_operation_dot_test() {
 
 #[test]
 fn vec3d_operation_cross_test() {
-    let v = linalg::Vec3D::unit_x().cross(linalg::Vec3D::unit_y());
+    let v = linalg::Vector3D::unit_x().cross(linalg::Vector3D::unit_y());
     let result: linalg::CartesianVec3D = v.into();
 
-    let r = linalg::Vec3D::unit_z();
+    let r = linalg::Vector3D::unit_z();
     let raw: linalg::CartesianVec3D = r.into();
     assert_eq!(result, raw);
 
-    let v = linalg::Vec3D::unit_y().cross(linalg::Vec3D::unit_x());
+    let v = linalg::Vector3D::unit_y().cross(linalg::Vector3D::unit_x());
     let result: linalg::CartesianVec3D = v.into();
 
-    let r = -linalg::Vec3D::unit_z();
+    let r = -linalg::Vector3D::unit_z();
     let raw: linalg::CartesianVec3D = r.into();
     assert_eq!(result, raw);
 
-    let v = linalg::Vec3D::unit_y().cross(linalg::Vec3D::unit_z());
+    let v = linalg::Vector3D::unit_y().cross(linalg::Vector3D::unit_z());
     let result: linalg::CartesianVec3D = v.into();
 
-    let r = linalg::Vec3D::unit_x();
+    let r = linalg::Vector3D::unit_x();
     let raw: linalg::CartesianVec3D = r.into();
     assert_eq!(result, raw);
 
-    let v = linalg::Vec3D::unit_z().cross(linalg::Vec3D::unit_y());
+    let v = linalg::Vector3D::unit_z().cross(linalg::Vector3D::unit_y());
     let result: linalg::CartesianVec3D = v.into();
 
-    let r = -linalg::Vec3D::unit_x();
+    let r = -linalg::Vector3D::unit_x();
     let raw: linalg::CartesianVec3D = r.into();
     assert_eq!(result, raw);
 
-    let v = linalg::Vec3D::unit_z().cross(linalg::Vec3D::unit_x());
+    let v = linalg::Vector3D::unit_z().cross(linalg::Vector3D::unit_x());
     let result: linalg::CartesianVec3D = v.into();
 
-    let r = linalg::Vec3D::unit_y();
+    let r = linalg::Vector3D::unit_y();
     let raw: linalg::CartesianVec3D = r.into();
     assert_eq!(result, raw);
 
-    let v = linalg::Vec3D::unit_x().cross(linalg::Vec3D::unit_z());
+    let v = linalg::Vector3D::unit_x().cross(linalg::Vector3D::unit_z());
     let result: linalg::CartesianVec3D = v.into();
 
-    let r = -linalg::Vec3D::unit_y();
+    let r = -linalg::Vector3D::unit_y();
     let raw: linalg::CartesianVec3D = r.into();
     assert_eq!(result, raw);
 
