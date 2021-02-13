@@ -26,6 +26,19 @@ impl<T: Copy> convert::Into<(f64, f64, f64)> for Vec3D<T> {
     }
 }
 
+impl <T: Copy> ops::Index<isize> for Vec3D<T> {
+    type Output = f64;
+
+    fn index(&self, idx: isize) -> &Self::Output {
+        match idx {
+            0 | -3 => &self.0,
+            1 | -2 => &self.1,
+            2 | -1 => &self.2,
+            _ => panic!("Illegal index for a Vec3D")
+        }
+    }
+}
+
 impl<T: Copy> Vec3D<T> {
     pub fn zero() -> Vec3D<T> {
         Vec3D::<T>(0.0, 0.0, 0.0, PhantomData::<T>{})
