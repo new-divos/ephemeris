@@ -2,13 +2,13 @@ use std::f64::consts::{FRAC_PI_2, PI};
 use std::convert;
 use std::default;
 use std::iter;
+use std::marker::PhantomData;
 use std::ops;
 use std::ops::{Add, Mul, Sub};
 
 use crate::base::{Real, Result};
 use crate::base::consts::PI2;
 use crate::base::error::Error;
-use std::marker::PhantomData;
 
 
 pub trait Vec3DNorm {
@@ -17,15 +17,60 @@ pub trait Vec3DNorm {
 
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct Vec3D<T>(f64, f64, f64, PhantomData<T>);
+pub struct Vec3D<T: Copy>(f64, f64, f64, PhantomData<T>);
+
+impl<T: Copy> convert::Into<(f64, f64, f64)> for Vec3D<T> {
+    fn into(self) -> (f64, f64, f64) {
+        let Vec3D::<T>(e1, e2, e3, _) = self;
+        (e1, e2, e3)
+    }
+}
+
+impl<T: Copy> Vec3D<T> {
+    pub fn zero() -> Vec3D<T> {
+        Vec3D::<T>(0.0, 0.0, 0.0, PhantomData::<T>{})
+    }
+}
 
 
+#[derive(Copy, Clone)]
 pub struct Cartesian;
 
-impl convert::Into<(f64, f64, f64)> for Vec3D<Cartesian> {
-    fn into(self) -> (f64, f64, f64) {
+impl convert::Into<Vec3D<Cylindrical>> for Vec3D<Cartesian> {
+    fn into(self) -> Vec3D<Cylindrical> {
         let Vec3D::<Cartesian>(x, y, z, _) = self;
-        (x, y, z)
+
+        let phi = if x == 0.0 && y == 0.0 {
+            0.0
+        } else {
+            y.atan2(x)
+        };
+
+        Vec3D::<Cylindrical>::new(x.hypot(y), phi, z)
+    }
+}
+
+impl convert::Into<Vec3D<Spherical>> for Vec3D<Cartesian> {
+    fn into(self) -> Vec3D<Spherical> {
+        let Vec3D::<Cartesian>(x, y, z, _) = self;
+
+        let rho_sq = x * x + y * y;
+        let r = (rho_sq + z * z).sqrt();
+
+        let phi = if x == 0.0 && y == 0.0 {
+            0.0
+        } else {
+            y.atan2(x)
+        };
+
+        let rho = rho_sq.sqrt();
+        let theta = if rho == 0.0 && z == 0.0 {
+            0.0
+        } else {
+            z.atan2(rho)
+        };
+
+        Vec3D::<Spherical>::new(r, phi, theta)
     }
 }
 
@@ -67,12 +112,29 @@ impl Vec3D<Cartesian> {
 }
 
 
+#[derive(Copy, Clone)]
 pub struct Cylindrical;
 
-impl convert::Into<(f64, f64, f64)> for Vec3D<Cylindrical> {
-    fn into(self) -> (f64, f64, f64) {
+impl convert::Into<Vec3D<Cartesian>> for Vec3D<Cylindrical> {
+    fn into(self) -> Vec3D<Cartesian> {
         let Vec3D::<Cylindrical>(rho, phi, z, _) = self;
-        (rho, phi, z)
+
+        let (sin_phi, cos_phi) = phi.sin_cos();
+        Vec3D::<Cartesian>::new(rho * cos_phi, rho * sin_phi, z)
+    }
+}
+
+impl convert::Into<Vec3D<Spherical>> for Vec3D<Cylindrical> {
+    fn into(self) -> Vec3D<Spherical> {
+        let Vec3D::<Cylindrical>(rho, phi, z, _) = self;
+
+        let theta = if rho == 0.0 && z == 0.0 {
+            0.0
+        } else {
+            z.atan2(rho)
+        };
+
+        Vec3D::<Spherical>::new(rho.hypot(z), phi, theta)
     }
 }
 
@@ -111,12 +173,26 @@ impl Vec3D<Cylindrical> {
 }
 
 
+#[derive(Copy, Clone)]
 pub struct Spherical;
 
-impl convert::Into<(f64, f64, f64)> for Vec3D<Spherical> {
-    fn into(self) -> (f64, f64, f64) {
+impl convert::Into<Vec3D<Cartesian>> for Vec3D<Spherical> {
+    fn into(self) -> Vec3D<Cartesian> {
         let Vec3D::<Spherical>(r, phi, theta, _) = self;
-        (r, phi, theta)
+
+        let (phi_sin, phi_cos) = phi.sin_cos();
+        let (theta_sin, theta_cos) = theta.sin_cos();
+        let rho = r * theta_cos;
+        Vec3D::<Cartesian>::new(rho * phi_cos, rho * phi_sin, r * theta_sin)
+    }
+}
+
+impl convert::Into<Vec3D<Cylindrical>> for Vec3D<Spherical> {
+    fn into(self) -> Vec3D<Cylindrical> {
+        let Vec3D::<Spherical>(r, phi, theta, _) = self;
+
+        let (theta_sin, theta_cos) = theta.sin_cos();
+        Vec3D::<Cylindrical>::new(r * theta_cos, phi, r * theta_sin)
     }
 }
 
