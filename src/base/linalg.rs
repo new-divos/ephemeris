@@ -17,41 +17,55 @@ pub trait Vec3DNorm {
 
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct Vec3D<T: Copy>(f64, f64, f64, PhantomData<T>);
+pub struct Vec3D<T: Copy>([f64; 3], PhantomData<T>);
 
 impl<T: Copy> convert::Into<(f64, f64, f64)> for Vec3D<T> {
     fn into(self) -> (f64, f64, f64) {
-        let Vec3D::<T>(e1, e2, e3, _) = self;
-        (e1, e2, e3)
+        let Vec3D::<T>(ref array, _) = self;
+        (array[0], array[1], array[2])
     }
 }
 
-impl <T: Copy> ops::Index<isize> for Vec3D<T> {
+impl<T: Copy> ops::Index<usize> for Vec3D<T> {
     type Output = f64;
 
-    fn index(&self, idx: isize) -> &Self::Output {
-        match idx {
-            0 | -3 => &self.0,
-            1 | -2 => &self.1,
-            2 | -1 => &self.2,
-            _ => panic!("Illegal index for a Vec3D")
-        }
+    fn index(&self, idx: usize) -> &Self::Output {
+        &self.0[idx]
+    }
+}
+
+impl<T: Copy> ops::IndexMut<usize> for Vec3D<T> {
+    fn index_mut(&mut self, idx: usize) -> &mut Self::Output {
+        &mut self.0[idx]
     }
 }
 
 impl<T: Copy> Vec3D<T> {
-    pub fn zero() -> Vec3D<T> {
-        Vec3D::<T>(0.0, 0.0, 0.0, PhantomData::<T>{})
+    pub fn zero() -> Self {
+        Vec3D::<T>([0.0; 3], PhantomData::<T>{})
+    }
+
+    pub fn filled_by(value: f64) -> Self {
+        Vec3D::<T>([value; 3], PhantomData::<T>{})
+    }
+
+    pub fn get(&self, idx: usize) -> Option<f64> {
+        match idx {
+            0..=2 => Some(self.0[idx]),
+            _ => None
+        }
     }
 }
 
 
 #[derive(Copy, Clone)]
-pub struct Cartesian;
+pub enum Cartesian {
+    X, Y, Z
+}
 
 impl convert::Into<Vec3D<Cylindrical>> for Vec3D<Cartesian> {
     fn into(self) -> Vec3D<Cylindrical> {
-        let Vec3D::<Cartesian>(x, y, z, _) = self;
+        let (x, y, z) = self.into();
 
         let phi = if x == 0.0 && y == 0.0 {
             0.0
@@ -65,7 +79,7 @@ impl convert::Into<Vec3D<Cylindrical>> for Vec3D<Cartesian> {
 
 impl convert::Into<Vec3D<Spherical>> for Vec3D<Cartesian> {
     fn into(self) -> Vec3D<Spherical> {
-        let Vec3D::<Cartesian>(x, y, z, _) = self;
+        let (x, y, z) = self.into();
 
         let rho_sq = x * x + y * y;
         let r = (rho_sq + z * z).sqrt();
@@ -87,50 +101,64 @@ impl convert::Into<Vec3D<Spherical>> for Vec3D<Cartesian> {
     }
 }
 
+impl ops::Index<Cartesian> for Vec3D<Cartesian> {
+    type Output = f64;
+
+    fn index(&self, idx: Cartesian) -> &Self::Output {
+        match idx {
+            Cartesian::X => &self.0[0],
+            Cartesian::Y => &self.0[1],
+            Cartesian::Z => &self.0[2]
+        }
+    }
+}
+
+impl ops::IndexMut<Cartesian> for Vec3D<Cartesian> {
+    fn index_mut(&mut self, idx: Cartesian) -> &mut Self::Output {
+        match idx {
+            Cartesian::X => &mut self.0[0],
+            Cartesian::Y => &mut self.0[1],
+            Cartesian::Z => &mut self.0[2]
+        }
+    }
+}
+
 impl Vec3DNorm for Vec3D<Cartesian> {
     fn norm(&self) -> f64 {
-        let Vec3D::<Cartesian>(x, y, z, _) = *self;
+        let (x, y, z) = (*self).into();
         (x * x + y * y + z * z).sqrt()
     }
 }
 
 impl Vec3D<Cartesian> {
-    pub fn x(&self) -> f64 {
-        self.0
-    }
-
-    pub fn y(&self) -> f64 {
-        self.1
-    }
-
-    pub fn z(&self) -> f64 {
-        self.2
-    }
-
     pub fn new(x: f64, y: f64, z: f64) -> Vec3D<Cartesian> {
-        Vec3D::<Cartesian>(x, y, z, PhantomData::<Cartesian>{})
+        Vec3D::<Cartesian>([x, y, z], PhantomData::<Cartesian>{})
     }
 
     pub fn unit_x() -> Vec3D<Cartesian> {
-        Vec3D::<Cartesian>(1.0, 0.0, 0.0, PhantomData::<Cartesian>{})
+        Vec3D::<Cartesian>([1.0, 0.0, 0.0], PhantomData::<Cartesian>{})
     }
 
     pub fn unit_y() -> Vec3D<Cartesian> {
-        Vec3D::<Cartesian>(0.0, 1.0, 0.0, PhantomData::<Cartesian>{})
+        Vec3D::<Cartesian>([0.0, 1.0, 0.0], PhantomData::<Cartesian>{})
     }
 
     pub fn unit_z() -> Vec3D<Cartesian> {
-        Vec3D::<Cartesian>(0.0, 0.0, 1.0, PhantomData::<Cartesian>{})
+        Vec3D::<Cartesian>([0.0, 0.0, 1.0], PhantomData::<Cartesian>{})
     }
 }
 
 
 #[derive(Copy, Clone)]
-pub struct Cylindrical;
+pub enum Cylindrical {
+    Radius,
+    Azimuth,
+    Altitude
+}
 
 impl convert::Into<Vec3D<Cartesian>> for Vec3D<Cylindrical> {
     fn into(self) -> Vec3D<Cartesian> {
-        let Vec3D::<Cylindrical>(rho, phi, z, _) = self;
+        let (rho, phi, z) = self.into();
 
         let (sin_phi, cos_phi) = phi.sin_cos();
         Vec3D::<Cartesian>::new(rho * cos_phi, rho * sin_phi, z)
@@ -139,7 +167,7 @@ impl convert::Into<Vec3D<Cartesian>> for Vec3D<Cylindrical> {
 
 impl convert::Into<Vec3D<Spherical>> for Vec3D<Cylindrical> {
     fn into(self) -> Vec3D<Spherical> {
-        let Vec3D::<Cylindrical>(rho, phi, z, _) = self;
+        let (rho, phi, z) = self.into();
 
         let theta = if rho == 0.0 && z == 0.0 {
             0.0
@@ -151,35 +179,47 @@ impl convert::Into<Vec3D<Spherical>> for Vec3D<Cylindrical> {
     }
 }
 
+impl ops::Index<Cylindrical> for Vec3D<Cylindrical> {
+    type Output = f64;
+
+    fn index(&self, idx: Cylindrical) -> &Self::Output {
+        match idx {
+            Cylindrical::Radius => &self.0[0],
+            Cylindrical::Azimuth => &self.0[1],
+            Cylindrical::Altitude => &self.0[2]
+        }
+    }
+}
+
+impl ops::IndexMut<Cylindrical> for Vec3D<Cylindrical> {
+    fn index_mut(&mut self, idx: Cylindrical) -> &mut Self::Output {
+        match idx {
+            Cylindrical::Radius => &mut self.0[0],
+            Cylindrical::Azimuth => &mut self.0[1],
+            Cylindrical::Altitude => &mut self.0[2]
+        }
+    }
+}
+
 impl Vec3DNorm for Vec3D<Cylindrical> {
     fn norm(&self) -> f64 {
-        let Vec3D::<Cylindrical>(rho, _, z, _) = *self;
+        let (rho, _, z) = (*self).into();
         rho.hypot(z)
     }
 }
 
 impl Vec3D<Cylindrical> {
-    pub fn rho(&self) -> f64 {
-        self.0
-    }
-
-    pub fn phi(&self) -> f64 {
-        self.1
-    }
-
-    pub fn z(&self) -> f64 {
-        self.2
-    }
-
     pub fn new(rho: f64, phi: f64, z: f64) -> Vec3D<Cylindrical> {
         Vec3D::<Cylindrical>(
-            rho.abs(),
-            if rho < 0.0 {
-                (phi + PI).fmod(PI2)
-            } else {
-                phi.fmod(PI2)
-            },
-            z,
+            [
+                rho.abs(),
+                if rho < 0.0 {
+                    (phi + PI).fmod(PI2)
+                } else {
+                    phi.fmod(PI2)
+                },
+                z
+            ],
             PhantomData::<Cylindrical>{}
         )
     }
@@ -187,11 +227,13 @@ impl Vec3D<Cylindrical> {
 
 
 #[derive(Copy, Clone)]
-pub struct Spherical;
+pub enum Spherical {
+    Radius, Azimuth, Colatitude
+}
 
 impl convert::Into<Vec3D<Cartesian>> for Vec3D<Spherical> {
     fn into(self) -> Vec3D<Cartesian> {
-        let Vec3D::<Spherical>(r, phi, theta, _) = self;
+        let (r, phi, theta) = self.into();
 
         let (phi_sin, phi_cos) = phi.sin_cos();
         let (theta_sin, theta_cos) = theta.sin_cos();
@@ -202,32 +244,42 @@ impl convert::Into<Vec3D<Cartesian>> for Vec3D<Spherical> {
 
 impl convert::Into<Vec3D<Cylindrical>> for Vec3D<Spherical> {
     fn into(self) -> Vec3D<Cylindrical> {
-        let Vec3D::<Spherical>(r, phi, theta, _) = self;
+        let (r, phi, theta) = self.into();
 
         let (theta_sin, theta_cos) = theta.sin_cos();
         Vec3D::<Cylindrical>::new(r * theta_cos, phi, r * theta_sin)
     }
 }
 
+impl ops::Index<Spherical> for Vec3D<Spherical> {
+    type Output = f64;
+
+    fn index(&self, idx: Spherical) -> &Self::Output {
+        match idx {
+            Spherical::Radius => &self.0[0],
+            Spherical::Azimuth => &self.0[1],
+            Spherical::Colatitude => &self.0[2]
+        }
+    }
+}
+
+impl ops::IndexMut<Spherical> for Vec3D<Spherical> {
+    fn index_mut(&mut self, idx: Spherical) -> &mut Self::Output {
+        match idx {
+            Spherical::Radius => &mut self.0[0],
+            Spherical::Azimuth => &mut self.0[1],
+            Spherical::Colatitude => &mut self.0[2]
+        }
+    }
+}
+
 impl Vec3DNorm for Vec3D<Spherical> {
     fn norm(&self) -> f64 {
-        self.0
+        self.0[0]
     }
 }
 
 impl Vec3D<Spherical> {
-    pub fn r(&self) -> f64 {
-        self.0
-    }
-
-    pub fn phi(&self) -> f64 {
-        self.1
-    }
-
-    pub fn theta(&self) -> f64 {
-        self.2
-    }
-
     #[inline]
     fn clamp(theta: f64) -> f64 {
         if theta < -FRAC_PI_2 {
@@ -241,28 +293,32 @@ impl Vec3D<Spherical> {
 
     pub fn new(r: f64, phi: f64, theta: f64) -> Vec3D<Spherical> {
         Vec3D::<Spherical>(
-            r.abs(),
-            if r < 0.0 {
-                (phi + PI).fmod(PI2)
-            } else {
-                phi.fmod(PI2)
-            },
-            Vec3D::<Spherical>::clamp(
+            [
+                r.abs(),
                 if r < 0.0 {
-                    -theta
+                    (phi + PI).fmod(PI2)
                 } else {
-                    theta
-                }
-            ),
+                    phi.fmod(PI2)
+                },
+                Vec3D::<Spherical>::clamp(
+                    if r < 0.0 {
+                        -theta
+                    } else {
+                        theta
+                    }
+                )
+            ],
             PhantomData::<Spherical>{}
         )
     }
 
     pub fn unit(phi: f64, theta: f64) -> Vec3D<Spherical> {
         Vec3D::<Spherical>(
-            1.0,
-            phi.fmod(PI2),
-            Vec3D::<Spherical>::clamp(theta),
+            [
+                1.0,
+                phi.fmod(PI2),
+                Vec3D::<Spherical>::clamp(theta)
+            ],
             PhantomData::<Spherical>{}
         )
     }
