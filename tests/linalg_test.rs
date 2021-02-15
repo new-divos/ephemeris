@@ -11,6 +11,7 @@ use rand::Rng;
 use ephem::vec3d;
 use ephem::base::linalg;
 use ephem::base::consts::PI2;
+use ephem::base::linalg::{Vec3D, Cartesian};
 
 
 #[test]
@@ -70,6 +71,24 @@ fn new_random_vec3d<R: Rng + ?Sized>(rng: &mut R) -> linalg::Vec3D<linalg::Carte
         200.0 * rng.gen::<f64>() - 100.0,
         200.0 * rng.gen::<f64>() - 100.0,
         200.0 * rng.gen::<f64>() - 100.0
+    )
+}
+
+
+fn new_random_cvec3d<R: Rng + ?Sized>(rng: &mut R) -> linalg::Vec3D<linalg::Cylindrical> {
+    linalg::Vec3D::<linalg::Cylindrical>::new(
+        100.0 * rng.gen::<f64>(),
+        PI2 * rng.gen::<f64>(),
+        200.0 * rng.gen::<f64>() - 100.0
+    )
+}
+
+
+fn new_random_svec3d<R: Rng + ?Sized>(rng: &mut R) -> linalg::Vec3D<linalg::Spherical> {
+    linalg::Vec3D::<linalg::Spherical>::new(
+        100.0 * rng.gen::<f64>(),
+        PI2 * rng.gen::<f64>(),
+        PI * rng.gen::<f64>() - FRAC_PI_2
     )
 }
 
@@ -241,15 +260,43 @@ fn vec3d_operation_neg_test() {
     let mut rng = rand::thread_rng();
 
     for _ in 0..common::ITERATIONS {
-        let v = new_random_vector3d(&mut rng);
-        let raw: linalg::CartesianVec3D = v.into();
+        let v = new_random_vec3d(&mut rng);
+        let (x, y, z) = v.into();
 
         let r = -v;
-        let result: linalg::CartesianVec3D = r.into();
+        let (tx, ty, tz) = r.into();
 
-        assert_eq!(result.x(), -raw.x());
-        assert_eq!(result.y(), -raw.y());
-        assert_eq!(result.z(), -raw.z());
+        assert_eq!(tx, -x);
+        assert_eq!(ty, -y);
+        assert_eq!(tz, -z);
+
+        let v = new_random_cvec3d(&mut rng);
+        let c: Vec3D<Cartesian> = v.into();
+
+        let r = -v;
+        let t: Vec3D<Cartesian> = r.into();
+        let (x, y, z) = t.into();
+
+        let c = -c;
+        let (tx, ty, tz) = c.into();
+
+        assert_relative_eq!(tx, x, epsilon=common::EPS);
+        assert_relative_eq!(ty, y, epsilon=common::EPS);
+        assert_relative_eq!(tz, z, epsilon=common::EPS);
+
+        let v = new_random_svec3d(&mut rng);
+        let c: Vec3D<Cartesian> = v.into();
+
+        let r = -v;
+        let t: Vec3D<Cartesian> = r.into();
+        let (x, y, z) = t.into();
+
+        let c = -c;
+        let (tx, ty, tz) = c.into();
+
+        assert_relative_eq!(tx, x, epsilon=common::EPS);
+        assert_relative_eq!(ty, y, epsilon=common::EPS);
+        assert_relative_eq!(tz, z, epsilon=common::EPS);
     }
 }
 

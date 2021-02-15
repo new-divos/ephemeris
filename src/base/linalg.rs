@@ -123,6 +123,15 @@ impl ops::IndexMut<Cartesian> for Vec3D<Cartesian> {
     }
 }
 
+impl ops::Neg for Vec3D<Cartesian> {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        let (x, y, z) = self.into();
+        Self::new(-x, -y, -z)
+    }
+}
+
 impl Vec3DNorm for Vec3D<Cartesian> {
     fn norm(&self) -> f64 {
         let (x, y, z) = (*self).into();
@@ -191,13 +200,12 @@ impl ops::Index<Cylindrical> for Vec3D<Cylindrical> {
     }
 }
 
-impl ops::IndexMut<Cylindrical> for Vec3D<Cylindrical> {
-    fn index_mut(&mut self, idx: Cylindrical) -> &mut Self::Output {
-        match idx {
-            Cylindrical::Radius => &mut self.0[0],
-            Cylindrical::Azimuth => &mut self.0[1],
-            Cylindrical::Altitude => &mut self.0[2]
-        }
+impl ops::Neg for Vec3D<Cylindrical> {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        let (rho, phi, z) = self.into();
+        Self::new(rho, phi + PI, -z)
     }
 }
 
@@ -228,7 +236,9 @@ impl Vec3D<Cylindrical> {
 
 #[derive(Copy, Clone)]
 pub enum Spherical {
-    Radius, Azimuth, Colatitude
+    Radius,
+    Azimuth,
+    Colatitude
 }
 
 impl convert::Into<Vec3D<Cartesian>> for Vec3D<Spherical> {
@@ -263,13 +273,12 @@ impl ops::Index<Spherical> for Vec3D<Spherical> {
     }
 }
 
-impl ops::IndexMut<Spherical> for Vec3D<Spherical> {
-    fn index_mut(&mut self, idx: Spherical) -> &mut Self::Output {
-        match idx {
-            Spherical::Radius => &mut self.0[0],
-            Spherical::Azimuth => &mut self.0[1],
-            Spherical::Colatitude => &mut self.0[2]
-        }
+impl ops::Neg for Vec3D<Spherical> {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        let (r, phi, theta) = self.into();
+        Self::new(r, phi + PI, -theta)
     }
 }
 
