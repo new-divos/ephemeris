@@ -305,52 +305,26 @@ fn vec3d_operation_add_test() {
     let mut rng = rand::thread_rng();
 
     for _ in 0..common::ITERATIONS {
-        let v1 = new_random_vector3d(&mut rng);
-        let raw1: linalg::CartesianVec3D = v1.into();
+        let v1 = new_random_vec3d(&mut rng);
+        let (x1, y1, z1) = v1.into();
 
-        let v2 = new_random_vector3d(&mut rng);
-        let raw2: linalg::CartesianVec3D = v2.into();
+        let v2 = new_random_vec3d(&mut rng);
+        let (x2, y2, z2) = v2.into();
 
         let r = v1 + v2;
-        let result: linalg::CartesianVec3D = r.into();
+        let (x, y, z) = r.into();
 
-        assert_eq!(result.x(), raw1.x() + raw2.x());
-        assert_eq!(result.y(), raw1.y() + raw2.y());
-        assert_eq!(result.z(), raw1.z() + raw2.z());
+        assert_eq!(x, x1 + x2);
+        assert_eq!(y, y1 + y2);
+        assert_eq!(z, z1 + z2);
 
         let mut r = v1;
         r += v2;
-        let result: linalg::CartesianVec3D = r.into();
+        let (x, y, z) = r.into();
 
-        assert_eq!(result.x(), raw1.x() + raw2.x());
-        assert_eq!(result.y(), raw1.y() + raw2.y());
-        assert_eq!(result.z(), raw1.z() + raw2.z());
-
-        let mut s1 = v1.to_s();
-        s1 += v2;
-        assert!(s1.is_s());
-        let result2: linalg::SphericalVec3D = s1.into();
-
-        let s2 = r.to_s();
-        assert!(s2.is_s());
-        let result: linalg::SphericalVec3D = s2.into();
-
-        assert_relative_eq!(result.r(), result2.r(), epsilon = common::EPS);
-        assert_relative_eq!(result.phi(), result2.phi(), epsilon = common::EPS);
-        assert_relative_eq!(result.theta(), result2.theta(), epsilon = common::EPS);
-
-        let mut c1 = v1.to_y();
-        c1 += v2;
-        assert!(c1.is_y());
-        let result2: linalg::CylindricalVec3D = c1.into();
-
-        let c2 = r.to_y();
-        assert!(c2.is_y());
-        let result: linalg::CylindricalVec3D = c2.into();
-
-        assert_relative_eq!(result.rho(), result2.rho(), epsilon = common::EPS);
-        assert_relative_eq!(result.phi(), result2.phi(), epsilon = common::EPS);
-        assert_relative_eq!(result.z(), result2.z(), epsilon = common::EPS);
+        assert_eq!(x, x1 + x2);
+        assert_eq!(y, y1 + y2);
+        assert_eq!(z, z1 + z2);
     }
 }
 
@@ -359,52 +333,26 @@ fn vec3d_operation_sub_test() {
     let mut rng = rand::thread_rng();
 
     for _ in 0..common::ITERATIONS {
-        let v1 = new_random_vector3d(&mut rng);
-        let raw1: linalg::CartesianVec3D = v1.into();
+        let v1 = new_random_vec3d(&mut rng);
+        let (x1, y1, z1) = v1.into();
 
-        let v2 = new_random_vector3d(&mut rng);
-        let raw2: linalg::CartesianVec3D = v2.into();
+        let v2 = new_random_vec3d(&mut rng);
+        let (x2, y2, z2) = v2.into();
 
         let r = v1 - v2;
-        let result: linalg::CartesianVec3D = r.into();
+        let (x, y, z) = r.into();
 
-        assert_eq!(result.x(), raw1.x() - raw2.x());
-        assert_eq!(result.y(), raw1.y() - raw2.y());
-        assert_eq!(result.z(), raw1.z() - raw2.z());
+        assert_eq!(x, x1 - x2);
+        assert_eq!(y, y1 - y2);
+        assert_eq!(z, z1 - z2);
 
         let mut r = v1;
         r -= v2;
-        let result: linalg::CartesianVec3D = r.into();
+        let (x, y, z) = r.into();
 
-        assert_eq!(result.x(), raw1.x() - raw2.x());
-        assert_eq!(result.y(), raw1.y() - raw2.y());
-        assert_eq!(result.z(), raw1.z() - raw2.z());
-
-        let mut s1 = v1.to_s();
-        s1 -= v2;
-        assert!(s1.is_s());
-        let result2: linalg::SphericalVec3D = s1.into();
-
-        let s2 = r.to_s();
-        assert!(s2.is_s());
-        let result: linalg::SphericalVec3D = s2.into();
-
-        assert_relative_eq!(result.r(), result2.r(), epsilon = common::EPS);
-        assert_relative_eq!(result.phi(), result2.phi(), epsilon = common::EPS);
-        assert_relative_eq!(result.theta(), result2.theta(), epsilon = common::EPS);
-
-        let mut c1 = v1.to_y();
-        c1 -= v2;
-        assert!(c1.is_y());
-        let result: linalg::CylindricalVec3D = c1.into();
-
-        let c2 = r.to_y();
-        assert!(c2.is_y());
-        let result2: linalg::CylindricalVec3D = c2.into();
-
-        assert_relative_eq!(result2.rho(), result.rho(), epsilon = common::EPS);
-        assert_relative_eq!(result2.phi(), result.phi(), epsilon = common::EPS);
-        assert_relative_eq!(result2.z(), result.z(), epsilon = common::EPS);
+        assert_eq!(x, x1 - x2);
+        assert_eq!(y, y1 - y2);
+        assert_eq!(z, z1 - z2);
     }
 }
 

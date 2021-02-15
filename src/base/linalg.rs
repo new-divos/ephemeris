@@ -132,6 +132,46 @@ impl ops::Neg for Vec3D<Cartesian> {
     }
 }
 
+impl ops::Add for Vec3D<Cartesian> {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self::Output {
+        Self::new(
+            self.0[0] + other.0[0],
+            self.0[1] + other.0[1],
+            self.0[2] + other.0[2]
+        )
+    }
+}
+
+impl ops::AddAssign for Vec3D<Cartesian> {
+    fn add_assign(&mut self, other: Self) {
+        for i in 0..3 {
+            self.0[i] += other.0[i];
+        }
+    }
+}
+
+impl ops::Sub for Vec3D<Cartesian> {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self::Output {
+        Self::new(
+            self.0[0] - other.0[0],
+            self.0[1] - other.0[1],
+            self.0[2] - other.0[2]
+        )
+    }
+}
+
+impl ops::SubAssign for Vec3D<Cartesian> {
+    fn sub_assign(&mut self, other: Self) {
+        for i in 0..3 {
+            self.0[i] -= other.0[i];
+        }
+    }
+}
+
 impl Vec3DNorm for Vec3D<Cartesian> {
     fn norm(&self) -> f64 {
         let (x, y, z) = (*self).into();
