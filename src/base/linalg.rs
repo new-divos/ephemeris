@@ -34,12 +34,6 @@ impl<T: Copy> ops::Index<usize> for Vec3D<T> {
     }
 }
 
-impl<T: Copy> ops::IndexMut<usize> for Vec3D<T> {
-    fn index_mut(&mut self, idx: usize) -> &mut Self::Output {
-        &mut self.0[idx]
-    }
-}
-
 impl<T: Copy> Vec3D<T> {
     pub fn zero() -> Self {
         Vec3D::<T>([0.0; 3], PhantomData::<T>{})
@@ -98,6 +92,12 @@ impl convert::Into<Vec3D<Spherical>> for Vec3D<Cartesian> {
         };
 
         Vec3D::<Spherical>::new(r, phi, theta)
+    }
+}
+
+impl ops::IndexMut<usize> for Vec3D<Cartesian> {
+    fn index_mut(&mut self, idx: usize) -> &mut Self::Output {
+        &mut self.0[idx]
     }
 }
 
@@ -168,6 +168,35 @@ impl ops::SubAssign for Vec3D<Cartesian> {
     fn sub_assign(&mut self, other: Self) {
         for i in 0..3 {
             self.0[i] -= other.0[i];
+        }
+    }
+}
+
+impl ops::Mul<f64> for Vec3D<Cartesian> {
+    type Output = Self;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        Vec3D::<Cartesian>::new(
+            self.0[0] * rhs,
+            self.0[1] * rhs,
+            self.0[2] * rhs
+        )
+    }
+}
+
+impl ops::Mul<Vec3D<Cartesian>> for f64 {
+    type Output = Vec3D<Cartesian>;
+
+    #[inline]
+    fn mul(self, other: Vec3D<Cartesian>) -> Self::Output {
+        other.mul(self)
+    }
+}
+
+impl ops::MulAssign<f64> for Vec3D<Cartesian> {
+    fn mul_assign(&mut self, rhs: f64) {
+        for i in 0..3 {
+            self.0[i] *= rhs;
         }
     }
 }
@@ -249,6 +278,42 @@ impl ops::Neg for Vec3D<Cylindrical> {
     }
 }
 
+impl ops::Mul<f64> for Vec3D<Cylindrical> {
+    type Output = Self;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        let (rho, phi, z) = self.into();
+        Self::new(
+            rho * rhs.abs(),
+            if rhs < 0.0 {
+                phi + PI
+            } else {
+                phi
+            },
+            z * rhs
+        )
+    }
+}
+
+impl ops::Mul<Vec3D<Cylindrical>> for f64 {
+    type Output = Vec3D<Cylindrical>;
+
+    #[inline]
+    fn mul(self, rhs: Vec3D<Cylindrical>) -> Self::Output {
+        rhs.mul(self)
+    }
+}
+
+impl ops::MulAssign<f64> for Vec3D<Cylindrical> {
+    fn mul_assign(&mut self, rhs: f64) {
+        self.0[0] *= rhs.abs();
+        if rhs < 0.0 {
+            self.0[1] = (self.0[1] + PI).fmod(PI2);
+        }
+        self.0[2] *= rhs;
+    }
+}
+
 impl Vec3DNorm for Vec3D<Cylindrical> {
     fn norm(&self) -> f64 {
         let (rho, _, z) = (*self).into();
@@ -319,6 +384,40 @@ impl ops::Neg for Vec3D<Spherical> {
     fn neg(self) -> Self::Output {
         let (r, phi, theta) = self.into();
         Self::new(r, phi + PI, -theta)
+    }
+}
+
+impl ops::Mul<f64> for Vec3D<Spherical> {
+    type Output = Self;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        let (r, mut phi, mut theta) = self.into();
+
+        if rhs < 0.0 {
+            phi += PI;
+            theta = -theta;
+        }
+
+        Self::new(r * rhs.abs(), phi, theta)
+    }
+}
+
+impl ops::Mul<Vec3D<Spherical>> for f64 {
+    type Output = Vec3D<Spherical>;
+
+    #[inline]
+    fn mul(self, rhs: Vec3D<Spherical>) -> Self::Output {
+        rhs.mul(self)
+    }
+}
+
+impl ops::MulAssign<f64> for Vec3D<Spherical> {
+    fn mul_assign(&mut self, rhs: f64) {
+        self.0[0] *= rhs.abs();
+        if rhs < 0.0 {
+            self.0[1] = (self.0[1] + PI).fmod(PI2);
+            self.0[2] = -self.0[2];
+        }
     }
 }
 
