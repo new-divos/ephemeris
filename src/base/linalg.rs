@@ -4,7 +4,7 @@ use std::default;
 use std::iter;
 use std::marker::PhantomData;
 use std::ops;
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, Mul, Sub, Div};
 
 use crate::base::{Real, Result};
 use crate::base::consts::PI2;
@@ -47,6 +47,16 @@ impl<T: Copy> Vec3D<T> {
         match idx {
             0..=2 => Some(self.0[idx]),
             _ => None
+        }
+    }
+}
+
+impl<T: Copy> Vec3D<T> where Vec3D<T>: ops::Div<f64> {
+    pub fn try_div(self, rhs: f64) -> Result<<Self as ops::Div<f64>>::Output> {
+        if rhs != 0.0 {
+            Ok(self.div(rhs))
+        } else {
+            Err(Error::ZeroDivisionError)
         }
     }
 }
@@ -201,6 +211,26 @@ impl ops::MulAssign<f64> for Vec3D<Cartesian> {
     }
 }
 
+impl ops::Div<f64> for Vec3D<Cartesian> {
+    type Output = Self;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        Self::new(
+            self.0[0] / rhs,
+            self.0[1] / rhs,
+            self.0[2] / rhs
+        )
+    }
+}
+
+impl ops::DivAssign<f64> for Vec3D<Cartesian> {
+    fn div_assign(&mut self, rhs: f64) {
+        for i in 0..3 {
+            self.0[i] /= rhs;
+        }
+    }
+}
+
 impl Vec3DNorm for Vec3D<Cartesian> {
     fn norm(&self) -> f64 {
         let (x, y, z) = (*self).into();
@@ -314,6 +344,33 @@ impl ops::MulAssign<f64> for Vec3D<Cylindrical> {
     }
 }
 
+impl ops::Div<f64> for Vec3D<Cylindrical> {
+    type Output = Self;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        let (rho, phi, z) = self.into();
+        Self::new(
+            rho / rhs.abs(),
+            if rhs < 0.0 {
+                phi + PI
+            } else {
+                phi
+            },
+            z / rhs
+        )
+    }
+}
+
+impl ops::DivAssign<f64> for Vec3D<Cylindrical> {
+    fn div_assign(&mut self, rhs: f64) {
+        self.0[0] /= rhs.abs();
+        if rhs < 0.0 {
+            self.0[1] = (self.0[1] + PI).fmod(PI2);
+        }
+        self.0[2] /= rhs;
+    }
+}
+
 impl Vec3DNorm for Vec3D<Cylindrical> {
     fn norm(&self) -> f64 {
         let (rho, _, z) = (*self).into();
@@ -414,6 +471,31 @@ impl ops::Mul<Vec3D<Spherical>> for f64 {
 impl ops::MulAssign<f64> for Vec3D<Spherical> {
     fn mul_assign(&mut self, rhs: f64) {
         self.0[0] *= rhs.abs();
+        if rhs < 0.0 {
+            self.0[1] = (self.0[1] + PI).fmod(PI2);
+            self.0[2] = -self.0[2];
+        }
+    }
+}
+
+impl ops::Div<f64> for Vec3D<Spherical> {
+    type Output = Self;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        let (r, mut phi, mut theta) = self.into();
+
+        if rhs < 0.0 {
+            phi += PI;
+            theta = -theta;
+        }
+
+        Self::new(r / rhs.abs(), phi, theta)
+    }
+}
+
+impl ops::DivAssign<f64> for Vec3D<Spherical> {
+    fn div_assign(&mut self, rhs: f64) {
+        self.0[0] /= rhs.abs();
         if rhs < 0.0 {
             self.0[1] = (self.0[1] + PI).fmod(PI2);
             self.0[2] = -self.0[2];

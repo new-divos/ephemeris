@@ -361,10 +361,10 @@ fn vec3d_operation_mul_test() {
     let mut rng = rand::thread_rng();
 
     for _ in 0..common::ITERATIONS {
+        let k = 200.0 * rng.gen::<f64>() - 100.0;
+
         let v = new_random_vec3d(&mut rng);
         let (x, y, z) = v.into();
-
-        let k = 200.0 * rng.gen::<f64>() - 100.0;
 
         let r = v * k;
         let (tx, ty, tz) = r.into();
@@ -463,28 +463,76 @@ fn vec3d_operation_mul_test() {
 fn vec3d_operation_div_test() {
     let mut rng = rand::thread_rng();
 
-    let v = linalg::Vector3D::from_c(1.0, 2.0, 3.0);
-    let r = v / 0.0;
-    assert!(r.is_err());
-
     for _ in 0..common::ITERATIONS {
-        let v = new_random_vector3d(&mut rng);
-        let raw: linalg::CartesianVec3D = v.into();
-
-        let a = 200.0 * rng.gen::<f64>() - 100.0;
-
-        let r = v / a;
-        match r {
-            Ok(c) => {
-                let result: linalg::CartesianVec3D = c.into();
-                assert_relative_eq!(result.x(), raw.x() / a);
-                assert_relative_eq!(result.y(), raw.y() / a);
-                assert_relative_eq!(result.z(), raw.z() / a);
-            },
-            Err(_) => {
-                assert_eq!(a, 0.0);
-            }
+        let k = 200.0 * rng.gen::<f64>() - 100.0;
+        if k == 0.0 {
+            continue;
         }
+
+        let v = new_random_vec3d(&mut rng);
+        let (x, y, z) = v.into();
+
+        let r = v / k;
+        let (tx, ty, tz) = r.into();
+
+        assert_eq!(tx, x / k);
+        assert_eq!(ty, y / k);
+        assert_eq!(tz, z / k);
+
+        let mut r = v;
+        r /= k;
+
+        assert_eq!(tx, x / k);
+        assert_eq!(ty, y / k);
+        assert_eq!(tz, z / k);
+
+        let v = new_random_cvec3d(&mut rng);
+        let c: Vec3D<Cartesian> = v.into();
+
+        let r = v / k;
+        let t: Vec3D<Cartesian> = r.into();
+        let (x, y, z) = t.into();
+
+        let b = c / k;
+        let (tx, ty, tz) = b.into();
+
+        assert_relative_eq!(tx, x, epsilon=common::EPS);
+        assert_relative_eq!(ty, y, epsilon=common::EPS);
+        assert_relative_eq!(tz, z, epsilon=common::EPS);
+
+        let mut r = v;
+        r /= k;
+
+        let t: Vec3D<Cartesian> = r.into();
+        let (x, y, z) = t.into();
+
+        assert_relative_eq!(tx, x, epsilon=common::EPS);
+        assert_relative_eq!(ty, y, epsilon=common::EPS);
+        assert_relative_eq!(tz, z, epsilon=common::EPS);
+
+        let v = new_random_svec3d(&mut rng);
+        let c: Vec3D<Cartesian> = v.into();
+
+        let r = v / k;
+        let t: Vec3D<Cartesian> = r.into();
+        let (x, y, z) = t.into();
+
+        let b = c / k;
+        let (tx, ty, tz) = b.into();
+
+        assert_relative_eq!(tx, x, epsilon=common::EPS);
+        assert_relative_eq!(ty, y, epsilon=common::EPS);
+        assert_relative_eq!(tz, z, epsilon=common::EPS);
+
+        let mut r = v;
+        r /= k;
+
+        let t: Vec3D<Cartesian> = r.into();
+        let (x, y, z) = t.into();
+
+        assert_relative_eq!(tx, x, epsilon=common::EPS);
+        assert_relative_eq!(ty, y, epsilon=common::EPS);
+        assert_relative_eq!(tz, z, epsilon=common::EPS);
     }
 }
 
