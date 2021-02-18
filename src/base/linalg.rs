@@ -6,7 +6,7 @@ use std::fmt;
 use std::iter;
 use std::marker::PhantomData;
 use std::ops;
-use std::ops::{Add, Mul, Sub, Div};
+use std::ops::{Mul, Div};
 
 use crate::base::{Real, Result};
 use crate::base::consts::PI2;
@@ -34,6 +34,12 @@ impl<T: Copy> convert::Into<(f64, f64, f64)> for Vec3D<T> {
     }
 }
 
+impl<T: Copy> default::Default for Vec3D<T> {
+    fn default() -> Self {
+        Vec3D::<T>::zeros()
+    }
+}
+
 impl<T: Copy> ops::Index<usize> for Vec3D<T> {
     type Output = f64;
 
@@ -43,10 +49,12 @@ impl<T: Copy> ops::Index<usize> for Vec3D<T> {
 }
 
 impl<T: Copy> Vec3D<T> {
-    pub fn zero() -> Self {
+    #[inline]
+    pub fn zeros() -> Self {
         Vec3D::<T>([0.0; 3], PhantomData::<T>{})
     }
 
+    #[inline]
     pub fn filled_by(value: f64) -> Self {
         Vec3D::<T>([value; 3], PhantomData::<T>{})
     }
@@ -58,6 +66,7 @@ impl<T: Copy> Vec3D<T> {
         }
     }
 
+    #[inline]
     pub fn iter(&self) -> Vec3DIterator<T> {
         Vec3DIterator::<T> {
             vector: self,
@@ -369,7 +378,6 @@ impl fmt::Display for Vec3D<Cylindrical> {
     }
 }
 
-
 impl ops::Index<Cylindrical> for Vec3D<Cylindrical> {
     type Output = f64;
 
@@ -397,12 +405,8 @@ impl ops::Mul<f64> for Vec3D<Cylindrical> {
     fn mul(self, rhs: f64) -> Self::Output {
         let (rho, phi, z) = self.into();
         Self::new(
-            rho * rhs.abs(),
-            if rhs < 0.0 {
-                phi + PI
-            } else {
-                phi
-            },
+            rho * rhs,
+            phi,
             z * rhs
         )
     }
@@ -433,12 +437,8 @@ impl ops::Div<f64> for Vec3D<Cylindrical> {
     fn div(self, rhs: f64) -> Self::Output {
         let (rho, phi, z) = self.into();
         Self::new(
-            rho / rhs.abs(),
-            if rhs < 0.0 {
-                phi + PI
-            } else {
-                phi
-            },
+            rho / rhs,
+            phi,
             z / rhs
         )
     }
@@ -462,16 +462,16 @@ impl Vec3DNorm for Vec3D<Cylindrical> {
 }
 
 impl Vec3D<Cylindrical> {
-    pub fn new(rho: f64, phi: f64, z: f64) -> Vec3D<Cylindrical> {
+    pub fn new(radius: f64, azimuth: f64, altitude: f64) -> Vec3D<Cylindrical> {
         Vec3D::<Cylindrical>(
             [
-                rho.abs(),
-                if rho < 0.0 {
-                    (phi + PI).fmod(PI2)
+                radius.abs(),
+                if radius < 0.0 {
+                    (azimuth + PI).fmod(PI2)
                 } else {
-                    phi.fmod(PI2)
+                    azimuth.fmod(PI2)
                 },
-                z
+                altitude
             ],
             PhantomData::<Cylindrical>{}
         )
@@ -547,14 +547,8 @@ impl ops::Mul<f64> for Vec3D<Spherical> {
     type Output = Self;
 
     fn mul(self, rhs: f64) -> Self::Output {
-        let (r, mut phi, mut theta) = self.into();
-
-        if rhs < 0.0 {
-            phi += PI;
-            theta = -theta;
-        }
-
-        Self::new(r * rhs.abs(), phi, theta)
+        let (r, phi, theta) = self.into();
+        Self::new(r * rhs, phi, theta)
     }
 }
 
@@ -581,14 +575,8 @@ impl ops::Div<f64> for Vec3D<Spherical> {
     type Output = Self;
 
     fn div(self, rhs: f64) -> Self::Output {
-        let (r, mut phi, mut theta) = self.into();
-
-        if rhs < 0.0 {
-            phi += PI;
-            theta = -theta;
-        }
-
-        Self::new(r / rhs.abs(), phi, theta)
+        let (r, phi, theta) = self.into();
+        Self::new(r / rhs, phi, theta)
     }
 }
 
@@ -620,20 +608,20 @@ impl Vec3D<Spherical> {
         }
     }
 
-    pub fn new(r: f64, phi: f64, theta: f64) -> Vec3D<Spherical> {
+    pub fn new(radius: f64, azimuth: f64, colatitude: f64) -> Vec3D<Spherical> {
         Vec3D::<Spherical>(
             [
-                r.abs(),
-                if r < 0.0 {
-                    (phi + PI).fmod(PI2)
+                radius.abs(),
+                if radius < 0.0 {
+                    (azimuth + PI).fmod(PI2)
                 } else {
-                    phi.fmod(PI2)
+                    azimuth.fmod(PI2)
                 },
                 Vec3D::<Spherical>::clamp(
-                    if r < 0.0 {
-                        -theta
+                    if radius < 0.0 {
+                        -colatitude
                     } else {
-                        theta
+                        colatitude
                     }
                 )
             ],
@@ -641,12 +629,12 @@ impl Vec3D<Spherical> {
         )
     }
 
-    pub fn unit(phi: f64, theta: f64) -> Vec3D<Spherical> {
+    pub fn unit(azimuth: f64, colatitude: f64) -> Vec3D<Spherical> {
         Vec3D::<Spherical>(
             [
                 1.0,
-                phi.fmod(PI2),
-                Vec3D::<Spherical>::clamp(theta)
+                azimuth.fmod(PI2),
+                Vec3D::<Spherical>::clamp(colatitude)
             ],
             PhantomData::<Spherical>{}
         )
@@ -654,556 +642,7 @@ impl Vec3D<Spherical> {
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct CartesianVec3D {
-    x: f64,
-    y: f64,
-    z: f64
-}
-
-impl convert::Into<(f64, f64, f64)> for CartesianVec3D {
-    fn into(self) -> (f64, f64, f64) {
-        let CartesianVec3D{ x, y, z } = self;
-        (x, y, z)
-    }
-}
-
-impl Vec3DNorm for CartesianVec3D {
-    fn norm(&self) -> f64 {
-        (self.x.powi(2) + self.y.powi(2) + self.z.powi(2)).sqrt()
-    }
-}
-
-impl CartesianVec3D {
-    pub fn x(&self) -> f64 {
-        self.x
-    }
-
-    pub fn y(&self) -> f64 {
-        self.y
-    }
-
-    pub fn z(&self) -> f64 {
-        self.z
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct CylindricalVec3D {
-    rho: f64,
-    phi: f64,
-    z: f64
-}
-
-impl convert::Into<(f64, f64, f64)> for CylindricalVec3D {
-    fn into(self) -> (f64, f64, f64) {
-        let CylindricalVec3D { rho, phi, z } = self;
-        (rho, phi, z)
-    }
-}
-
-impl Vec3DNorm for CylindricalVec3D {
-    fn norm(&self) -> f64 {
-        self.rho.hypot(self.z)
-    }
-}
-
-impl CylindricalVec3D {
-    pub fn rho(&self) -> f64 {
-        self.rho
-    }
-
-    pub fn phi(&self) -> f64 {
-        self.phi
-    }
-
-    pub fn z(&self) -> f64 {
-        self.z
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct SphericalVec3D {
-    r: f64,
-    phi: f64,
-    theta: f64
-}
-
-impl convert::Into<(f64, f64, f64)> for SphericalVec3D {
-    fn into(self) -> (f64, f64, f64) {
-        let SphericalVec3D{ r, phi, theta } = self;
-        (r, phi, theta)
-    }
-}
-
-impl Vec3DNorm for SphericalVec3D {
-    fn norm(&self) -> f64 {
-        self.r
-    }
-}
-
-impl SphericalVec3D {
-    pub fn r(&self) -> f64 {
-        self.r
-    }
-
-    pub fn phi(&self) -> f64 {
-        self.phi
-    }
-
-    pub fn theta(&self) -> f64 {
-        self.theta
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub enum Vector3D {
-    Cartesian(CartesianVec3D),
-    Cylindrical(CylindricalVec3D),
-    Spherical(SphericalVec3D)
-}
-
-impl Vec3DNorm for Vector3D {
-    fn norm(&self) -> f64 {
-        match self {
-            Vector3D::Cartesian(c) => c.norm(),
-            Vector3D::Cylindrical(c) => c.norm(),
-            Vector3D::Spherical(s) => s.norm()
-        }
-    }
-}
-
-impl default::Default for Vector3D {
-    fn default() -> Self {
-        Vector3D::zero()
-    }
-}
-
-impl convert::Into<CartesianVec3D> for Vector3D {
-    fn into(self) -> CartesianVec3D {
-        match self {
-            Vector3D::Cartesian(c) => c,
-            Vector3D::Cylindrical(CylindricalVec3D{ rho, phi, z }) => {
-                let (phi_sin, phi_cos) = phi.sin_cos();
-
-                CartesianVec3D {
-                    x: rho * phi_cos,
-                    y: rho * phi_sin,
-                    z
-                }
-            },
-            Vector3D::Spherical(SphericalVec3D{ r, phi, theta }) => {
-                let (phi_sin, phi_cos) = phi.sin_cos();
-                let (theta_sin, theta_cos) = theta.sin_cos();
-                let rho = r * theta_cos;
-
-                CartesianVec3D {
-                    x: rho * phi_cos,
-                    y: rho * phi_sin,
-                    z: r * theta_sin
-                }
-            }
-        }
-    }
-}
-
-impl convert::Into<Option<CartesianVec3D>> for Vector3D {
-    fn into(self) -> Option<CartesianVec3D> {
-        match self {
-            Vector3D::Cartesian(c) => Some(c),
-            _ => None
-        }
-    }
-}
-
-impl convert::Into<CylindricalVec3D> for Vector3D {
-    fn into(self) -> CylindricalVec3D {
-        match self {
-            Vector3D::Cartesian(CartesianVec3D{ x, y, z }) => {
-                let phi = if x == 0.0 && y == 0.0 {
-                    0.0
-                } else {
-                    y.atan2(x)
-                };
-
-                CylindricalVec3D {
-                    rho: x.hypot(y),
-                    phi: phi.fmod(PI2),
-                    z
-                }
-            },
-            Vector3D::Cylindrical(c) => c,
-            Vector3D::Spherical(SphericalVec3D{ r, phi, theta }) => {
-                let (theta_sin, theta_cos) = theta.sin_cos();
-
-                CylindricalVec3D {
-                    rho: r * theta_cos,
-                    phi,
-                    z: r * theta_sin
-                }
-            }
-        }
-    }
-}
-
-impl convert::Into<Option<CylindricalVec3D>> for Vector3D {
-    fn into(self) -> Option<CylindricalVec3D> {
-        match self {
-            Vector3D::Cylindrical(c) => Some(c),
-            _ => None
-        }
-    }
-}
-
-impl convert::Into<SphericalVec3D> for Vector3D {
-    fn into(self) -> SphericalVec3D {
-        match self {
-            Vector3D::Cartesian(CartesianVec3D{ x, y, z }) => {
-                let rho_sq = x * x + y * y;
-                let r = (rho_sq + z * z).sqrt();
-
-                let phi = if x == 0.0 && y == 0.0 {
-                    0.0
-                } else {
-                    y.atan2(x)
-                };
-
-                let rho = rho_sq.sqrt();
-                let theta = if rho == 0.0 && z == 0.0 {
-                    0.0
-                } else {
-                    z.atan2(rho)
-                };
-
-                SphericalVec3D { r, phi: phi.fmod(PI2), theta }
-            },
-            Vector3D::Cylindrical(CylindricalVec3D{ rho, phi, z }) => {
-                let theta = if rho == 0.0 && z == 0.0 {
-                    0.0
-                } else {
-                    z.atan2(rho)
-                };
-
-                SphericalVec3D { r: rho.hypot(z), phi, theta }
-            },
-            Vector3D::Spherical(s) => s
-        }
-    }
-}
-
-impl convert::Into<Option<SphericalVec3D>> for Vector3D {
-    fn into(self) -> Option<SphericalVec3D> {
-        match self {
-            Vector3D::Spherical(s) => Some(s),
-            _ => None
-        }
-    }
-}
-
-impl ops::Neg for Vector3D {
-    type Output = Self;
-
-    fn neg(self) -> Self {
-        let lhs: CartesianVec3D = self.into();
-        Vector3D::from_c(-lhs.x, -lhs.y, -lhs.z)
-    }
-}
-
-impl ops::Add for Vector3D {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self {
-        let lhs: CartesianVec3D = self.into();
-        let rhs: CartesianVec3D = rhs.into();
-
-        Vector3D::from_c(
-            lhs.x + rhs.x,
-            lhs.y + rhs.y,
-            lhs.z + rhs.z
-        )
-    }
-}
-
-impl ops::AddAssign for Vector3D {
-    fn add_assign(&mut self, rhs: Self) {
-        let rhs: CartesianVec3D = rhs.into();
-
-        if let Vector3D::Cartesian(ref mut c) = self {
-            c.x += rhs.x;
-            c.y += rhs.y;
-            c.z += rhs.z;
-        } else {
-            let mut lhs: CartesianVec3D = (*self).into();
-
-            lhs.x += rhs.x;
-            lhs.y += rhs.y;
-            lhs.z += rhs.z;
-
-            match *self {
-                Vector3D::Cylindrical(_) => {
-                    *self = Vector3D::Cartesian(lhs).to_y();
-                },
-                Vector3D::Spherical(_) => {
-                    *self = Vector3D::Cartesian(lhs).to_s();
-                },
-                _ => unreachable!()
-            }
-        }
-    }
-}
-
-impl ops::Sub for Vector3D {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self {
-        let lhs: CartesianVec3D = self.into();
-        let rhs: CartesianVec3D = rhs.into();
-
-        Vector3D::from_c(
-            lhs.x - rhs.x,
-            lhs.y - rhs.y,
-            lhs.z - rhs.z
-        )
-    }
-}
-
-impl ops::SubAssign for Vector3D {
-    fn sub_assign(&mut self, rhs: Self) {
-        let rhs: CartesianVec3D = rhs.into();
-
-        if let Vector3D::Cartesian(ref mut c) = self {
-            c.x -= rhs.x;
-            c.y -= rhs.y;
-            c.z -= rhs.z;
-        } else {
-            let mut lhs: CartesianVec3D = (*self).into();
-
-            lhs.x -= rhs.x;
-            lhs.y -= rhs.y;
-            lhs.z -= rhs.z;
-
-            match *self {
-                Vector3D::Cylindrical(_) => {
-                    *self = Vector3D::Cartesian(lhs).to_y();
-                },
-                Vector3D::Spherical(_) => {
-                    *self = Vector3D::Cartesian(lhs).to_s();
-                },
-                _ => unreachable!()
-            }
-        }
-    }
-}
-
-impl ops::Mul<f64> for Vector3D {
-    type Output = Self;
-
-    fn mul(self, rhs: f64) -> Self {
-        let lhs: CartesianVec3D = self.into();
-
-        Vector3D::from_c(
-            lhs.x * rhs,
-            lhs.y * rhs,
-            lhs.z * rhs
-        )
-    }
-}
-
-impl ops::Mul<Vector3D> for f64 {
-    type Output = Vector3D;
-
-    fn mul(self, rhs: Vector3D) -> Self::Output {
-        rhs.mul(self)
-    }
-}
-
-impl ops::MulAssign<f64> for Vector3D {
-    fn mul_assign(&mut self, rhs: f64) {
-        if let Vector3D::Cartesian(ref mut c) = self {
-            c.x *= rhs;
-            c.y *= rhs;
-            c.z *= rhs;
-        } else {
-            let mut lhs: CartesianVec3D = (*self).into();
-
-            lhs.x *= rhs;
-            lhs.y *= rhs;
-            lhs.z *= rhs;
-
-            match *self {
-                Vector3D::Cylindrical(_) => {
-                    *self = Vector3D::Cartesian(lhs).to_y();
-                },
-                Vector3D::Spherical(_) => {
-                    *self = Vector3D::Cartesian(lhs).to_s();
-                },
-                _ => unreachable!()
-            }
-        }
-    }
-}
-
-impl ops::Div<f64> for Vector3D {
-    type Output = Result<Vector3D>;
-
-    fn div(self, rhs: f64) -> Self::Output {
-        if rhs == 0.0 {
-            return Err(Error::ZeroDivisionError);
-        }
-
-        let lhs: CartesianVec3D = self.into();
-        Ok(
-            Vector3D::from_c(
-                lhs.x / rhs,
-                lhs.y / rhs,
-                lhs.z / rhs
-            )
-        )
-    }
-}
-
-impl ops::Div<Mat3D> for Vector3D {
-    type Output = Result<Vector3D>;
-
-    fn div(self, rhs: Mat3D) -> Self::Output {
-        let inverted = rhs.inv()?;
-        Ok(inverted.mul(self))
-    }
-}
-
-impl Vector3D {
-    pub fn from_c(x: f64, y: f64, z: f64) -> Vector3D {
-        Vector3D::Cartesian(CartesianVec3D { x, y, z })
-    }
-
-    pub fn from_y(rho: f64, phi: f64, z: f64) -> Result<Vector3D> {
-        if rho < 0.0 {
-            return Err(Error::CannotCreateVec3DError(
-                Error::new_attribute_info("rho", rho)
-            ));
-        }
-
-        Ok(
-            Vector3D::Cylindrical(
-                CylindricalVec3D { rho, phi: phi.fmod(PI2), z }
-            )
-        )
-    }
-
-    pub fn from_s(r: f64, phi: f64, theta: f64) -> Result<Vector3D> {
-        if r < 0.0 {
-            return Err(Error::CannotCreateVec3DError(
-                Error::new_attribute_info("r", r)
-            ));
-        }
-        if theta < -FRAC_PI_2 || theta > FRAC_PI_2 {
-            return Err(Error::CannotCreateVec3DError(
-                Error::new_attribute_info("theta", theta)
-            ));
-        }
-
-        Ok(
-            Vector3D::Spherical(
-                SphericalVec3D { r, phi: phi.fmod(PI2), theta }
-            )
-        )
-    }
-
-    pub fn zero() -> Vector3D {
-        Vector3D::Cartesian(
-            CartesianVec3D { x: 0.0, y: 0.0, z: 0.0 }
-        )
-    }
-
-    pub fn unit_x() -> Vector3D {
-        Vector3D::Cartesian(
-            CartesianVec3D { x: 1.0, y: 0.0, z: 0.0 }
-        )
-    }
-
-    pub fn unit_y() -> Vector3D {
-        Vector3D::Cartesian(
-            CartesianVec3D { x: 0.0, y: 1.0, z: 0.0 }
-        )
-    }
-
-    pub fn unit_z() -> Vector3D {
-        Vector3D::Cartesian(
-            CartesianVec3D { x: 0.0, y: 0.0, z: 1.0 }
-        )
-    }
-
-    pub fn unit(phi: f64, theta: f64) -> Result<Vector3D> {
-        if theta < -FRAC_PI_2 || theta > FRAC_PI_2 {
-            return Err(Error::CannotCreateVec3DError(
-                Error::new_attribute_info("theta", theta)
-            ));
-        }
-
-        Ok(
-            Vector3D::Spherical(
-                SphericalVec3D {
-                    r: 1.0,
-                    phi: phi.fmod(PI2),
-                    theta
-                }
-            )
-        )
-    }
-
-    pub fn to_c(self) -> Vector3D {
-        Vector3D::Cartesian(self.into())
-    }
-
-    pub fn to_y(self) -> Vector3D {
-        Vector3D::Cylindrical(self.into())
-    }
-
-    pub fn to_s(self) -> Vector3D {
-        Vector3D::Spherical(self.into())
-    }
-
-    pub fn is_c(self) -> bool {
-        match self {
-            Vector3D::Cartesian(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn is_y(self) -> bool {
-        match self {
-            Vector3D::Cylindrical(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn is_s(self) -> bool {
-        match self {
-            Vector3D::Spherical(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn dot(self, rhs: Self) -> f64 {
-        let lhs: CartesianVec3D = self.into();
-        let rhs: CartesianVec3D = rhs.into();
-
-        lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z
-    }
-
-    pub fn cross(self, rhs: Self) -> Vector3D {
-        let lhs: CartesianVec3D = self.into();
-        let rhs: CartesianVec3D = rhs.into();
-
-        Vector3D::from_c(
-            lhs.y * rhs.z - lhs.z * rhs.y,
-            lhs.z * rhs.x - lhs.x * rhs.z,
-            lhs.x * rhs.y - lhs.y * rhs.x
-        )
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Mat3D([[f64; 3]; 3]);
 
 impl default::Default for Mat3D {
@@ -1212,17 +651,19 @@ impl default::Default for Mat3D {
     }
 }
 
-impl Vec3DNorm for Mat3D {
-    fn norm(&self) -> f64 {
-        let mut s = 0.0;
+pub type Mat3DRow = [f64; 3];
 
-        for i in 0..3 {
-            for j in 0..3 {
-                s += self.0[i][j].powi(2);
-            }
-        }
+impl ops::Index<usize> for Mat3D {
+    type Output = Mat3DRow;
 
-        s.sqrt()
+    fn index(&self, idx: usize) -> &Self::Output {
+        &self.0[idx]
+    }
+}
+
+impl ops::IndexMut<usize> for Mat3D {
+    fn index_mut(&mut self, idx: usize) -> &mut Self::Output {
+        &mut self.0[idx]
     }
 }
 
@@ -1248,19 +689,18 @@ impl ops::Add for Mat3D {
     fn add(self, rhs: Self) -> Self {
         let mut result = self;
 
-        for i in 0..3 {
-            for j in 0..3 {
-                result.0[i][j] += rhs.0[i][j];
-            }
-        }
-
+        result += rhs;
         result
     }
 }
 
 impl ops::AddAssign for Mat3D {
     fn add_assign(&mut self, rhs: Self) {
-        *self = self.add(rhs);
+        for i in 0..3 {
+            for j in 0..3 {
+                self.0[i][j] += rhs.0[i][j];
+            }
+        }
     }
 }
 
@@ -1270,19 +710,18 @@ impl ops::Sub for Mat3D {
     fn sub(self, rhs: Self) -> Self {
         let mut result = self;
 
-        for i in 0..3 {
-            for j in 0..3 {
-                result.0[i][j] -= rhs.0[i][j];
-            }
-        }
-
+        result -= rhs;
         result
     }
 }
 
 impl ops::SubAssign for Mat3D {
     fn sub_assign(&mut self, rhs: Mat3D) {
-        *self = self.sub(rhs);
+        for i in 0..3 {
+            for j in 0..3 {
+                self.0[i][j] -= rhs.0[i][j];
+            }
+        }
     }
 }
 
@@ -1292,12 +731,7 @@ impl ops::Mul<f64> for Mat3D {
     fn mul(self, rhs: f64) -> Self {
         let mut result = self;
 
-        for i in 0..3 {
-            for j in 0..3 {
-                result.0[i][j] *= rhs;
-            }
-        }
-
+        result *= rhs;
         result
     }
 }
@@ -1305,6 +739,7 @@ impl ops::Mul<f64> for Mat3D {
 impl ops::Mul<Mat3D> for f64 {
     type Output = Mat3D;
 
+    #[inline]
     fn mul(self, rhs: Mat3D) -> Self::Output {
         rhs.mul(self)
     }
@@ -1312,26 +747,26 @@ impl ops::Mul<Mat3D> for f64 {
 
 impl ops::MulAssign<f64> for Mat3D {
     fn mul_assign(&mut self, rhs: f64) {
-        *self = self.mul(rhs);
+        for i in 0..3 {
+            for j in 0..3 {
+                self.0[i][j] *= rhs;
+            }
+        }
     }
 }
 
-impl ops::Mul<Vector3D> for Mat3D {
-    type Output = Vector3D;
+impl ops::Mul<Vec3D<Cartesian>> for Mat3D {
+    type Output = Vec3D<Cartesian>;
 
-    fn mul(self, rhs: Vector3D) -> Self::Output {
-        let rhs: CartesianVec3D = rhs.into();
-
-        let rhs = [rhs.x, rhs.y, rhs.z];
+    fn mul(self, rhs: Vec3D<Cartesian>) -> Self::Output {
         let mut values = [0.0; 3];
-
         for i in 0..3 {
             for j in 0..3 {
-                values[i] += self.0[i][j] * rhs[j];
+                values[i] += self.0[i][j] * rhs.0[j];
             }
         }
 
-        Vector3D::from_c(values[0], values[1], values[2])
+        Vec3D::<Cartesian>(values, PhantomData::<Cartesian>{})
     }
 }
 
@@ -1360,21 +795,23 @@ impl ops::MulAssign for Mat3D {
 }
 
 impl ops::Div<f64> for Mat3D {
-    type Output = Result<Mat3D>;
+    type Output = Mat3D;
 
     fn div(self, rhs: f64) -> Self::Output {
-        if rhs == 0.0 {
-            return Err(Error::ZeroDivisionError);
-        }
-
         let mut result = self;
+
+        result /= rhs;
+        result
+    }
+}
+
+impl ops::DivAssign<f64> for Mat3D {
+    fn div_assign(&mut self, rhs: f64) {
         for i in 0..3 {
             for j in 0..3 {
-                result.0[i][j] /= rhs;
+                self.0[i][j] /= rhs;
             }
         }
-
-        Ok(result)
     }
 }
 
@@ -1396,15 +833,27 @@ impl ops::Div<Mat3D> for f64 {
     }
 }
 
+impl ops::Div<Mat3D> for Vec3D<Cartesian> {
+    type Output = Result<Vec3D<Cartesian>>;
+
+    fn div(self, rhs: Mat3D) -> Self::Output {
+        let inverted = rhs.inv()?;
+        Ok(inverted.mul(self))
+    }
+}
+
 impl Mat3D {
+    #[inline]
     pub fn zeros() -> Mat3D {
         Mat3D([[0.0; 3]; 3])
     }
 
-    pub fn ones() -> Mat3D {
-        Mat3D([[1.0; 3]; 3])
+    #[inline]
+    pub fn filled_by(value: f64) -> Mat3D {
+        Mat3D([[value; 3]; 3])
     }
 
+    #[inline]
     pub fn identity() -> Mat3D {
         Mat3D(
             [
@@ -1415,30 +864,39 @@ impl Mat3D {
         )
     }
 
-    pub fn from_rows(r1: Vector3D, r2: Vector3D, r3: Vector3D) -> Mat3D {
-        let r1: CartesianVec3D = r1.into();
-        let r2: CartesianVec3D = r2.into();
-        let r3: CartesianVec3D = r3.into();
-
+    #[inline]
+    pub fn with_rows(r1: &Vec3D<Cartesian>,
+                     r2: &Vec3D<Cartesian>,
+                     r3: &Vec3D<Cartesian>) -> Mat3D {
         Mat3D(
             [
-                [r1.x, r1.y, r1.z],
-                [r2.x, r2.y, r2.z],
-                [r3.x, r3.y, r3.z]
+                [r1.0[0], r1.0[1], r1.0[2]],
+                [r2.0[0], r2.0[1], r2.0[2]],
+                [r3.0[0], r3.0[1], r3.0[2]]
             ]
         )
     }
 
-    pub fn from_columns(c1: Vector3D, c2: Vector3D, c3: Vector3D) -> Mat3D {
-        let c1: CartesianVec3D = c1.into();
-        let c2: CartesianVec3D = c2.into();
-        let c3: CartesianVec3D = c3.into();
-
+    #[inline]
+    pub fn with_columns(c1: &Vec3D<Cartesian>,
+                        c2: &Vec3D<Cartesian>,
+                        c3: &Vec3D<Cartesian>) -> Mat3D {
         Mat3D(
             [
-                [c1.x, c2.x, c3.x],
-                [c1.y, c2.y, c3.y],
-                [c1.z, c2.z, c3.z]
+                [c1.0[0], c2.0[0], c3.0[0]],
+                [c1.0[1], c2.0[1], c3.0[1]],
+                [c1.0[2], c2.0[2], c3.0[2]]
+            ]
+        )
+    }
+
+    #[inline]
+    pub fn diag(vector: &Vec3D<Cartesian>) -> Mat3D {
+        Mat3D(
+            [
+                [vector.0[0],         0.0,        0.0],
+                [        0.0, vector.0[1],        0.0],
+                [        0.0,         0.0, vector.0[2]]
             ]
         )
     }
@@ -1480,25 +938,24 @@ impl Mat3D {
     }
 
     #[inline]
-    fn wrap_index(index: isize) -> usize {
-        let mut index = index % 3;
-        if index < 0 {
-            index += 3;
-        }
-
-        index as usize
+    pub fn row(&self, index: usize) -> Vec3D<Cartesian> {
+        Vec3D::<Cartesian>::new(
+            self.0[index][0],
+            self.0[index][1],
+            self.0[index][2]
+        )
     }
 
-    pub fn row(&self, index: isize) -> Vector3D {
-        let index = Mat3D::wrap_index(index);
-        Vector3D::from_c(self.0[index][0], self.0[index][1], self.0[index][2])
+    #[inline]
+    pub fn column(&self, index: usize) -> Vec3D<Cartesian> {
+        Vec3D::<Cartesian>::new(
+            self.0[0][index],
+            self.0[1][index],
+            self.0[2][index]
+        )
     }
 
-    pub fn column(&self, index: isize) -> Vector3D {
-        let index = Mat3D::wrap_index(index);
-        Vector3D::from_c(self.0[0][index], self.0[1][index], self.0[2][index])
-    }
-
+    #[inline]
     pub fn t(&self) -> Mat3D {
         Mat3D(
             [
@@ -1509,10 +966,12 @@ impl Mat3D {
         )
     }
 
+    #[inline]
     pub fn tr(&self) -> f64 {
         self.0[0][0] + self.0[1][1] + self.0[2][2]
     }
 
+    #[inline]
     pub fn det(&self) -> f64 {
         self.0[0][0] * (self.0[1][1] * self.0[2][2] -
                 self.0[1][2] * self.0[2][1]) -
@@ -1555,6 +1014,16 @@ impl Mat3D {
         )
     }
 
+    #[inline]
+    pub fn try_div(&self, rhs: f64) -> Result<Mat3D> {
+        if rhs == 0.0 {
+            Ok(self.div(rhs))
+        } else {
+            Err(Error::ZeroDivisionError)
+        }
+    }
+
+    #[inline]
     pub fn iter(&self) -> Mat3DIterator {
         Mat3DIterator {
             matrix: self,
@@ -1640,15 +1109,15 @@ mod tests {
             let m2 = new_random_mat3d(&mut rng);
 
             let m3 = m1 - m2;
-            for i in 0..2 {
-                for j in 0..2 {
+            for i in 0..3 {
+                for j in 0..3 {
                     assert_eq!(m3.0[i][j], m1.0[i][j] - m2.0[i][j]);
                 }
             }
 
             m1 -= m2;
-            for i in 0..2 {
-                for j in 0..2 {
+            for i in 0..3 {
+                for j in 0..3 {
                     assert_eq!(m1.0[i][j], m3.0[i][j]);
                 }
             }
@@ -1675,7 +1144,7 @@ mod tests {
             assert_relative_eq!(v1 * 3.0, v2);
         }
 
-        let c = (a / 3.0).unwrap();
+        let c = a / 3.0;
         for (v1, v2) in a.iter().zip(c.iter()) {
             assert_relative_eq!(v1 / 3.0, v2);
         }
@@ -1695,20 +1164,13 @@ mod tests {
                 assert_relative_eq!(v1 * k, v2);
             }
 
-            let c = a / k;
-            match c {
-                Ok(b) => {
-                    for (v1, v2) in a.iter().zip(b.iter()) {
-                        if k != 0.0 {
-                            assert_relative_eq!(v1 / k, v2);
-                        } else {
-                            panic!("Illegal result for zero division");
-                        }
-                    }
-                },
-                Err(_) => {
-                    assert_eq!(k, 0.0);
-                }
+            if k == 0.0 {
+                continue;
+            }
+
+            let b = a / k;
+            for (v1, v2) in a.iter().zip(b.iter()) {
+                assert_relative_eq!(v1 / k, v2);
             }
         }
     }
@@ -1933,26 +1395,44 @@ mod tests {
             ]
         );
 
-        let indices: Vec<isize> = vec![0, 1, 2, -1, -2, -3];
-        let matrix_indices: Vec<usize> = vec![0, 1, 2, 2, 1, 0];
+        for i in 0..3 {
+            let row = a.row(i);
+            for j in 0..3 {
+                assert_eq!(row[j], a.0[i][j]);
+            }
+        }
 
-        for (idx, matrix_idx) in indices.iter().zip(matrix_indices.iter()) {
-            let row = a.row(*idx);
-            if let Vector3D::Cartesian(CartesianVec3D{ x, y, z }) = row {
-                assert_eq!(x, a.0[*matrix_idx][0]);
-                assert_eq!(y, a.0[*matrix_idx][1]);
-                assert_eq!(z, a.0[*matrix_idx][2]);
-            } else {
-                unreachable!();
+        for j in 0..3 {
+            let column = a.column(j);
+            for i in 0..3 {
+                assert_eq!(column[i], a.0[i][j]);
+            }
+        }
+    }
+
+    #[test]
+    fn mat3d_index_test() {
+        let mut rng = rand::thread_rng();
+
+        for _ in 0..ITERATIONS {
+            let a = new_random_mat3d(&mut rng);
+            for i in 0..3 {
+                for j in 0..3 {
+                    assert_eq!(a[i][j], a.0[i][j]);
+                }
             }
 
-            let col = a.column(*idx);
-            if let Vector3D::Cartesian(CartesianVec3D { x, y, z }) = col {
-                assert_eq!(x, a.0[0][*matrix_idx]);
-                assert_eq!(y, a.0[1][*matrix_idx]);
-                assert_eq!(z, a.0[2][*matrix_idx]);
-            } else {
-                unreachable!();
+            let mut b = Mat3D::zeros();
+            for i in 0..3 {
+                for j in 0..3 {
+                    b[i][j] = a[i][j];
+                }
+            }
+
+            for i in 0..3 {
+                for j in 0..3 {
+                    assert_eq!(b.0[i][j], a.0[i][j]);
+                }
             }
         }
     }

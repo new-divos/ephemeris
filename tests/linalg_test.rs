@@ -93,18 +93,9 @@ fn new_random_svec3d<R: Rng + ?Sized>(rng: &mut R) -> linalg::Vec3D<linalg::Sphe
 }
 
 
-fn new_random_vector3d<R: Rng + ?Sized>(rng: &mut R) -> linalg::Vector3D {
-    linalg::Vector3D::from_c(
-        200.0 * rng.gen::<f64>() - 100.0,
-        200.0 * rng.gen::<f64>() - 100.0,
-        200.0 * rng.gen::<f64>() - 100.0
-    )
-}
-
-
 #[test]
 fn create_cartesian_vec3d_test() {
-    let zero = linalg::Vec3D::<linalg::Cartesian>::zero();
+    let zero = linalg::Vec3D::<linalg::Cartesian>::zeros();
     assert_eq!(zero[linalg::Cartesian::X], 0.0);
     assert_eq!(zero[linalg::Cartesian::Y], 0.0);
     assert_eq!(zero[linalg::Cartesian::Z], 0.0);
@@ -716,7 +707,7 @@ fn create_mat3d_test() {
         assert_eq!(v, 0.0);
     }
 
-    let o = linalg::Mat3D::ones();
+    let o = linalg::Mat3D::filled_by(1.0);
     for v in o.iter() {
         assert_eq!(v, 1.0);
     }
@@ -735,49 +726,47 @@ fn create_mat3d_test() {
 
     let mut rng = rand::thread_rng();
     for _ in 0..common::ITERATIONS {
-        let v1 = new_random_vector3d(&mut rng);
-        let v2 = new_random_vector3d(&mut rng);
-        let v3 = new_random_vector3d(&mut rng);
+        let v1 = new_random_vec3d(&mut rng);
+        let v2 = new_random_vec3d(&mut rng);
+        let v3 = new_random_vec3d(&mut rng);
 
-        let mr = linalg::Mat3D::from_rows(v1, v2, v3);
+        let mr = linalg::Mat3D::with_rows(&v1, &v2, &v3);
         for (idx, item) in mr.iter().enumerate() {
             let row = idx / 3;
             let col = idx % 3;
 
-            let ref_v = match row {
-                0 => &v1,
-                1 => &v2,
-                2 => &v3,
-                _ => panic!("Illegal row number")
-            };
-            let raw: linalg::CartesianVec3D = (*ref_v).into();
+            let (x, y, z) = (match row {
+                0 => v1,
+                1 => v2,
+                2 => v3,
+                _ => unreachable!()
+            }).into();
 
             match col {
-                0 => assert_eq!(item, raw.x()),
-                1 => assert_eq!(item, raw.y()),
-                2 => assert_eq!(item, raw.z()),
-                _ => panic!("Illegal column number")
+                0 => assert_eq!(item, x),
+                1 => assert_eq!(item, y),
+                2 => assert_eq!(item, z),
+                _ => unreachable!()
             };
         }
 
-        let mc = linalg::Mat3D::from_columns(v1, v2, v3);
+        let mc = linalg::Mat3D::with_columns(&v1, &v2, &v3);
         for (idx, item) in mc.iter().enumerate() {
             let row = idx / 3;
             let col = idx % 3;
 
-            let ref_v = match col {
-                0 => &v1,
-                1 => &v2,
-                2 => &v3,
-                _ => panic!("Illegal column number")
-            };
-            let raw: linalg::CartesianVec3D = (*ref_v).into();
+            let (x, y, z) = (match col {
+                0 => v1,
+                1 => v2,
+                2 => v3,
+                _ => unreachable!()
+            }).into();
 
             match row {
-                0 => assert_eq!(item, raw.x()),
-                1 => assert_eq!(item, raw.y()),
-                2 => assert_eq!(item, raw.z()),
-                _ => panic!("Illegal row number")
+                0 => assert_eq!(item, x),
+                1 => assert_eq!(item, y),
+                2 => assert_eq!(item, z),
+                _ => unreachable!()
             }
         }
     }
