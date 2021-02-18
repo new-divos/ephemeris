@@ -16,8 +16,8 @@ pub trait Vec3DNorm {
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct Vec3D<T: Copy>([f64; 3], PhantomData<T>);
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Vec3D<T: Copy>([f64; 3], #[serde(skip)] PhantomData<T>);
 
 impl<T: Copy> convert::Into<(f64, f64, f64)> for Vec3D<T> {
     fn into(self) -> (f64, f64, f64) {
@@ -49,14 +49,44 @@ impl<T: Copy> Vec3D<T> {
             _ => None
         }
     }
+
+    pub fn iter(&self) -> Vec3DIterator<T> {
+        Vec3DIterator::<T> {
+            vector: self,
+            count: 0
+        }
+    }
 }
 
 impl<T: Copy> Vec3D<T> where Vec3D<T>: ops::Div<f64> {
+    #[inline]
     pub fn try_div(self, rhs: f64) -> Result<<Self as ops::Div<f64>>::Output> {
         if rhs != 0.0 {
             Ok(self.div(rhs))
         } else {
             Err(Error::ZeroDivisionError)
+        }
+    }
+}
+
+
+#[derive(Debug, Copy, Clone)]
+pub struct Vec3DIterator<'a, T: Copy> {
+    vector: &'a Vec3D<T>,
+    count: usize
+}
+
+impl<'a, T: Copy> iter::Iterator for Vec3DIterator<'a, T> {
+    type Item = f64;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.count < 3 {
+            let idx = self.count;
+            self.count += 1;
+
+            Some(self.vector.0[idx])
+        } else {
+            None
         }
     }
 }

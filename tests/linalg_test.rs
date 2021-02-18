@@ -9,9 +9,9 @@ use std::f64::consts::{PI, FRAC_PI_2};
 use rand::Rng;
 
 use ephem::vec3d;
-use ephem::base::linalg;
 use ephem::base::consts::PI2;
-use ephem::base::linalg::{Vec3D, Cartesian};
+use ephem::base::error::Error;
+use ephem::base::linalg;
 
 
 #[test]
@@ -255,6 +255,30 @@ fn create_spherical_vec3d_test() {
     }
 }
 
+
+#[test]
+fn vec3d_iter_test() {
+    let mut rng = rand::thread_rng();
+
+    for _ in 0..common::ITERATIONS {
+        let v = new_random_vec3d(&mut rng);
+        for (i, a) in v.iter().enumerate() {
+            assert_eq!(a, v[i]);
+        }
+
+        let v = new_random_cvec3d(&mut rng);
+        for (i, a) in v.iter().enumerate() {
+            assert_eq!(a, v[i]);
+        }
+
+        let v = new_random_svec3d(&mut rng);
+        for (i, a) in v.iter().enumerate() {
+            assert_eq!(a, v[i]);
+        }
+    }
+}
+
+
 #[test]
 fn vec3d_operation_neg_test() {
     let mut rng = rand::thread_rng();
@@ -271,10 +295,10 @@ fn vec3d_operation_neg_test() {
         assert_eq!(tz, -z);
 
         let v = new_random_cvec3d(&mut rng);
-        let c: Vec3D<Cartesian> = v.into();
+        let c: linalg::Vec3D<linalg::Cartesian> = v.into();
 
         let r = -v;
-        let t: Vec3D<Cartesian> = r.into();
+        let t: linalg::Vec3D<linalg::Cartesian> = r.into();
         let (x, y, z) = t.into();
 
         let c = -c;
@@ -285,10 +309,10 @@ fn vec3d_operation_neg_test() {
         assert_relative_eq!(tz, z, epsilon=common::EPS);
 
         let v = new_random_svec3d(&mut rng);
-        let c: Vec3D<Cartesian> = v.into();
+        let c: linalg::Vec3D<linalg::Cartesian> = v.into();
 
         let r = -v;
-        let t: Vec3D<Cartesian> = r.into();
+        let t: linalg::Vec3D<linalg::Cartesian> = r.into();
         let (x, y, z) = t.into();
 
         let c = -c;
@@ -388,10 +412,10 @@ fn vec3d_operation_mul_test() {
         assert_eq!(tz, z * k);
 
         let v = new_random_cvec3d(&mut rng);
-        let c: Vec3D<Cartesian> = v.into();
+        let c: linalg::Vec3D<linalg::Cartesian> = v.into();
 
         let r = v * k;
-        let t: Vec3D<Cartesian> = r.into();
+        let t: linalg::Vec3D<linalg::Cartesian> = r.into();
         let (x, y, z) = t.into();
 
         let b = c * k;
@@ -402,7 +426,7 @@ fn vec3d_operation_mul_test() {
         assert_relative_eq!(tz, z, epsilon=common::EPS);
 
         let r = k * v;
-        let t: Vec3D<Cartesian> = r.into();
+        let t: linalg::Vec3D<linalg::Cartesian> = r.into();
         let (x, y, z) = t.into();
 
         let b = k * c;
@@ -415,7 +439,7 @@ fn vec3d_operation_mul_test() {
         let mut r = v;
         r *= k;
 
-        let t: Vec3D<Cartesian> = r.into();
+        let t: linalg::Vec3D<linalg::Cartesian> = r.into();
         let (x, y, z) = t.into();
 
         assert_relative_eq!(tx, x, epsilon=common::EPS);
@@ -423,10 +447,10 @@ fn vec3d_operation_mul_test() {
         assert_relative_eq!(tz, z, epsilon=common::EPS);
 
         let v = new_random_svec3d(&mut rng);
-        let c: Vec3D<Cartesian> = v.into();
+        let c: linalg::Vec3D<linalg::Cartesian> = v.into();
 
         let r = v * k;
-        let t: Vec3D<Cartesian> = r.into();
+        let t: linalg::Vec3D<linalg::Cartesian> = r.into();
         let (x, y, z) = t.into();
 
         let b = c * k;
@@ -437,7 +461,7 @@ fn vec3d_operation_mul_test() {
         assert_relative_eq!(tz, z, epsilon=common::EPS);
 
         let r = k * v;
-        let t: Vec3D<Cartesian> = r.into();
+        let t: linalg::Vec3D<linalg::Cartesian> = r.into();
         let (x, y, z) = t.into();
 
         let b = k * c;
@@ -450,7 +474,7 @@ fn vec3d_operation_mul_test() {
         let mut r = v;
         r *= k;
 
-        let t: Vec3D<Cartesian> = r.into();
+        let t: linalg::Vec3D<linalg::Cartesian> = r.into();
         let (x, y, z) = t.into();
 
         assert_relative_eq!(tx, x, epsilon=common::EPS);
@@ -487,10 +511,10 @@ fn vec3d_operation_div_test() {
         assert_eq!(tz, z / k);
 
         let v = new_random_cvec3d(&mut rng);
-        let c: Vec3D<Cartesian> = v.into();
+        let c: linalg::Vec3D<linalg::Cartesian> = v.into();
 
         let r = v / k;
-        let t: Vec3D<Cartesian> = r.into();
+        let t: linalg::Vec3D<linalg::Cartesian> = r.into();
         let (x, y, z) = t.into();
 
         let b = c / k;
@@ -503,7 +527,7 @@ fn vec3d_operation_div_test() {
         let mut r = v;
         r /= k;
 
-        let t: Vec3D<Cartesian> = r.into();
+        let t: linalg::Vec3D<linalg::Cartesian> = r.into();
         let (x, y, z) = t.into();
 
         assert_relative_eq!(tx, x, epsilon=common::EPS);
@@ -511,10 +535,10 @@ fn vec3d_operation_div_test() {
         assert_relative_eq!(tz, z, epsilon=common::EPS);
 
         let v = new_random_svec3d(&mut rng);
-        let c: Vec3D<Cartesian> = v.into();
+        let c: linalg::Vec3D<linalg::Cartesian> = v.into();
 
         let r = v / k;
-        let t: Vec3D<Cartesian> = r.into();
+        let t: linalg::Vec3D<linalg::Cartesian> = r.into();
         let (x, y, z) = t.into();
 
         let b = c / k;
@@ -527,12 +551,96 @@ fn vec3d_operation_div_test() {
         let mut r = v;
         r /= k;
 
-        let t: Vec3D<Cartesian> = r.into();
+        let t: linalg::Vec3D<linalg::Cartesian> = r.into();
         let (x, y, z) = t.into();
 
         assert_relative_eq!(tx, x, epsilon=common::EPS);
         assert_relative_eq!(ty, y, epsilon=common::EPS);
         assert_relative_eq!(tz, z, epsilon=common::EPS);
+    }
+
+    let v = linalg::Vec3D::<linalg::Cartesian>::filled_by(1.0);
+    let r = v.try_div(0.0);
+    assert!(r.is_err());
+
+    let v = linalg::Vec3D::<linalg::Cylindrical>::filled_by(1.0);
+    let r = v.try_div(0.0);
+    assert!(r.is_err());
+
+    let v = linalg::Vec3D::<linalg::Spherical>::filled_by(1.0);
+    let r = v.try_div(0.0);
+    assert!(r.is_err());
+
+    for _ in 0..common::ITERATIONS {
+        let k = 200.0 * rng.gen::<f64>() - 100.0;
+
+        let v = new_random_vec3d(&mut rng);
+        let (x, y, z) = v.into();
+
+        let r = v.try_div(k);
+        match r {
+            Ok(t) => {
+                let (tx, ty, tz) = t.into();
+
+                assert_eq!(tx, x / k);
+                assert_eq!(ty, y / k);
+                assert_eq!(tz, z / k);
+            },
+            Err(Error::ZeroDivisionError) => {
+                assert_eq!(k, 0.0);
+            },
+            Err(_) => {
+                unreachable!();
+            }
+        }
+
+        let v = new_random_cvec3d(&mut rng);
+        let c: linalg::Vec3D<linalg::Cartesian> = v.into();
+
+        let r = v.try_div(k);
+        match r {
+            Ok(t) => {
+                let t: linalg::Vec3D<linalg::Cartesian> = t.into();
+                let (x, y, z) = t.into();
+
+                let b = c / k;
+                let (tx, ty, tz) = b.into();
+
+                assert_relative_eq!(tx, x, epsilon=common::EPS);
+                assert_relative_eq!(ty, y, epsilon=common::EPS);
+                assert_relative_eq!(tz, z, epsilon=common::EPS);
+            },
+            Err(Error::ZeroDivisionError) => {
+                assert_eq!(k, 0.0);
+            },
+            Err(_) => {
+                unreachable!();
+            }
+        }
+
+        let v = new_random_svec3d(&mut rng);
+        let c: linalg::Vec3D<linalg::Cartesian> = v.into();
+
+        let r = v.try_div(k);
+        match r {
+            Ok(t) => {
+                let t: linalg::Vec3D<linalg::Cartesian> = t.into();
+                let (x, y, z) = t.into();
+
+                let b = c / k;
+                let (tx, ty, tz) = b.into();
+
+                assert_relative_eq!(tx, x, epsilon=common::EPS);
+                assert_relative_eq!(ty, y, epsilon=common::EPS);
+                assert_relative_eq!(tz, z, epsilon=common::EPS);
+            },
+            Err(Error::ZeroDivisionError) => {
+                assert_eq!(k, 0.0);
+            },
+            Err(_) => {
+                unreachable!();
+            }
+        }
     }
 }
 
