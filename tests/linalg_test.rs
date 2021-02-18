@@ -649,83 +649,63 @@ fn vec3d_operation_dot_test() {
     let mut rng = rand::thread_rng();
 
     for _ in 0..common::ITERATIONS {
-        let v1 = new_random_vector3d(&mut rng);
-        let raw1: linalg::CartesianVec3D = v1.into();
+        let v1 = new_random_vec3d(&mut rng);
+        let v2 = new_random_vec3d(&mut rng);
 
-        let v2 = new_random_vector3d(&mut rng);
-        let raw2: linalg::CartesianVec3D = v2.into();
+        let result = v1.dot(&v2);
 
-        let result = v1.dot(v2);
-        assert_eq!(
-            result,
-            raw1.x() * raw2.x() + raw1.y() * raw2.y() + raw1.z() * raw2.z()
-        );
+        let mut value = 0.0;
+        for (e1, e2) in v1.iter().zip(v2.iter()) {
+            value += e1 * e2;
+        }
+
+        assert_eq!(result, value);
     }
 }
 
 #[test]
 fn vec3d_operation_cross_test() {
-    let v = linalg::Vector3D::unit_x().cross(linalg::Vector3D::unit_y());
-    let result: linalg::CartesianVec3D = v.into();
+    let i = linalg::Vec3D::<linalg::Cartesian>::unit_x();
+    let j = linalg::Vec3D::<linalg::Cartesian>::unit_y();
+    let k = linalg::Vec3D::<linalg::Cartesian>::unit_z();
 
-    let r = linalg::Vector3D::unit_z();
-    let raw: linalg::CartesianVec3D = r.into();
-    assert_eq!(result, raw);
+    let r = i.cross(&j);
+    assert_eq!(r, k);
 
-    let v = linalg::Vector3D::unit_y().cross(linalg::Vector3D::unit_x());
-    let result: linalg::CartesianVec3D = v.into();
+    let r = j.cross(&i);
+    assert_eq!(r, -k);
 
-    let r = -linalg::Vector3D::unit_z();
-    let raw: linalg::CartesianVec3D = r.into();
-    assert_eq!(result, raw);
+    let r = j.cross(&k);
+    assert_eq!(r, i);
 
-    let v = linalg::Vector3D::unit_y().cross(linalg::Vector3D::unit_z());
-    let result: linalg::CartesianVec3D = v.into();
+    let r = k.cross(&j);
+    assert_eq!(r, -i);
 
-    let r = linalg::Vector3D::unit_x();
-    let raw: linalg::CartesianVec3D = r.into();
-    assert_eq!(result, raw);
+    let r = k.cross(&i);
+    assert_eq!(r, j);
 
-    let v = linalg::Vector3D::unit_z().cross(linalg::Vector3D::unit_y());
-    let result: linalg::CartesianVec3D = v.into();
-
-    let r = -linalg::Vector3D::unit_x();
-    let raw: linalg::CartesianVec3D = r.into();
-    assert_eq!(result, raw);
-
-    let v = linalg::Vector3D::unit_z().cross(linalg::Vector3D::unit_x());
-    let result: linalg::CartesianVec3D = v.into();
-
-    let r = linalg::Vector3D::unit_y();
-    let raw: linalg::CartesianVec3D = r.into();
-    assert_eq!(result, raw);
-
-    let v = linalg::Vector3D::unit_x().cross(linalg::Vector3D::unit_z());
-    let result: linalg::CartesianVec3D = v.into();
-
-    let r = -linalg::Vector3D::unit_y();
-    let raw: linalg::CartesianVec3D = r.into();
-    assert_eq!(result, raw);
+    let r = i.cross(&k);
+    assert_eq!(r, -j);
 
     let mut rng = rand::thread_rng();
 
     for _ in 0..common::ITERATIONS {
-        let v1 = new_random_vector3d(&mut rng);
-        let raw1: linalg::CartesianVec3D = v1.into();
+        let v1 = new_random_vec3d(&mut rng);
+        let (x1, y1, z1) = v1.into();
 
-        let v2 = new_random_vector3d(&mut rng);
-        let raw2: linalg::CartesianVec3D = v2.into();
+        let v2 = new_random_vec3d(&mut rng);
+        let (x2, y2, z2) = v2.into();
 
-        let r = v1.cross(v2);
-        let result: linalg::CartesianVec3D = r.into();
+        let r = v1.cross(&v2);
+        let (x, y, z) = r.into();
 
-        let x = raw1.y() * raw2.z() - raw1.z() * raw2.y();
-        let y = raw1.z() * raw2.x() - raw1.x() * raw2.z();
-        let z = raw1.x() * raw2.y() - raw1.y() * raw2.x();
+        let tx = y1 * z2 - z1 * y2;
+        let ty = z1 * x2 - x1 * z2;
+        let tz = x1 * y2 - y1 * x2;
 
-        assert_eq!(x, result.x());
-        assert_eq!(y, result.y());
-        assert_eq!(z, result.z());
+        assert_eq!(tx, x);
+        assert_eq!(ty, y);
+        assert_eq!(tz, z);
     }
 }
 

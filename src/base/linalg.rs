@@ -1,6 +1,8 @@
 use std::f64::consts::{FRAC_PI_2, PI};
+use std::cmp;
 use std::convert;
 use std::default;
+use std::fmt;
 use std::iter;
 use std::marker::PhantomData;
 use std::ops;
@@ -16,8 +18,14 @@ pub trait Vec3DNorm {
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Vec3D<T: Copy>([f64; 3], #[serde(skip)] PhantomData<T>);
+
+impl<T: Copy> cmp::PartialEq for Vec3D<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0[0] == other.0[0] && self.0[1] == other.0[1] && self.0[2] == other.0[2]
+    }
+}
 
 impl<T: Copy> convert::Into<(f64, f64, f64)> for Vec3D<T> {
     fn into(self) -> (f64, f64, f64) {
@@ -132,6 +140,22 @@ impl convert::Into<Vec3D<Spherical>> for Vec3D<Cartesian> {
         };
 
         Vec3D::<Spherical>::new(r, phi, theta)
+    }
+}
+
+impl fmt::Debug for Vec3D<Cartesian> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Vec3D<Cartesian>")
+            .field("x", &self.0[0])
+            .field("y", &self.0[1])
+            .field("z", &self.0[2])
+            .finish()
+    }
+}
+
+impl fmt::Display for Vec3D<Cartesian> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[x={}, y={}, z={}]", self.0[0], self.0[1], self.0[2])
     }
 }
 
@@ -284,6 +308,18 @@ impl Vec3D<Cartesian> {
     pub fn unit_z() -> Vec3D<Cartesian> {
         Vec3D::<Cartesian>([0.0, 0.0, 1.0], PhantomData::<Cartesian>{})
     }
+
+    pub fn dot(&self, other: &Vec3D<Cartesian>) -> f64 {
+        self.0[0] * other.0[0] + self.0[1] * other.0[1] + self.0[2] * other.0[2]
+    }
+
+    pub fn cross(&self, other: &Vec3D<Cartesian>) -> Vec3D<Cartesian> {
+        Vec3D::<Cartesian>::new(
+            self.0[1] * other.0[2] - self.0[2] * other.0[1], // y1 * z2 - z1 * y2
+            self.0[2] * other.0[0] - self.0[0] * other.0[2], // z1 * x2 - x1 * z2
+            self.0[0] * other.0[1] - self.0[1] * other.0[0]  // x1 * y2 - y1 * x2
+        )
+    }
 }
 
 
@@ -316,6 +352,23 @@ impl convert::Into<Vec3D<Spherical>> for Vec3D<Cylindrical> {
         Vec3D::<Spherical>::new(rho.hypot(z), phi, theta)
     }
 }
+
+impl fmt::Debug for Vec3D<Cylindrical> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Vec3D<Cylindrical>")
+            .field("radius", &self.0[0])
+            .field("azimuth", &self.0[1])
+            .field("altitude", &self.0[2])
+            .finish()
+    }
+}
+
+impl fmt::Display for Vec3D<Cylindrical> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[radius={}, azimuth={}, altitude={}]", self.0[0], self.0[1], self.0[2])
+    }
+}
+
 
 impl ops::Index<Cylindrical> for Vec3D<Cylindrical> {
     type Output = f64;
@@ -450,6 +503,22 @@ impl convert::Into<Vec3D<Cylindrical>> for Vec3D<Spherical> {
 
         let (theta_sin, theta_cos) = theta.sin_cos();
         Vec3D::<Cylindrical>::new(r * theta_cos, phi, r * theta_sin)
+    }
+}
+
+impl fmt::Debug for Vec3D<Spherical> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Vec3D<Spherical>")
+            .field("radius", &self.0[0])
+            .field("azimuth", &self.0[1])
+            .field("colatitude", &self.0[2])
+            .finish()
+    }
+}
+
+impl fmt::Display for Vec3D<Spherical> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[radius={}, azimuth={}, colatitude={}]", self.0[0], self.0[1], self.0[2])
     }
 }
 
