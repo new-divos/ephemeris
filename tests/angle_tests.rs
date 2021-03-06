@@ -10,7 +10,7 @@ use rand::distributions::Uniform;
 use std::convert;
 
 use ephem::base::angle::*;
-use ephem::base::consts::{PI2, DEG, RAD, ARCS};
+use ephem::base::consts::{PI2, R2D, D2R, R2AS};
 
 
 fn to_short(value: f64) -> (i32, f64) {
@@ -132,7 +132,7 @@ fn into_rad_test() {
         let mut v: f64 = a_rev.into();
         assert_relative_eq!(v, radians, epsilon = common::EPS);
 
-        let degrees = DEG * radians;
+        let degrees = R2D * radians;
 
         let a_ad = Angle::from_ad(degrees);
         v = a_ad.into();
@@ -342,7 +342,7 @@ fn into_ad_test() {
         let test = |angle: Angle| test_value::<AngleArcDegrees>(
             angle, degrees);
 
-        let a_rad = Angle::from(RAD * degrees);
+        let a_rad = Angle::from(D2R * degrees);
         test(a_rad);
 
         let a_rev = Angle::from_r(degrees / 360.0);
@@ -409,7 +409,7 @@ fn into_adm_test() {
 
         let total_degrees = from_short(degrees, minutes);
 
-        let a_rad = Angle::from(RAD * total_degrees);
+        let a_rad = Angle::from(D2R * total_degrees);
         test(a_rad);
 
         let a_rev = Angle::from_r(total_degrees / 360.0);
@@ -480,7 +480,7 @@ fn into_adms_test() {
 
         let total_degrees = from_long(degrees, minutes, seconds);
 
-        let a_rad = Angle::from(total_degrees * RAD);
+        let a_rad = Angle::from(total_degrees * D2R);
         test(a_rad);
 
         let a_rev = Angle::from_r(total_degrees / 360.0);
@@ -544,7 +544,7 @@ fn into_am_test() {
 
         let degrees = minutes / 60.0;
 
-        let a_rad = Angle::from(degrees * RAD);
+        let a_rad = Angle::from(degrees * D2R);
         test(a_rad);
 
         let a_rev = Angle::from_r(degrees / 360.0);
@@ -611,7 +611,7 @@ fn into_ams_test() {
         let total_minutes = from_short(minutes, seconds);
         let total_degrees = total_minutes / 60.0;
 
-        let a_rad = Angle::from(total_degrees * RAD);
+        let a_rad = Angle::from(total_degrees * D2R);
         test(a_rad);
 
         let a_rev = Angle::from_r(total_degrees / 360.0);
@@ -675,7 +675,7 @@ fn into_as_test() {
         let minutes = seconds / 60.0;
         let degrees = minutes / 60.0;
 
-        let a_rad = Angle::from(seconds / ARCS);
+        let a_rad = Angle::from(seconds / R2AS);
         test(a_rad);
 
         let a_rev = Angle::from_r(degrees / 360.0);
@@ -737,7 +737,7 @@ fn into_th_test() {
             angle, hours);
 
         let degrees = hours * 15.0;
-        let a_rad = Angle::from(degrees * RAD);
+        let a_rad = Angle::from(degrees * D2R);
         test(a_rad);
 
         let a_rev = Angle::from_r(hours / 24.0);
@@ -804,7 +804,7 @@ fn into_thm_test() {
         let total_hours = from_short(hours, minutes);
         let total_degrees = total_hours * 15.0;
 
-        let a_rad = Angle::from(total_degrees * RAD);
+        let a_rad = Angle::from(total_degrees * D2R);
         test(a_rad);
 
         let a_rev = Angle::from_r(total_hours / 24.0);
@@ -873,7 +873,7 @@ fn into_thms_test() {
         let total_hours = from_long(hours, minutes, seconds);
         let total_degrees = total_hours * 15.0;
 
-        let a_rad = Angle::from(total_degrees * RAD);
+        let a_rad = Angle::from(total_degrees * D2R);
         test(a_rad);
 
         let a_rev = Angle::from_r(total_hours / 24.0);
@@ -935,7 +935,7 @@ fn into_tm_test() {
 
         let total_degrees = minutes / 4.0;
 
-        let a_rad = Angle::from(total_degrees * RAD);
+        let a_rad = Angle::from(total_degrees * D2R);
         test(a_rad);
 
         let a_rev = Angle::from_r(total_degrees / 360.0);
@@ -1004,7 +1004,7 @@ fn into_tms_test() {
         let arc_minutes = total_minutes * 15.0;
         let total_degrees = arc_minutes / 60.0;
 
-        let a_rad = Angle::from(total_degrees * RAD);
+        let a_rad = Angle::from(total_degrees * D2R);
         test(a_rad);
 
         let a_rev = Angle::from_r(total_degrees / 360.0);
@@ -1068,7 +1068,7 @@ fn into_ts_test() {
         let minutes = arc_seconds / 60.0;
         let degrees = minutes / 60.0;
 
-        let a_rad = Angle::from(arc_seconds / ARCS);
+        let a_rad = Angle::from(arc_seconds / R2AS);
         test(a_rad);
 
         let a_rev = Angle::from_r(degrees / 360.0);

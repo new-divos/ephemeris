@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::convert;
 use std::f64::consts::PI;
 
-use crate::base::consts::{ARCS, DEG, PI2, RAD};
+use crate::base::consts::{R2AS, R2D, PI2, D2R};
 
 const ARCM: f64 = 60.0 * 180.0 / PI;
 
@@ -544,15 +544,15 @@ impl convert::Into<f64> for Angle {
                 r * PI2
             },
             Angle::ArcDegrees(AngleArcDegrees(d)) => {
-                d * RAD
+                d * D2R
             },
             Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(dm)) => {
                 let Left(degrees) = dm.into();
-                degrees * RAD
+                degrees * D2R
             },
             Angle::ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds(dms)) => {
                 let Left(degrees) = dms.into();
-                degrees * RAD
+                degrees * D2R
             },
             Angle::ArcMinutes(AngleArcMinutes(m)) => {
                 m / ARCM
@@ -562,7 +562,7 @@ impl convert::Into<f64> for Angle {
                 minutes / ARCM
             },
             Angle::ArcSeconds(AngleArcSeconds(s)) => {
-                s / ARCS
+                s / R2AS
             },
             Angle::TimeHours(AngleTimeHours(h)) => {
                 h / TMH
@@ -653,7 +653,7 @@ impl convert::Into<AngleArcDegrees> for Angle {
     fn into(self) -> AngleArcDegrees {
         match self {
             Angle::Radians(r) => {
-                AngleArcDegrees(DEG * r)
+                AngleArcDegrees(R2D * r)
             },
             Angle::Revolutions(AngleRevolutions(r)) => {
                 AngleArcDegrees(RVARCD * r)
@@ -715,7 +715,7 @@ impl convert::Into<AngleArcDegreesMinutes> for Angle {
     fn into(self) -> AngleArcDegreesMinutes {
         match self {
             Angle::Radians(r) => {
-                AngleArcDegreesMinutes(Left(DEG * r).into())
+                AngleArcDegreesMinutes(Left(R2D * r).into())
             },
             Angle::Revolutions(AngleRevolutions(r)) => {
                 AngleArcDegreesMinutes(Left(RVARCD * r).into())
@@ -779,7 +779,7 @@ impl convert::Into<AngleArcDegreesMinutesSeconds> for Angle {
     fn into(self) -> AngleArcDegreesMinutesSeconds {
         match self {
             Angle::Radians(r) => {
-                AngleArcDegreesMinutesSeconds(Left(DEG * r).into())
+                AngleArcDegreesMinutesSeconds(Left(R2D * r).into())
             },
             Angle::Revolutions(AngleRevolutions(r)) => {
                 AngleArcDegreesMinutesSeconds(Left(RVARCD * r).into())
@@ -963,7 +963,7 @@ impl convert::Into<AngleArcSeconds> for Angle {
     fn into(self) -> AngleArcSeconds {
         match self {
             Angle::Radians(r) => {
-                AngleArcSeconds(ARCS * r)
+                AngleArcSeconds(R2AS * r)
             },
             Angle::Revolutions(AngleRevolutions(r)) => {
                 AngleArcSeconds(RVARCS * r)
