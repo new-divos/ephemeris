@@ -2,7 +2,8 @@ use std::cmp::Ordering;
 use std::convert;
 use std::marker::PhantomData;
 
-use crate::base::consts::{PI2, D2R, R2D};
+use crate::base::consts::{PI2, D2R, R2D, R2AM, AM2R, R2AS, AS2R,
+                          H2R, R2H, M2R, R2M, S2R, R2S};
 
 
 ///
@@ -482,9 +483,110 @@ macro_rules! impl_new {
 }
 
 
-pub trait AngleConvert {
-    const CR: f64;
-    const CIR: f64 = 1.0 / <Self as AngleConvert>::CR;
+macro_rules! impl_into {
+    () => {};
+    ($td:ty: 0 = value * $c:expr; $($tail:tt)*) => {
+        impl convert::From<f64> for Angle<$td> {
+            #[inline]
+            fn from(value: f64) -> Self {
+                Self(
+                    SimpleAngle::from(value * $c),
+                    PhantomData::<$td>{}
+                )
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($td:ty: 0 = value / $c:expr; $($tail:tt)*) => {
+        impl convert::From<f64> for Angle<$td> {
+            #[inline]
+            fn from(value: f64) -> Self {
+                Self(
+                    SimpleAngle::from(value / $c),
+                    PhantomData::<$td>{}
+                )
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($td:ty: $m:ident = value * $c:expr; $($tail:tt)*) => {
+        impl convert::From<f64> for Angle<$td> {
+            #[inline]
+            fn from(value: f64) -> Self {
+                Self(
+                    $m(value * $c).into(),
+                    PhantomData::<$td>{}
+                )
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($td:ty: $m:ident = value * $c:expr; $($tail:tt)*) => {
+        impl convert::From<f64> for Angle<$td> {
+            #[inline]
+            fn from(value: f64) -> Self {
+                Self(
+                    $m(value / $c).into(),
+                    PhantomData::<$td>{}
+                )
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty: 0 * $c:expr; $($tail:tt)*) => {
+        impl convert::Into<f64> for Angle<$ts> {
+            #[inline]
+            fn into(self) -> f64 {
+                self.0.0 * $c
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty: 0 / $c:expr; $($tail:tt)*) => {
+        impl convert::Into<f64> for Angle<$ts> {
+            #[inline]
+            fn into(self) -> f64 {
+                self.0.0 / $c
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty : $m:ident * $c:expr; $($tail:tt)*) => {
+        impl convert::Into<f64> for Angle<$ts> {
+            fn into(self) -> f64 {
+                let $m(value) = self.0.into();
+                value * $c
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty: $m:ident / $c:expr; $($tail:tt)*) => {
+        impl convert::Into<f64> for Angle<$ts> {
+            fn into(self) -> f64 {
+                let $m(value) = self.0.into();
+                value / $c
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => Radians; $($tail:tt)*) => {
+        impl convert::Into<Angle<Radians>> for Angle<$ts> {
+            #[inline]
+            fn into(self) -> Angle<Radians> {
+                Angle::<Radians>(self.into(), PhantomData::<Radians>{})
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
 }
 
 
@@ -520,88 +622,144 @@ impl AngleSign for Angle<Radians> {
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Revolutions;
 
-impl AngleConvert for Revolutions {
-    const CR: f64 = PI2;
-}
-
 impl_new!(Revolutions; revolutions);
+impl_into! {
+    Revolutions: 0 = value * PI2;
+    Revolutions: 0 / PI2;
+    Revolutions => Radians;
+}
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Degrees;
 
-impl AngleConvert for Degrees {
-    const CR: f64 = D2R;
-    const CIR: f64 = R2D;
-}
-
 impl_new!(Degrees; degrees);
+impl_into! {
+    Degrees: 0 = value * R2D;
+    Degrees: 0 * D2R;
+    Degrees => Radians;
+}
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct DegreesArcMinutes;
 
 impl_new!(DegreesArcMinutes; degrees, arc_minutes);
+impl_into! {
+    DegreesArcMinutes: Left = value * R2D;
+    DegreesArcMinutes: Left * D2R;
+    DegreesArcMinutes => Radians;
+}
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct DegreesArcMinutesSeconds;
 
 impl_new!(DegreesArcMinutesSeconds; degrees, arc_minutes, arc_seconds);
+impl_into! {
+    DegreesArcMinutesSeconds: Left = value * R2D;
+    DegreesArcMinutesSeconds: Left * D2R;
+    DegreesArcMinutesSeconds => Radians;
+}
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct ArcMinutes;
 
 impl_new!(ArcMinutes; arc_minutes);
+impl_into! {
+    ArcMinutes: 0 = value * R2AM;
+    ArcMinutes: 0 * AM2R;
+    ArcMinutes => Radians;
+}
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct ArcMinutesSeconds;
 
 impl_new!(ArcMinutesSeconds; arc_minutes, arc_seconds);
+impl_into! {
+    ArcMinutesSeconds: Left = value * R2AM;
+    ArcMinutesSeconds: Left * AM2R;
+    ArcMinutesSeconds => Radians;
+}
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct ArcSeconds;
 
 impl_new!(ArcSeconds; arc_seconds);
+impl_into! {
+    ArcSeconds: 0 = value * R2AS;
+    ArcSeconds: 0 * AS2R;
+    ArcSeconds => Radians;
+}
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Hours;
 
 impl_new!(Hours; hours);
+impl_into! {
+    Hours: 0 = value * R2H;
+    Hours: 0 * H2R;
+    Hours => Radians;
+}
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct HoursMinutes;
 
 impl_new!(HoursMinutes; hours, minutes);
+impl_into! {
+    HoursMinutes: Left = value * R2H;
+    HoursMinutes: Left * H2R;
+    HoursMinutes => Radians;
+}
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct HoursMinutesSeconds;
 
 impl_new!(HoursMinutesSeconds; hours, minutes, seconds);
+impl_into! {
+    HoursMinutesSeconds: Left = value * R2H;
+    HoursMinutesSeconds: Left * R2H;
+    HoursMinutesSeconds => Radians;
+}
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Minutes;
 
 impl_new!(Minutes; minutes);
+impl_into! {
+    Minutes: 0 = value * R2M;
+    Minutes: 0 * M2R;
+    Minutes => Radians;
+}
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct MinutesSeconds;
 
 impl_new!(MinutesSeconds; minutes, seconds);
+impl_into! {
+    MinutesSeconds: Left = value * R2M;
+    MinutesSeconds: Left * M2R;
+    MinutesSeconds => Radians;
+}
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Seconds;
 
 impl_new!(Seconds; seconds);
+impl_into! {
+    Seconds: 0 = value * R2S;
+    Seconds: 0 * S2R;
+    Seconds => Radians;
+}
 
 
 #[cfg(test)]

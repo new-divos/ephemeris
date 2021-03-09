@@ -7,7 +7,6 @@ extern crate approx;
 
 use rand::{Rng, thread_rng};
 use rand::distributions::Uniform;
-use std::convert;
 
 use ephem::base::angle::*;
 use ephem::base::consts::{PI2};
@@ -89,23 +88,81 @@ fn from_long(value1: i32, value2: i32, value3: f64) -> f64 {
 
 #[test]
 fn angle_new_test() {
-    let a_rad = Angle::<Radians>::from(PI2);
-    let r: f64 = a_rad.into();
-    assert_eq!(r, PI2);
+    let mut rng = thread_rng();
 
-    let a_rev = Angle::<Revolutions>::new(1.0);
-    assert_eq!(a_rev.revolutions(), 1.0);
+    let rad_band = Uniform::new(-PI2, PI2);
+    let rev_band = Uniform::new(-2.0_f64, 2.0_f64);
+    let deg_band = Uniform::new(-360.0_f64, 360.0_f64);
+    let hr_band = Uniform::new(-24.0_f64, 24.0_f64);
 
-    let a_d = Angle::<Degrees>::new(360.0);
-    assert_eq!(a_d.degrees(), 360.0);
+    for _ in 0..common::ITERATIONS {
+        let rs = rng.sample(rad_band);
+        let a_rad = Angle::<Radians>::from(rs);
+        let rd: f64 = a_rad.into();
+        assert_eq!(rs, rd);
 
-    let a_dam = Angle::<DegreesArcMinutes>::new(360, 0.0);
-    assert_eq!(a_dam.degrees(), 360);
-    assert_eq!(a_dam.arc_minutes(), 0.0);
+        let rvs = rng.sample(rev_band);
+        let a_rev = Angle::<Revolutions>::new(rvs);
+        assert_eq!(a_rev.revolutions(), rvs);
 
-    let a_dams =
-        Angle::<DegreesArcMinutesSeconds>::new(360, 0, 0.0);
-    assert_eq!(a_dams.degrees(), 360);
-    assert_eq!(a_dams.arc_minutes(), 0);
-    assert_eq!(a_dams.arc_seconds(), 0.0);
+        let ds = rng.sample(deg_band);
+        let a_d = Angle::<Degrees>::new(ds);
+        assert_eq!(a_d.degrees(), ds);
+
+        let (deg, amin) = to_short(ds);
+        let a_dam =
+            Angle::<DegreesArcMinutes>::new(deg, amin);
+        assert_eq!(a_dam.degrees(), deg);
+        assert_relative_eq!(a_dam.arc_minutes(), amin, epsilon = common::EPS);
+
+        let (deg, amin, asec) = to_long(ds);
+        let a_dams =
+            Angle::<DegreesArcMinutesSeconds>::new(deg, amin, asec);
+        assert_eq!(a_dams.degrees(), deg);
+        assert_eq!(a_dams.arc_minutes(), amin);
+        assert_relative_eq!(a_dams.arc_seconds(), asec, epsilon = common::EPS);
+
+        let ams = ds * 60.0;
+        let a_am = Angle::<ArcMinutes>::new(ams);
+        assert_eq!(a_am.arc_minutes(), ams);
+
+        let (amin, asec) = to_short(ams);
+        let a_ams =
+            Angle::<ArcMinutesSeconds>::new(amin, asec);
+        assert_eq!(a_ams.arc_minutes(), amin);
+        assert_relative_eq!(a_ams.arc_seconds(), asec, epsilon = common::EPS);
+
+        let ascs = ams * 60.0;
+        let a_as = Angle::<ArcSeconds>::new(ascs);
+        assert_eq!(a_as.arc_seconds(), ascs);
+
+        let hrs = rng.sample(hr_band);
+        let a_h = Angle::<Hours>::new(hrs);
+        assert_eq!(a_h.hours(), hrs);
+
+        let (hr, min) = to_short(hrs);
+        let a_hm = Angle::<HoursMinutes>::new(hr, min);
+        assert_eq!(a_hm.hours(), hr);
+        assert_relative_eq!(a_hm.minutes(), min, epsilon = common::EPS);
+
+        let (hr, min, sec) = to_long(hrs);
+        let a_hms =
+            Angle::<HoursMinutesSeconds>::new(hr, min, sec);
+        assert_eq!(a_hms.hours(), hr);
+        assert_eq!(a_hms.minutes(), min);
+        assert_relative_eq!(a_hms.seconds(), sec, epsilon = common::EPS);
+
+        let ms = hrs * 60.0;
+        let a_m = Angle::<Minutes>::new(ms);
+        assert_eq!(a_m.minutes(), ms);
+
+        let (min, sec) = to_short(ms);
+        let a_ms = Angle::<MinutesSeconds>::new(min, sec);
+        assert_eq!(a_ms.minutes(), min);
+        assert_relative_eq!(a_ms.seconds(), sec, epsilon = common::EPS);
+
+        let scs = ms * 60.0;
+        let a_s = Angle::<Seconds>::new(scs);
+        assert_eq!(a_s.seconds(), scs);
+    }
 }
