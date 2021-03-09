@@ -9,7 +9,7 @@ use rand::{Rng, thread_rng};
 use rand::distributions::Uniform;
 
 use ephem::base::angle::*;
-use ephem::base::consts::{PI2, R2D};
+use ephem::base::consts::{PI2, R2D, D2R};
 
 
 fn to_short(value: f64) -> (i32, f64) {
@@ -308,5 +308,152 @@ fn angle_radians_test() {
         let a_ts = Angle::<Seconds>::from(radians);
         v = a_ts.into();
         assert_relative_eq!(v, radians, epsilon = common::EPS);
+    }
+}
+
+
+#[test]
+fn angle_revolutions_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-2.0_f64, 2.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let revolutions = rng.sample(band);
+        let test = |angle: Angle<Revolutions>| {
+            assert_relative_eq!(angle.revolutions(), revolutions, epsilon = common::EPS);
+        };
+
+        let a_rad = Angle::<Revolutions>::from(PI2 * revolutions);
+        test(a_rad.into());
+
+        let degrees = revolutions * 360.0;
+        let a_ad = Angle::<Degrees>::new(degrees);
+        test(a_ad.into());
+
+        let (deg, arcmin) = to_short(degrees);
+        let a_adm =
+            Angle::<DegreesArcMinutes>::new(deg, arcmin);
+        assert_eq!(a_adm.degrees(), deg);
+        assert_relative_eq!(a_adm.arc_minutes(), arcmin, epsilon = common::EPS);
+        test(a_adm.into());
+
+        let (deg, arcmin, arcsec) = to_long(degrees);
+        let a_adms =
+            Angle::<DegreesArcMinutesSeconds>::new(deg, arcmin, arcsec);
+        assert_eq!(a_adms.degrees(), deg);
+        assert_eq!(a_adms.arc_minutes(), arcmin);
+        assert_relative_eq!(a_adms.arc_seconds(), arcsec, epsilon = common::EPS);
+        test(a_adms.into());
+
+        let arc_minutes = degrees * 60.0;
+        let a_am = Angle::<ArcMinutes>::new(arc_minutes);
+        test(a_am.into());
+
+        let (arcmin, arcsec) = to_short(arc_minutes);
+        let a_ams =
+            Angle::<ArcMinutesSeconds>::new(arcmin, arcsec);
+        assert_eq!(a_ams.arc_minutes(), arcmin);
+        assert_relative_eq!(a_ams.arc_seconds(), arcsec, epsilon = common::EPS);
+        test(a_ams.into());
+
+        let a_as = Angle::<ArcSeconds>::new(arc_minutes * 60.0);
+        test(a_as.into());
+
+        let hours = revolutions * 24.0;
+        let a_th = Angle::<Hours>::new(hours);
+        test(a_th.into());
+
+        let (hr, min) = to_short(hours);
+        let a_thm = Angle::<HoursMinutes>::new(hr, min);
+        assert_eq!(a_thm.hours(), hr);
+        assert_relative_eq!(a_thm.minutes(), min, epsilon=common::EPS);
+        test(a_thm.into());
+
+        let (hr, min, sec) = to_long(hours);
+        let a_thms =
+            Angle::<HoursMinutesSeconds>::new(hr, min, sec);
+        assert_eq!(a_thms.hours(), hr);
+        assert_eq!(a_thms.minutes(), min);
+        assert_relative_eq!(a_thms.seconds(), sec, epsilon=common::EPS);
+        test(a_thms.into());
+
+        let minutes = hours * 60.0;
+        let a_tm = Angle::<Minutes>::new(minutes);
+        test(a_tm.into());
+
+        let (min, sec) = to_short(minutes);
+        let a_tms = Angle::<MinutesSeconds>::new(min, sec);
+        assert_eq!(a_tms.minutes(), min);
+        assert_relative_eq!(a_thms.seconds(), sec, epsilon=common::EPS);
+        test(a_tms.into());
+
+        let a_ts = Angle::<Seconds>::new(minutes * 60.0);
+        test(a_ts.into());
+    }
+}
+
+
+#[test]
+fn into_degrees_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-360.0_f64, 360.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let degrees = rng.sample(band);
+        let test = |angle: Angle::<Degrees>| {
+            assert_relative_eq!(angle.degrees(), degrees, epsilon=common::EPS);
+        };
+
+        let a_rad = Angle::<Radians>::from(degrees * D2R);
+        test(a_rad.into());
+
+        let a_rev = Angle::<Revolutions>::new(degrees / 360.0);
+        test(a_rev.into());
+
+        let (deg, arcmin) = to_short(degrees);
+        let a_adm =
+            Angle::<DegreesArcMinutes>::new(deg, arcmin);
+        test(a_adm.into());
+
+        let (deg, arcmin, arcsec) = to_long(degrees);
+        let a_adms =
+            Angle::<DegreesArcMinutesSeconds>::new(deg, arcmin, arcsec);
+        test(a_adms.into());
+
+        let arc_minutes = degrees * 60.0;
+        let a_am = Angle::<ArcMinutes>::new(arc_minutes);
+        test(a_am.into());
+
+        let (arcmin, arcsec) = to_short(arc_minutes);
+        let a_ams =
+            Angle::<ArcMinutesSeconds>::new(arcmin, arcsec);
+        test(a_ams.into());
+
+        let a_as = Angle::<ArcSeconds>::new(arc_minutes * 60.0);
+        test(a_as.into());
+
+        let hours = degrees / 15.0;
+        let a_th = Angle::<Hours>::new(hours);
+        test(a_th.into());
+
+        let (hr, min) = to_short(hours);
+        let a_thm = Angle::<HoursMinutes>::new(hr, min);
+        test(a_thm.into());
+
+        let (hr, min, sec) = to_long(hours);
+        let a_thms =
+            Angle::<HoursMinutesSeconds>::new(hr, min, sec);
+        test(a_thms.into());
+
+        let minutes = hours * 60.0;
+        let a_tm = Angle::<Minutes>::new(minutes);
+        test(a_tm.into());
+
+        let (min, sec) = to_short(minutes);
+        let a_tms = Angle::<MinutesSeconds>::new(min, sec);
+        test(a_tms.into());
+
+        let a_ts = Angle::<Seconds>::new(minutes * 60.0);
+        test(a_ts.into());
     }
 }

@@ -1024,6 +1024,7 @@ impl_into! {
     HoursMinutes: Left = value * R2H;
     HoursMinutes: Left * H2R;
     HoursMinutes => Radians;
+    HoursMinutes => Revolutions: 0 = Left / RV2H;
     HoursMinutes => Degrees: 0 = Left * TA;
     HoursMinutes => DegreesArcMinutes: Right = Right * TA;
     HoursMinutes => DegreesArcMinutesSeconds: Middle = Right * TA;
@@ -1116,7 +1117,7 @@ impl_into! {
     Seconds: 0 * S2R;
     Seconds => Radians;
     Seconds => Revolutions: 0 = 0 / RV2S;
-    Seconds => Degrees: 0 = 0 / TMS;
+    Seconds => Degrees: 0 = 0 / TS;
     Seconds => DegreesArcMinutes: Right = 0 / TM;
     Seconds => DegreesArcMinutesSeconds: Right = 0 * TA;
     Seconds => ArcMinutes: 0 = 0 / TM;
