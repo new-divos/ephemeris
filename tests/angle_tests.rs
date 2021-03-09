@@ -9,7 +9,7 @@ use rand::{Rng, thread_rng};
 use rand::distributions::Uniform;
 
 use ephem::base::angle::*;
-use ephem::base::consts::{PI2};
+use ephem::base::consts::{PI2, R2D};
 
 
 fn to_short(value: f64) -> (i32, f64) {
@@ -164,5 +164,149 @@ fn angle_new_test() {
         let scs = ms * 60.0;
         let a_s = Angle::<Seconds>::new(scs);
         assert_eq!(a_s.seconds(), scs);
+    }
+}
+
+
+#[test]
+fn angle_radians_test() {
+    let a = Angle::<Radians>::from(PI2);
+    let r: Angle<Revolutions> = a.into();
+    assert_relative_eq!(r.revolutions(), 1.0, epsilon=common::EPS);
+
+    let mut rng = thread_rng();
+    let band = Uniform::new(-PI2, PI2);
+
+    for _ in 0..common::ITERATIONS {
+        let radians = rng.sample(band);
+
+        let a_rev = Angle::<Revolutions>::new(radians / PI2);
+        let mut v: f64 = a_rev.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let a_rev = Angle::<Revolutions>::from(radians);
+        v = a_rev.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let degrees = radians * R2D;
+        let a_ad = Angle::<Degrees>::new(degrees);
+        v = a_ad.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let a_ad = Angle::<Degrees>::from(radians);
+        v = a_ad.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let (deg, arcmin) = to_short(degrees);
+        let a_adm = Angle::<DegreesArcMinutes>::new(deg, arcmin);
+        assert_eq!(a_adm.degrees(), deg);
+        assert_relative_eq!(a_adm.arc_minutes(), arcmin, epsilon = common::EPS);
+        v = a_adm.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let a_adm = Angle::<DegreesArcMinutes>::from(radians);
+        v = a_adm.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let (deg, arcmin, arcsec) = to_long(degrees);
+        let a_adms = Angle::<DegreesArcMinutesSeconds>::new(deg, arcmin, arcsec);
+        assert_eq!(a_adms.degrees(), deg);
+        assert_eq!(a_adms.arc_minutes(), arcmin);
+        assert_relative_eq!(a_adms.arc_seconds(), arcsec, epsilon = common::EPS);
+        v = a_adms.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let a_adms = Angle::<DegreesArcMinutesSeconds>::from(radians);
+        v = a_adms.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let arc_minutes = degrees * 60.0;
+        let a_am = Angle::<ArcMinutes>::new(arc_minutes);
+        v = a_am.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let a_am = Angle::<ArcMinutes>::from(radians);
+        v = a_am.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let (arcmin, arcsec) = to_short(arc_minutes);
+        let a_ams = Angle::<ArcMinutesSeconds>::new(arcmin, arcsec);
+        assert_eq!(a_ams.arc_minutes(), arcmin);
+        assert_relative_eq!(a_adms.arc_seconds(), arcsec, epsilon = common::EPS);
+        v = a_ams.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let a_ams = Angle::<ArcMinutesSeconds>::from(radians);
+        v = a_ams.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let a_as = Angle::<ArcSeconds>::new(arc_minutes * 60.0);
+        v = a_as.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let a_as = Angle::<ArcSeconds>::from(radians);
+        v = a_as.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let hours = degrees / 15.0;
+        let a_th = Angle::<Hours>::new(hours);
+        v = a_th.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let a_th = Angle::<Hours>::from(radians);
+        v = a_th.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let (hr, min) = to_short(hours);
+        let a_thm = Angle::<HoursMinutes>::new(hr, min);
+        assert_eq!(a_thm.hours(), hr);
+        assert_relative_eq!(a_thm.minutes(), min, epsilon = common::EPS);
+        v = a_thm.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let a_thm = Angle::<HoursMinutes>::from(radians);
+        v = a_thm.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let (hr, min, sec) = to_long(hours);
+        let a_thms =
+            Angle::<HoursMinutesSeconds>::new(hr, min, sec);
+        assert_eq!(a_thms.hours(), hr);
+        assert_eq!(a_thms.minutes(), min);
+        assert_relative_eq!(a_thms.seconds(), sec, epsilon = common::EPS);
+        v = a_thms.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let a_thms = Angle::<HoursMinutesSeconds>::from(radians);
+        v = a_thms.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let minutes = hours * 60.0;
+        let a_tm = Angle::<Minutes>::new(minutes);
+        v = a_tm.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let a_tm = Angle::<Minutes>::from(radians);
+        v = a_tm.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let (min, sec) = to_short(minutes);
+        let a_tms = Angle::<MinutesSeconds>::new(min, sec);
+        assert_eq!(a_tms.minutes(), min);
+        assert_relative_eq!(a_tms.seconds(), sec, epsilon = common::EPS);
+        v = a_tms.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let a_tms = Angle::<MinutesSeconds>::from(radians);
+        v = a_tms.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let a_ts = Angle::<Seconds>::new(minutes * 60.0);
+        v = a_ts.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
+
+        let a_ts = Angle::<Seconds>::from(radians);
+        v = a_ts.into();
+        assert_relative_eq!(v, radians, epsilon = common::EPS);
     }
 }
