@@ -1,45 +1,87 @@
 use std::cmp::Ordering;
 use std::convert;
-use std::f64::consts::PI;
+use std::marker::PhantomData;
 
-use crate::base::consts::{R2AS, R2D, PI2, D2R};
-
-const ARCM: f64 = 60.0 * 180.0 / PI;
-
-const TMH: f64 = 12.0 / PI;
-const TMM: f64 = 60.0 * 12.0 / PI;
-const TMS: f64 = 3600.0 * 12.0 / PI;
-
-const TMHTOARCM: f64 = 15.0 * 60.0;
-const TMMTOARCS: f64 = 15.0 * 60.0;
-const TMHTOARCS: f64 = TMHTOARCM * 60.0;
-const ARCDTOTMS: f64 = 3600.0 / 15.0;
-
-const RVARCD: f64 = 360.0;
-const RVARCM: f64 = RVARCD * 60.0;
-const RVARCS: f64 = RVARCM * 60.0;
-
-const RVTMH: f64 = 24.0;
-const RVTMM: f64 = RVTMH * 60.0;
-const RVTMS: f64 = RVTMM * 60.0;
+use crate::base::consts::{PI2, D2R, R2D, R2AM, AM2R, R2AS, AS2R,
+                          H2R, R2H, M2R, R2M, S2R, R2S};
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+const RV2D: f64 = 360.0;
+const RV2AM: f64 = RV2D * 60.0;
+const RV2AS: f64 = RV2AM * 60.0;
+
+const RV2H: f64 = 24.0;
+const RV2M: f64 = RV2H * 60.0;
+const RV2S: f64 = RV2M * 60.0;
+
+const TA: f64 = 15.0;
+const TM: f64 = 60.0 / TA;
+const TS: f64 = 3600.0 / TA;
+
+const TMM: f64 = TA * 60.0;
+const TMS: f64 = TMM * 60.0;
+
+
+///
+/// Left value in a composed angle value
+///
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct Left(f64);
+
+///
+/// Middle value in a composed angle value
+///
+#[derive(Copy, Clone, Debug, PartialEq)]
+struct Middle(f64);
+
+///
+/// Right value in a composed angle value
+///
+#[derive(Copy, Clone, Debug, PartialEq)]
+struct Right(f64);
+
+
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Sign {
     Negative,
     Zero,
     Positive
 }
 
-trait AngleSign {
+pub trait AngleSign {
     fn sign(&self) -> Sign;
 }
 
-impl AngleSign for f64 {
+
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
+pub struct SimpleAngle(f64);
+
+impl convert::From<f64> for SimpleAngle {
+    #[inline]
+    fn from(value: f64) -> Self {
+        Self(value)
+    }
+}
+
+impl convert::Into<f64> for SimpleAngle {
+    #[inline]
+    fn into(self) -> f64 {
+        self.0
+    }
+}
+
+impl convert::Into<(Sign, f64)> for SimpleAngle {
+    #[inline]
+    fn into(self) -> (Sign, f64) {
+        (self.sign(), self.0.abs())
+    }
+}
+
+impl AngleSign for SimpleAngle {
     fn sign(&self) -> Sign {
-        if *self == 0.0 {
+        if self.0 == 0.0 {
             Sign::Zero
-        } else if *self < 0.0 {
+        } else if self.0 < 0.0 {
             Sign::Negative
         } else {
             Sign::Positive
@@ -48,39 +90,8 @@ impl AngleSign for f64 {
 }
 
 
-///
-/// Left value in a composed angle value
-///
-#[derive(Debug, Copy, Clone, PartialEq)]
-struct Left(f64);
-
-///
-/// Middle value in a composed angle value
-///
-#[derive(Debug, Copy, Clone, PartialEq)]
-struct Middle(f64);
-
-///
-/// Right value in a composed angle value
-///
-#[derive(Debug, Copy, Clone, PartialEq)]
-struct Right(f64);
-
-
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
-struct ShortAngle(i32, f64);
-
-impl AngleSign for ShortAngle {
-    fn sign(&self) -> Sign {
-        if self.0 == 0 && self.1 == 0.0 {
-            Sign::Zero
-        } else if self.0 < 0 || (self.0 == 0 && self.1 < 0.0) {
-            Sign::Negative
-        } else {
-            Sign::Positive
-        }
-    }
-}
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
+pub struct ShortAngle(i32, f64);
 
 impl convert::Into<ShortAngle> for Left {
     fn into(self) -> ShortAngle {
@@ -95,7 +106,7 @@ impl convert::Into<ShortAngle> for Left {
 impl convert::Into<Left> for ShortAngle {
     fn into(self) -> Left {
         let mut value = (self.0.abs() as f64) + self.1.abs() / 60.0;
-        if self.0 < 0 || (self.0 == 0 && self.1 < 0.0) {
+        if Self::is_negative(self.0, self.1) {
             value = -value
         }
 
@@ -152,6 +163,18 @@ impl PartialOrd for ShortAngle {
     }
 }
 
+impl AngleSign for ShortAngle {
+    fn sign(&self) -> Sign {
+        if self.0 == 0 && self.1 == 0.0 {
+            Sign::Zero
+        } else if Self::is_negative(self.0, self.1) {
+            Sign::Negative
+        } else {
+            Sign::Positive
+        }
+    }
+}
+
 impl ShortAngle {
     fn copysign(&self, value: f64) -> Self {
         let ShortAngle(value1, value2) = *self;
@@ -169,25 +192,27 @@ impl ShortAngle {
 
         ShortAngle(value1, value2)
     }
-}
 
+    #[inline]
+    fn is_negative(value1: i32, value2: f64) -> bool {
+        value1 < 0 || (value1 == 0 && value2 < 0.0)
+    }
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
-struct LongAngle(i32, i8, f64);
-
-impl AngleSign for LongAngle {
-    fn sign(&self) -> Sign {
-        if self.0 == 0 && self.1 == 0 && self.2 == 0.0 {
-            Sign::Zero
-        } else if self.0 < 0 || (
-            self.0 == 0 && (self.1 < 0 || (self.1 == 0 && self.2 < 0.0))
-        ) {
-            Sign::Negative
-        } else {
-            Sign::Positive
-        }
+    #[inline]
+    fn new(value1: i32, value2: f64) -> Self {
+        Right(
+            if Self::is_negative(value1, value2) {
+                -((value1.abs() as f64) * 60.0 + value2.abs())
+            } else {
+                (value1 as f64) * 60.0 + value2
+            }
+        ).into()
     }
 }
+
+
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
+pub struct LongAngle(i32, i8, f64);
 
 impl convert::Into<LongAngle> for Left {
     fn into(self) -> LongAngle {
@@ -205,9 +230,9 @@ impl convert::Into<Left> for LongAngle {
     fn into(self) -> Left {
         let mut value = (self.0.abs() as f64) +
             ((self.1.abs() as f64) + self.2.abs() / 60.0) / 60.0;
-        if self.0 < 0 || (self.0 == 0 &&
-            (self.1 < 0 || (self.1 == 0 && self.2 < 0.0))
-        ) { value = -value }
+        if Self::is_negative(self.0, self.1 as i32, self.2) {
+            value = -value
+        }
 
         Left(value)
     }
@@ -259,7 +284,9 @@ impl convert::Into<Right> for LongAngle {
         if self.0 != 0 {
             let mut value =
                 self.2 + 60.0 * ((self.1 as f64) + 60.0 * (self.0.abs() as f64));
-            if self.0 < 0 { value = -value }
+            if self.0 < 0 {
+                value = -value
+            }
             Right(value)
         } else if self.1 != 0 {
             let mut value = self.2 + 60.0 * (self.1.abs() as f64);
@@ -298,6 +325,18 @@ impl PartialOrd for LongAngle {
     }
 }
 
+impl AngleSign for LongAngle {
+    fn sign(&self) -> Sign {
+        if self.0 == 0 && self.1 == 0 && self.2 == 0.0 {
+            Sign::Zero
+        } else if Self::is_negative(self.0, self.1 as i32, self.2) {
+            Sign::Negative
+        } else {
+            Sign::Positive
+        }
+    }
+}
+
 impl LongAngle {
     fn copysign(&self, value: f64) -> Self {
         let LongAngle(value1, value2, value3) = *self;
@@ -314,1339 +353,781 @@ impl LongAngle {
             LongAngle(value1, value2, value3.copysign(value))
         }
     }
+
+    #[inline]
+    fn is_negative(value1: i32, value2: i32, value3: f64) -> bool {
+        value1 < 0 || (value1 == 0 && (value2 < 0 ||(value2 == 0 && value3 < 0.0)))
+    }
+
+    #[inline]
+    fn new(value1: i32, value2: i32, value3: f64) -> Self {
+        Right(
+            if Self::is_negative(value1, value2, value3) {
+                -(((value1.abs() * 60 + value2.abs()) as f64) * 60.0 + value3.abs())
+            } else {
+                ((value1 * 60 + value2) as f64) * 60.0 + value3
+            }
+        ).into()
+    }
 }
 
 
-macro_rules! impl_angle {
-    ($t:ty; $value:ident) => {
-        impl $t {
+pub trait AngleMapper {
+    type Item: Copy;
+}
+
+#[derive(Clone, Copy)]
+pub struct Angle<T: AngleMapper + Copy>
+(
+    <T as AngleMapper>::Item,
+    PhantomData<T>
+);
+
+
+impl<T> convert::Into<(Sign, f64)> for Angle<T>
+    where T: AngleMapper<Item=SimpleAngle> + Copy
+{
+    #[inline]
+    fn into(self) -> (Sign, f64) {
+        self.0.into()
+    }
+}
+
+impl<T> convert::Into<(i32, f64)> for Angle<T>
+    where T: AngleMapper<Item=ShortAngle> + Copy
+{
+    #[inline]
+    fn into(self) -> (i32, f64) {
+        self.0.into()
+    }
+}
+
+impl<T> convert::Into<(Sign, i32, f64)> for Angle<T>
+    where T: AngleMapper<Item=ShortAngle> + Copy
+{
+    #[inline]
+    fn into(self) -> (Sign, i32, f64) {
+        self.0.into()
+    }
+}
+
+impl<T> convert::Into<(i32, i32, f64)> for Angle<T>
+    where T: AngleMapper<Item=LongAngle> + Copy
+{
+    #[inline]
+    fn into(self) -> (i32, i32, f64) {
+        self.0.into()
+    }
+}
+
+impl<T> convert::Into<(Sign, i32, i32, f64)> for Angle<T>
+    where T: AngleMapper<Item=LongAngle> + Copy
+{
+    #[inline]
+    fn into(self) -> (Sign, i32, i32, f64) {
+        self.0.into()
+    }
+}
+
+
+impl<T> Angle<T>
+    where T: AngleMapper + Copy,
+          <T as AngleMapper>::Item: AngleSign
+{
+    #[inline]
+    pub fn sign(&self) -> Sign {
+        self.0.sign()
+    }
+}
+
+
+macro_rules! impl_new {
+    ($t:ty; $v:ident) => {
+        impl Angle<$t> {
             #[inline]
-            pub fn $value(&self) -> f64 {
-                self.0.abs()
+            pub fn $v(&self) -> f64 {
+                self.0.0
             }
 
             #[inline]
-            pub fn sign(&self) -> Sign {
-                self.0.sign()
-            }
-
-            #[inline]
-            fn value(&self) -> f64 {
-                self.0
+            pub fn new($v: f64) -> Self {
+                Self(SimpleAngle::from($v), PhantomData::<$t>{})
             }
         }
     };
-    ($t:ty; $value1:ident, $value2:ident) => {
-        impl $t {
-            pub fn $value1(&self) -> i32 {
-                let Self(ShortAngle(value, _)) = *self;
-                value.abs()
-            }
-
-            pub fn $value2(&self) -> f64 {
-                let Self(ShortAngle(_, value)) = *self;
-                value.abs()
+    ($t:ty; $v1:ident, $v2:ident) => {
+        impl Angle<$t> {
+            #[inline]
+            pub fn $v1(&self) -> i32 {
+                self.0.0
             }
 
             #[inline]
-            pub fn sigh(&self) -> Sign {
-                self.0.sign()
+            pub fn $v2(&self) -> f64 {
+                self.0.1
             }
 
-            fn value(&self) -> f64 {
-                let Left(value) = self.0.into();
-                value
-            }
-
-            fn new($value1: i32, $value2: f64) -> Self {
-                let value: Right = ShortAngle($value1, $value2).into();
-                Self(value.into())
+            #[inline]
+            pub fn new($v1: i32, $v2: f64) -> Self {
+                Self(ShortAngle::new($v1, $v2), PhantomData::<$t>{})
             }
         }
     };
-    ($t:ty; $value1:ident, $value2:ident, $value3:ident) => {
-        impl $t {
-            pub fn $value1(&self) -> i32 {
-                let Self(LongAngle(value, ..)) = *self;
-                value.abs()
-            }
-
-            pub fn $value2(&self) -> i32 {
-                let Self(LongAngle(_, value, _)) = *self;
-                (value as i32).abs()
-            }
-
-            pub fn $value3(&self) -> f64 {
-                let Self(LongAngle(.., value)) = *self;
-                value.abs()
+    ($t:ty; $v1:ident, $v2:ident, $v3:ident) => {
+        impl Angle<$t> {
+            #[inline]
+            pub fn $v1(&self) -> i32 {
+                self.0.0
             }
 
             #[inline]
-            pub fn sign(&self) -> Sign {
-                self.0.sign()
+            pub fn $v2(&self) -> i32 {
+                self.0.1 as i32
             }
 
-            fn value(&self) -> f64 {
-                let Left(value) = self.0.into();
-                value
+            #[inline]
+            pub fn $v3(&self) -> f64 {
+                self.0.2
             }
 
-            fn new($value1: i32, $value2: i32, $value3: f64) -> Self {
-                let delta = $value2 / 60;
-                let $value1 = $value1 + delta;
-                let $value2 = ($value2 - 60 * delta) as i8;
-
-                let value: Right = LongAngle($value1, $value2, $value3).into();
-                Self(value.into())
+            #[inline]
+            pub fn new($v1: i32, $v2: i32, $v3: f64) -> Self {
+                Self(LongAngle::new($v1, $v2, $v3), PhantomData::<$t>{})
             }
         }
+    };
+}
+
+
+macro_rules! impl_into {
+    () => {};
+    ($td:ty: 0 = value * $c:expr; $($tail:tt)*) => {
+        impl convert::From<f64> for Angle<$td> {
+            #[inline]
+            fn from(value: f64) -> Self {
+                Self(
+                    SimpleAngle::from(value * $c),
+                    PhantomData::<$td>{}
+                )
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($td:ty: 0 = value / $c:expr; $($tail:tt)*) => {
+        impl convert::From<f64> for Angle<$td> {
+            #[inline]
+            fn from(value: f64) -> Self {
+                Self(
+                    SimpleAngle::from(value / $c),
+                    PhantomData::<$td>{}
+                )
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($td:ty: $m:ident = value * $c:expr; $($tail:tt)*) => {
+        impl convert::From<f64> for Angle<$td> {
+            #[inline]
+            fn from(value: f64) -> Self {
+                Self(
+                    $m(value * $c).into(),
+                    PhantomData::<$td>{}
+                )
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($td:ty: $m:ident = value * $c:expr; $($tail:tt)*) => {
+        impl convert::From<f64> for Angle<$td> {
+            #[inline]
+            fn from(value: f64) -> Self {
+                Self(
+                    $m(value / $c).into(),
+                    PhantomData::<$td>{}
+                )
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty: 0 * $c:expr; $($tail:tt)*) => {
+        impl convert::Into<f64> for Angle<$ts> {
+            #[inline]
+            fn into(self) -> f64 {
+                self.0.0 * $c
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty: 0 / $c:expr; $($tail:tt)*) => {
+        impl convert::Into<f64> for Angle<$ts> {
+            #[inline]
+            fn into(self) -> f64 {
+                self.0.0 / $c
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty : $m:ident * $c:expr; $($tail:tt)*) => {
+        impl convert::Into<f64> for Angle<$ts> {
+            fn into(self) -> f64 {
+                let $m(value) = self.0.into();
+                value * $c
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty: $m:ident / $c:expr; $($tail:tt)*) => {
+        impl convert::Into<f64> for Angle<$ts> {
+            fn into(self) -> f64 {
+                let $m(value) = self.0.into();
+                value / $c
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => Radians; $($tail:tt)*) => {
+        impl convert::Into<Angle<Radians>> for Angle<$ts> {
+            #[inline]
+            fn into(self) -> Angle<Radians> {
+                Angle::<Radians>(self.into(), PhantomData::<Radians>{})
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => $td:ty: 0 = value * $c:expr; $($tail:tt)*) => {
+        impl convert::Into<Angle<$td>> for Angle<$ts> {
+            #[inline]
+            fn into(self) -> Angle<$td> {
+                Angle::<$td>(
+                    SimpleAngle::from(self.0 * $c),
+                    PhantomData::<$td>{}
+                )
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => $td:ty: 0 = value / $c:expr; $($tail:tt)*) => {
+        impl convert::Into<Angle<$td>> for Angle<$ts> {
+            #[inline]
+            fn into(self) -> Angle<$td> {
+                Angle::<$td>(
+                    SimpleAngle::from(self.0 / $c),
+                    PhantomData::<$td>{}
+                )
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => $td:ty: $m:ident = value; $($tail:tt)*) => {
+        impl convert::Into<Angle<$td>> for Angle<$ts> {
+            #[inline]
+            fn into(self) -> Angle<$td> {
+                Angle::<$td>($m(self.0).into(), PhantomData::<$td>{})
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => $td:ty: $m:ident = value * $c:expr; $($tail:tt)*) => {
+        impl convert::Into<Angle<$td>> for Angle<$ts> {
+            #[inline]
+            fn into(self) -> Angle<$td> {
+                Angle::<$td>($m(self.0 * $c).into(), PhantomData::<$td>{})
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => $td:ty: $m:ident = value / $c:expr; $($tail:tt)*) => {
+        impl convert::Into<Angle<$td>> for Angle<$ts> {
+            #[inline]
+            fn into(self) -> Angle<$td> {
+                Angle::<$td>($m(self.0 / $c).into(), PhantomData::<$td>{})
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => $td:ty: 0 = 0 * $c:expr; $($tail:tt)*) => {
+        impl convert::Into<Angle<$td>> for Angle<$ts> {
+            #[inline]
+            fn into(self) -> Angle<$td> {
+                Angle::<$td>(
+                    SimpleAngle::from(self.0.0 * $c),
+                    PhantomData::<$td>{}
+                )
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => $td:ty: 0 = 0 / $c:expr; $($tail:tt)*) => {
+        impl convert::Into<Angle<$td>> for Angle<$ts> {
+            #[inline]
+            fn into(self) -> Angle<$td> {
+                Angle::<$td>(
+                    SimpleAngle::from(self.0.0 / $c),
+                    PhantomData::<$td>{}
+                )
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => $td:ty: $m:ident = 0; $($tail:tt)*) => {
+        impl convert::Into<Angle<$td>> for Angle<$ts> {
+            #[inline]
+            fn into(self) -> Angle<$td> {
+                Angle::<$td>($m(self.0.0).into(), PhantomData::<$td>{})
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => $td:ty: $m:ident = 0 * $c:expr; $($tail:tt)*) => {
+        impl convert::Into<Angle<$td>> for Angle<$ts> {
+            #[inline]
+            fn into(self) -> Angle<$td> {
+                Angle::<$td>($m(self.0.0 * $c).into(), PhantomData::<$td>{})
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => $td:ty: $m:ident = 0 / $c:expr; $($tail:tt)*) => {
+        impl convert::Into<Angle<$td>> for Angle<$ts> {
+            #[inline]
+            fn into(self) -> Angle<$td> {
+                Angle::<$td>($m(self.0.0 / $c).into(), PhantomData::<$td>{})
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => $td:ty: 0 = $m:ident; $($tail:tt)*) => {
+        impl convert::Into<Angle<$td>> for Angle<$ts> {
+            fn into(self) -> Angle<$td> {
+                let $m(value) = self.0.into();
+                Angle::<$td>(
+                    SimpleAngle::from(value),
+                    PhantomData::<$td>{}
+                )
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => $td:ty: 0 = $m:ident * $c:expr; $($tail:tt)*) => {
+        impl convert::Into<Angle<$td>> for Angle<$ts> {
+            fn into(self) -> Angle<$td> {
+                let $m(value) = self.0.into();
+                Angle::<$td>(
+                    SimpleAngle::from(value * $c),
+                    PhantomData::<$td>{}
+                )
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => $td:ty: 0 = $m:ident / $c:expr; $($tail:tt)*) => {
+        impl convert::Into<Angle<$td>> for Angle<$ts> {
+            fn into(self) -> Angle<$td> {
+                let $m(value) = self.0.into();
+                Angle::<$td>(
+                    SimpleAngle::from(value / $c),
+                    PhantomData::<$td>{}
+                )
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => $td:ty: $md:ident = $ms:ident; $($tail:tt)*) => {
+        impl convert::Into<Angle<$td>> for Angle<$ts> {
+            fn into(self) -> Angle<$td> {
+                let $ms(value) = self.0.into();
+                Angle::<$td>($md(value).into(), PhantomData::<$td>{})
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => $td:ty: $md:ident = $ms:ident * $c:expr; $($tail:tt)*) => {
+        impl convert::Into<Angle<$td>> for Angle<$ts> {
+            fn into(self) -> Angle<$td> {
+                let $ms(value) = self.0.into();
+                Angle::<$td>($md(value * $c).into(), PhantomData::<$td>{})
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+    ($ts:ty => $td:ty: $md:ident = $ms:ident / $c:expr; $($tail:tt)*) => {
+        impl convert::Into<Angle<$td>> for Angle<$ts> {
+            fn into(self) -> Angle<$td> {
+                let $ms(value) = self.0.into();
+                Angle::<$td>($md(value / $c).into(), PhantomData::<$td>{})
+            }
+        }
+
+        impl_into!($($tail)*);
+    };
+}
+
+
+#[derive(Clone, Copy, Debug)]
+pub struct Radians;
+
+impl AngleMapper for Radians {
+    type Item = f64;
+}
+
+impl convert::From<f64> for Angle<Radians> {
+    #[inline]
+    fn from(value: f64) -> Self {
+        Self(value, PhantomData::<Radians>{})
     }
 }
 
-
-trait AngleOrd {}
-trait AngleValue {}
-
-trait UnpackAngleValue {}
-trait UnpackShortAngle {}
-trait RawShortAngle {}
-trait UnpackLongAngle {}
-trait RawLongAngle {}
-
-
-#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd,
-    AngleValue, UnpackAngleValue)]
-pub struct AngleRevolutions(f64);
-
-impl_angle!(AngleRevolutions; revolutions);
-
-
-#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd,
-    AngleValue, UnpackAngleValue)]
-pub struct AngleArcDegrees(f64);
-
-impl_angle!(AngleArcDegrees; degrees);
-
-
-#[derive(Debug, Copy, Clone, Default, PartialEq,
-    AngleOrd, AngleValue, RawShortAngle, UnpackShortAngle)]
-pub struct AngleArcDegreesMinutes(ShortAngle);
-
-impl_angle!(AngleArcDegreesMinutes; degrees, minutes);
-
-
-#[derive(Debug, Copy, Clone, Default, PartialEq,
-    AngleOrd, AngleValue, RawLongAngle, UnpackLongAngle)]
-pub struct AngleArcDegreesMinutesSeconds(LongAngle);
-
-impl_angle!(AngleArcDegreesMinutesSeconds; degrees, minutes, seconds);
-
-
-#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd,
-    AngleValue, UnpackAngleValue)]
-pub struct AngleArcMinutes(f64);
-
-impl_angle!(AngleArcMinutes; minutes);
-
-
-#[derive(Debug, Copy, Clone, Default, PartialEq,
-    AngleOrd, AngleValue, RawShortAngle, UnpackShortAngle)]
-pub struct AngleArcMinutesSeconds(ShortAngle);
-
-impl_angle!(AngleArcMinutesSeconds; minutes, seconds);
-
-
-#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd,
-    AngleValue, UnpackAngleValue)]
-pub struct AngleArcSeconds(f64);
-
-impl_angle!(AngleArcSeconds; seconds);
-
-
-#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd,
-    AngleValue, UnpackAngleValue)]
-pub struct AngleTimeHours(f64);
-
-impl_angle!(AngleTimeHours; hours);
-
-
-#[derive(Debug, Copy, Clone, Default, PartialEq,
-    AngleOrd, AngleValue, RawShortAngle, UnpackShortAngle)]
-pub struct AngleTimeHoursMinutes(ShortAngle);
-
-impl_angle!(AngleTimeHoursMinutes; hours, minutes);
-
-
-#[derive(Debug, Copy, Clone, Default, PartialEq,
-    AngleOrd, AngleValue, RawLongAngle, UnpackLongAngle)]
-pub struct AngleTimeHoursMinutesSeconds(LongAngle);
-
-impl_angle!(AngleTimeHoursMinutesSeconds; hours, minutes, seconds);
-
-
-#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd,
-    AngleValue, UnpackAngleValue)]
-pub struct AngleTimeMinutes(f64);
-
-impl_angle!(AngleTimeMinutes; minutes);
-
-
-#[derive(Debug, Copy, Clone, Default, PartialEq,
-    AngleOrd, AngleValue, RawShortAngle, UnpackShortAngle)]
-pub struct AngleTimeMinutesSeconds(ShortAngle);
-
-impl_angle!(AngleTimeMinutesSeconds; minutes, seconds);
-
-
-#[derive(Debug, Copy, Clone, Default, PartialEq, PartialOrd,
-    AngleValue, UnpackAngleValue)]
-pub struct AngleTimeSeconds(f64);
-
-impl_angle!(AngleTimeSeconds; seconds);
-
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum Angle {
-    Radians(f64),
-    Revolutions(AngleRevolutions),
-    ArcDegrees(AngleArcDegrees),
-    ArcDegreesMinutes(AngleArcDegreesMinutes),
-    ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds),
-    ArcMinutes(AngleArcMinutes),
-    ArcMinutesSeconds(AngleArcMinutesSeconds),
-    ArcSeconds(AngleArcSeconds),
-    TimeHours(AngleTimeHours),
-    TimeHoursMinutes(AngleTimeHoursMinutes),
-    TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds),
-    TimeMinutes(AngleTimeMinutes),
-    TimeMinutesSeconds(AngleTimeMinutesSeconds),
-    TimeSeconds(AngleTimeSeconds)
-}
-
-impl Default for Angle {
-    fn default() -> Self {
-        Angle::Radians(0.0)
-    }
-}
-
-impl convert::From<f64> for Angle {
-    fn from(radians: f64) -> Self {
-        Angle::Radians(radians)
-    }
-}
-
-
-impl convert::Into<f64> for Angle {
+impl convert::Into<f64> for Angle<Radians> {
+    #[inline]
     fn into(self) -> f64 {
-        match self {
-            Angle::Radians(r) => r,
-            Angle::Revolutions(AngleRevolutions(r)) => {
-                r * PI2
-            },
-            Angle::ArcDegrees(AngleArcDegrees(d)) => {
-                d * D2R
-            },
-            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(dm)) => {
-                let Left(degrees) = dm.into();
-                degrees * D2R
-            },
-            Angle::ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds(dms)) => {
-                let Left(degrees) = dms.into();
-                degrees * D2R
-            },
-            Angle::ArcMinutes(AngleArcMinutes(m)) => {
-                m / ARCM
-            },
-            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                minutes / ARCM
-            },
-            Angle::ArcSeconds(AngleArcSeconds(s)) => {
-                s / R2AS
-            },
-            Angle::TimeHours(AngleTimeHours(h)) => {
-                h / TMH
-            },
-            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
-                let Left(hours) = hm.into();
-                hours / TMH
-            },
-            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
-                let Left(hours) = hms.into();
-                hours / TMH
-            },
-            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
-                m / TMM
-            },
-            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                minutes / TMM
-            },
-            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
-                s / TMS
-            }
-        }
+        self.0
     }
 }
 
-impl convert::Into<AngleRevolutions> for Angle {
-    fn into(self) -> AngleRevolutions {
-        match self {
-            Angle::Radians(r) => AngleRevolutions(r / PI2),
-            Angle::Revolutions(r) => r,
-            Angle::ArcDegrees(AngleArcDegrees(d)) => {
-                AngleRevolutions(d / RVARCD)
-            },
-            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(dm)) => {
-                let Left(degrees) = dm.into();
-                AngleRevolutions(degrees / RVARCD)
-            },
-            Angle::ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds(dms)) => {
-                let Left(degrees) = dms.into();
-                AngleRevolutions(degrees / RVARCD)
-            },
-            Angle::ArcMinutes(AngleArcMinutes(m)) => {
-                AngleRevolutions(m / RVARCM)
-            },
-            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleRevolutions(minutes / RVARCM)
-            },
-            Angle::ArcSeconds(AngleArcSeconds(s)) => {
-                AngleRevolutions(s / RVARCS)
-            },
-            Angle::TimeHours(AngleTimeHours(h)) => {
-                AngleRevolutions(h / RVTMH)
-            },
-            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
-                let Left(hours) = hm.into();
-                AngleRevolutions(hours / RVTMH)
-            },
-            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
-                let Left(hours) = hms.into();
-                AngleRevolutions(hours / RVTMH)
-            },
-            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
-                AngleRevolutions(m / RVTMM)
-            },
-            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleRevolutions(minutes / RVTMM)
-            },
-            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
-                AngleRevolutions(s / RVTMS)
-            }
-        }
+impl AngleSign for Angle<Radians> {
+    #[inline]
+    fn sign(&self) -> Sign {
+        SimpleAngle(self.0).sign()
     }
 }
 
-impl convert::Into<Option<AngleRevolutions>> for Angle {
-    fn into(self) -> Option<AngleRevolutions> {
-        match self {
-            Angle::Revolutions(r) => Some(r),
-            _ => None
-        }
-    }
+impl_into! {
+    Radians => Revolutions: 0 = value / PI2;
+    Radians => Degrees: 0 = value * R2D;
+    Radians => DegreesArcMinutes: Left = value * R2D;
+    Radians => DegreesArcMinutesSeconds: Left = value * R2D;
+    Radians => ArcMinutes: 0 = value * R2AM;
+    Radians => ArcMinutesSeconds: Left = value * R2AM;
+    Radians => ArcSeconds: 0 = value * R2AS;
+    Radians => Hours: 0 = value * R2H;
+    Radians => HoursMinutes: Left = value * R2H;
+    Radians => HoursMinutesSeconds: Left = value * R2H;
+    Radians => Minutes: 0 = value * R2M;
+    Radians => MinutesSeconds: Left = value * R2M;
+    Radians => Seconds: 0 = value * R2S;
 }
 
-impl convert::Into<AngleArcDegrees> for Angle {
-    fn into(self) -> AngleArcDegrees {
-        match self {
-            Angle::Radians(r) => {
-                AngleArcDegrees(R2D * r)
-            },
-            Angle::Revolutions(AngleRevolutions(r)) => {
-                AngleArcDegrees(RVARCD * r)
-            },
-            Angle::ArcDegrees(d) => d,
-            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(dm)) => {
-                let Left(degrees) = dm.into();
-                AngleArcDegrees(degrees)
-            },
-            Angle::ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds(dms)) => {
-                let Left(degrees) = dms.into();
-                AngleArcDegrees(degrees)
-            },
-            Angle::ArcMinutes(AngleArcMinutes(m)) => {
-                AngleArcDegrees(m / 60.0)
-            },
-            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleArcDegrees(minutes / 60.0)
-            },
-            Angle::ArcSeconds(AngleArcSeconds(s)) => {
-                AngleArcDegrees(s / 3600.0)
-            },
-            Angle::TimeHours(AngleTimeHours(h)) => {
-                AngleArcDegrees(h * 15.0)
-            },
-            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
-                let Left(hours) = hm.into();
-                AngleArcDegrees(hours * 15.0)
-            },
-            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
-                let Left(hours) = hms.into();
-                AngleArcDegrees(hours * 15.0)
-            },
-            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
-                AngleArcDegrees(m / 4.0)
-            },
-            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleArcDegrees(minutes / 4.0)
-            },
-            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
-                AngleArcDegrees(s / 240.0)
-            }
-        }
-    }
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
+pub struct Revolutions;
+
+impl_new!(Revolutions; revolutions);
+impl_into! {
+    Revolutions: 0 = value / PI2;
+    Revolutions: 0 * PI2;
+    Revolutions => Radians;
+    Revolutions => Degrees: 0 = 0 * RV2D;
+    Revolutions => DegreesArcMinutes: Left = 0 * RV2D;
+    Revolutions => DegreesArcMinutesSeconds: Left = 0 * RV2D;
+    Revolutions => ArcMinutes: 0 = 0 * RV2AM;
+    Revolutions => ArcMinutesSeconds: Left = 0 * RV2AM;
+    Revolutions => ArcSeconds: 0 = 0 * RV2AS;
+    Revolutions => Hours: 0 = 0 * RV2H;
+    Revolutions => HoursMinutes: Left = 0 * RV2H;
+    Revolutions => HoursMinutesSeconds: Left = 0 * RV2H;
+    Revolutions => Minutes: 0 = 0 * RV2M;
+    Revolutions => MinutesSeconds: Left = 0 * RV2M;
+    Revolutions => Seconds: 0 = 0 * RV2S;
 }
 
-impl convert::Into<Option<AngleArcDegrees>> for Angle {
-    fn into(self) -> Option<AngleArcDegrees> {
-        match self {
-            Angle::ArcDegrees(d) => Some(d),
-            _ => None
-        }
-    }
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
+pub struct Degrees;
+
+impl_new!(Degrees; degrees);
+impl_into! {
+    Degrees: 0 = value * R2D;
+    Degrees: 0 * D2R;
+    Degrees => Radians;
+    Degrees => Revolutions: 0 = 0 / RV2D;
+    Degrees => DegreesArcMinutes: Left = 0;
+    Degrees => DegreesArcMinutesSeconds: Left = 0;
+    Degrees => ArcMinutes: 0 = 0 * 60.0;
+    Degrees => ArcMinutesSeconds: Left = 0 * 60.0;
+    Degrees => ArcSeconds: 0 = 0 * 3600.0;
+    Degrees => Hours: 0 = 0 / TA;
+    Degrees => HoursMinutes: Left = 0 / TA;
+    Degrees => HoursMinutesSeconds: Left = 0 / TA;
+    Degrees => Minutes: 0 = 0 * TM;
+    Degrees => MinutesSeconds: Left = 0 * TM;
+    Degrees => Seconds: 0 = 0 * TS;
 }
 
-impl convert::Into<AngleArcDegreesMinutes> for Angle {
-    fn into(self) -> AngleArcDegreesMinutes {
-        match self {
-            Angle::Radians(r) => {
-                AngleArcDegreesMinutes(Left(R2D * r).into())
-            },
-            Angle::Revolutions(AngleRevolutions(r)) => {
-                AngleArcDegreesMinutes(Left(RVARCD * r).into())
-            },
-            Angle::ArcDegrees(AngleArcDegrees(d)) => {
-                AngleArcDegreesMinutes(Left(d).into())
-            },
-            Angle::ArcDegreesMinutes(dm) => dm,
-            Angle::ArcDegreesMinutesSeconds(
-                AngleArcDegreesMinutesSeconds(LongAngle(d, m, s))
-            ) => {
-                let ms = ShortAngle(m as i32, s);
-                let Left(minutes) = ms.into();
-                AngleArcDegreesMinutes(ShortAngle(d, minutes))
-            },
-            Angle::ArcMinutes(AngleArcMinutes(m)) => {
-                AngleArcDegreesMinutes(Right(m).into())
-            },
-            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleArcDegreesMinutes(Right(minutes).into())
-            },
-            Angle::ArcSeconds(AngleArcSeconds(s)) => {
-                AngleArcDegreesMinutes(Right(s / 60.0).into())
-            },
-            Angle::TimeHours(AngleTimeHours(h)) => {
-                AngleArcDegreesMinutes(Left(15.0 * h).into())
-            },
-            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
-                let Left(hours) = hm.into();
-                AngleArcDegreesMinutes(Left(15.0 * hours).into())
-            },
-            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
-                let Left(hours) = hms.into();
-                AngleArcDegreesMinutes(Left(15.0 * hours).into())
-            }
-            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
-                AngleArcDegreesMinutes(Right(15.0 * m).into())
-            },
-            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleArcDegreesMinutes(Right(15.0 * minutes).into())
-            },
-            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
-                AngleArcDegreesMinutes(Right(s / 4.0).into())
-            }
-        }
-    }
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
+pub struct DegreesArcMinutes;
+
+impl_new!(DegreesArcMinutes; degrees, arc_minutes);
+impl_into! {
+    DegreesArcMinutes: Left = value * R2D;
+    DegreesArcMinutes: Left * D2R;
+    DegreesArcMinutes => Radians;
+    DegreesArcMinutes => Revolutions: 0 = Left / RV2D;
+    DegreesArcMinutes => Degrees: 0 = Left;
+    DegreesArcMinutes => DegreesArcMinutesSeconds: Middle = Right;
+    DegreesArcMinutes => ArcMinutes: 0 = Right;
+    DegreesArcMinutes => ArcMinutesSeconds: Left = Right;
+    DegreesArcMinutes => ArcSeconds: 0 = Right * 60.0;
+    DegreesArcMinutes => Hours: 0 = Left / TA;
+    DegreesArcMinutes => HoursMinutes: Right = Right / TA;
+    DegreesArcMinutes => HoursMinutesSeconds: Middle = Right / TA;
+    DegreesArcMinutes => Minutes: 0 = Right / TA;
+    DegreesArcMinutes => MinutesSeconds: Left = Right / TA;
+    DegreesArcMinutes => Seconds: 0 = Right * TM;
 }
 
-impl convert::Into<Option<AngleArcDegreesMinutes>> for Angle {
-    fn into(self) -> Option<AngleArcDegreesMinutes> {
-        match self {
-            Angle::ArcDegreesMinutes(dm) => Some(dm),
-            _ => None
-        }
-    }
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
+pub struct DegreesArcMinutesSeconds;
+
+impl_new!(DegreesArcMinutesSeconds; degrees, arc_minutes, arc_seconds);
+impl_into! {
+    DegreesArcMinutesSeconds: Left = value * R2D;
+    DegreesArcMinutesSeconds: Left * D2R;
+    DegreesArcMinutesSeconds => Radians;
+    DegreesArcMinutesSeconds => Revolutions: 0 = Left / RV2D;
+    DegreesArcMinutesSeconds => Degrees: 0 = Left;
+    DegreesArcMinutesSeconds => DegreesArcMinutes: Right = Middle;
+    DegreesArcMinutesSeconds => ArcMinutes: 0 = Middle;
+    DegreesArcMinutesSeconds => ArcMinutesSeconds: Right = Right;
+    DegreesArcMinutesSeconds => ArcSeconds: 0 = Right;
+    DegreesArcMinutesSeconds => Hours: 0 = Left / TA;
+    DegreesArcMinutesSeconds => HoursMinutes: Right = Middle / TA;
+    DegreesArcMinutesSeconds => HoursMinutesSeconds: Right = Right / TA;
+    DegreesArcMinutesSeconds => Minutes: 0 = Middle / TA;
+    DegreesArcMinutesSeconds => MinutesSeconds: Right = Right / TA;
+    DegreesArcMinutesSeconds => Seconds: 0 = Right / TA;
 }
 
-impl convert::Into<AngleArcDegreesMinutesSeconds> for Angle {
-    fn into(self) -> AngleArcDegreesMinutesSeconds {
-        match self {
-            Angle::Radians(r) => {
-                AngleArcDegreesMinutesSeconds(Left(R2D * r).into())
-            },
-            Angle::Revolutions(AngleRevolutions(r)) => {
-                AngleArcDegreesMinutesSeconds(Left(RVARCD * r).into())
-            }
-            Angle::ArcDegrees(AngleArcDegrees(d)) => {
-                AngleArcDegreesMinutesSeconds(Left(d).into())
-            },
-            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(ShortAngle(d, m))) => {
-                let ShortAngle(m, s) = Left(m).into();
-                AngleArcDegreesMinutesSeconds(LongAngle(d, m as i8, s))
-            },
-            Angle::ArcDegreesMinutesSeconds(dms) => dms,
-            Angle::ArcMinutes(AngleArcMinutes(m)) => {
-                AngleArcDegreesMinutesSeconds(Middle(m).into())
-            },
-            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleArcDegreesMinutesSeconds(Middle(minutes).into())
-            },
-            Angle::ArcSeconds(AngleArcSeconds(s)) => {
-                AngleArcDegreesMinutesSeconds(Right(s).into())
-            },
-            Angle::TimeHours(AngleTimeHours(h)) => {
-                AngleArcDegreesMinutesSeconds(Left(15.0 * h).into())
-            },
-            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
-                let Left(hours) = hm.into();
-                AngleArcDegreesMinutesSeconds(Left(15.0 * hours).into())
-            },
-            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
-                let Left(hours) = hms.into();
-                AngleArcDegreesMinutesSeconds(Left(15.0 * hours).into())
-            },
-            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
-                AngleArcDegreesMinutesSeconds(Middle(15.0 * m).into())
-            },
-            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleArcDegreesMinutesSeconds(Middle(15.0 * minutes).into())
-            },
-            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
-                AngleArcDegreesMinutesSeconds(Right(15.0 * s).into())
-            }
-        }
-    }
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
+pub struct ArcMinutes;
+
+impl_new!(ArcMinutes; arc_minutes);
+impl_into! {
+    ArcMinutes: 0 = value * R2AM;
+    ArcMinutes: 0 * AM2R;
+    ArcMinutes => Radians;
+    ArcMinutes => Revolutions: 0 = 0 / RV2AM;
+    ArcMinutes => Degrees: 0 = 0 / 60.0;
+    ArcMinutes => DegreesArcMinutes: Right = 0;
+    ArcMinutes => DegreesArcMinutesSeconds: Middle = 0;
+    ArcMinutes => ArcMinutesSeconds: Left = 0;
+    ArcMinutes => ArcSeconds: 0 = 0 * 60.0;
+    ArcMinutes => Hours: 0 = 0 / TMM;
+    ArcMinutes => HoursMinutes: Right = 0 / TA;
+    ArcMinutes => HoursMinutesSeconds: Middle = 0 / TA;
+    ArcMinutes => Minutes: 0 = 0 / TA;
+    ArcMinutes => MinutesSeconds: Left = 0 / TA;
+    ArcMinutes => Seconds: 0 = 0 * TM;
 }
 
-impl convert::Into<Option<AngleArcDegreesMinutesSeconds>> for Angle {
-    fn into(self) -> Option<AngleArcDegreesMinutesSeconds> {
-        match self {
-            Angle::ArcDegreesMinutesSeconds(dms) => Some(dms),
-            _ => None
-        }
-    }
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
+pub struct ArcMinutesSeconds;
+
+impl_new!(ArcMinutesSeconds; arc_minutes, arc_seconds);
+impl_into! {
+    ArcMinutesSeconds: Left = value * R2AM;
+    ArcMinutesSeconds: Left * AM2R;
+    ArcMinutesSeconds => Radians;
+    ArcMinutesSeconds => Revolutions: 0 = Left / RV2AM;
+    ArcMinutesSeconds => Degrees: 0 = Left / 60.0;
+    ArcMinutesSeconds => DegreesArcMinutes: Right = Left;
+    ArcMinutesSeconds => DegreesArcMinutesSeconds: Right = Right;
+    ArcMinutesSeconds => ArcMinutes: 0 = Left;
+    ArcMinutesSeconds => ArcSeconds: 0 = Right;
+    ArcMinutesSeconds => Hours: 0 = Left / TMM;
+    ArcMinutesSeconds => HoursMinutes: Right = Left / TA;
+    ArcMinutesSeconds => HoursMinutesSeconds: Right = Right / TA;
+    ArcMinutesSeconds => Minutes: 0 = Left / TA;
+    ArcMinutesSeconds => MinutesSeconds: Right = Right / TA;
+    ArcMinutesSeconds => Seconds: 0 = Right / TA;
 }
 
-impl convert::Into<AngleArcMinutes> for Angle {
-    fn into(self) -> AngleArcMinutes {
-        match self {
-            Angle::Radians(r) => {
-                AngleArcMinutes(ARCM * r)
-            },
-            Angle::Revolutions(AngleRevolutions(r)) => {
-                AngleArcMinutes(RVARCM * r)
-            },
-            Angle::ArcDegrees(AngleArcDegrees(d)) => {
-                AngleArcMinutes(60.0 * d)
-            },
-            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(dm)) => {
-                let Right(minutes) = dm.into();
-                AngleArcMinutes(minutes)
-            },
-            Angle::ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds(dms)) => {
-                let Middle(minutes) = dms.into();
-                AngleArcMinutes(minutes)
-            },
-            Angle::ArcMinutes(m) => m,
-            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleArcMinutes(minutes)
-            },
-            Angle::ArcSeconds(AngleArcSeconds(s)) => {
-                AngleArcMinutes(s / 60.0)
-            },
-            Angle::TimeHours(AngleTimeHours(h)) => {
-                AngleArcMinutes(TMHTOARCM * h)
-            },
-            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
-                let Right(minutes) = hm.into();
-                AngleArcMinutes(15.0 * minutes)
-            },
-            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
-                let Middle(minutes) = hms.into();
-                AngleArcMinutes(15.0 * minutes)
-            },
-            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
-                AngleArcMinutes(15.0 * m)
-            },
-            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleArcMinutes(15.0 * minutes)
-            },
-            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
-                AngleArcMinutes(s / 4.0)
-            }
-        }
-    }
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
+pub struct ArcSeconds;
+
+impl_new!(ArcSeconds; arc_seconds);
+impl_into! {
+    ArcSeconds: 0 = value * R2AS;
+    ArcSeconds: 0 * AS2R;
+    ArcSeconds => Radians;
+    ArcSeconds => Revolutions: 0 = 0 / RV2AS;
+    ArcSeconds => Degrees: 0 = 0 / 3600.0;
+    ArcSeconds => DegreesArcMinutes: Right = 0 / 60.0;
+    ArcSeconds => DegreesArcMinutesSeconds: Right = 0;
+    ArcSeconds => ArcMinutes: 0 = 0 / 60.0;
+    ArcSeconds => ArcMinutesSeconds: Left = 0 / 60.0;
+    ArcSeconds => Hours: 0 = 0 / TMS;
+    ArcSeconds => HoursMinutes: Right = 0 / TMM;
+    ArcSeconds => HoursMinutesSeconds: Right = 0 / TA;
+    ArcSeconds => Minutes: 0 = 0 / TMM;
+    ArcSeconds => MinutesSeconds: Right = 0 / TA;
+    ArcSeconds => Seconds: 0 = 0 / TA;
 }
 
-impl convert::Into<Option<AngleArcMinutes>> for Angle {
-    fn into(self) -> Option<AngleArcMinutes> {
-        match self {
-            Angle::ArcMinutes(m) => Some(m),
-            _ => None
-        }
-    }
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
+pub struct Hours;
+
+impl_new!(Hours; hours);
+impl_into! {
+    Hours: 0 = value * R2H;
+    Hours: 0 * H2R;
+    Hours => Radians;
+    Hours => Revolutions: 0 = 0 / RV2H;
+    Hours => Degrees: 0 = 0 * TA;
+    Hours => DegreesArcMinutes: Left = 0 * TA;
+    Hours => DegreesArcMinutesSeconds: Left = 0 * TA;
+    Hours => ArcMinutes: 0 = 0 * TMM;
+    Hours => ArcMinutesSeconds: Left = 0 * TMM;
+    Hours => ArcSeconds: 0 = 0 * TMS;
+    Hours => HoursMinutes: Left = 0;
+    Hours => HoursMinutesSeconds: Left = 0;
+    Hours => Minutes: 0 = 0 * 60.0;
+    Hours => MinutesSeconds: Left = 0 * 60.0;
+    Hours => Seconds: 0 = 0 * 3600.0;
 }
 
-impl convert::Into<AngleArcMinutesSeconds> for Angle {
-    fn into(self) -> AngleArcMinutesSeconds {
-        match self {
-            Angle::Radians(r) => {
-                AngleArcMinutesSeconds(Left(ARCM * r).into())
-            },
-            Angle::Revolutions(AngleRevolutions(r)) => {
-                AngleArcMinutesSeconds(Left(RVARCM * r).into())
-            },
-            Angle::ArcDegrees(AngleArcDegrees(d)) => {
-                AngleArcMinutesSeconds(Left(60.0 * d).into())
-            },
-            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(dm)) => {
-                let Right(minutes) = dm.into();
-                AngleArcMinutesSeconds(Left(minutes).into())
-            },
-            Angle::ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds(dms)) => {
-                let Middle(minutes) = dms.into();
-                AngleArcMinutesSeconds(Left(minutes).into())
-            },
-            Angle::ArcMinutes(AngleArcMinutes(m)) => {
-                AngleArcMinutesSeconds(Left(m).into())
-            },
-            Angle::ArcMinutesSeconds(ms) => ms,
-            Angle::ArcSeconds(AngleArcSeconds(s)) => {
-                AngleArcMinutesSeconds(Right(s).into())
-            },
-            Angle::TimeHours(AngleTimeHours(h)) => {
-                AngleArcMinutesSeconds(Left(TMHTOARCM * h).into())
-            },
-            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
-                let Right(minutes) = hm.into();
-                AngleArcMinutesSeconds(Left(15.0 * minutes).into())
-            },
-            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
-                let Middle(minutes) = hms.into();
-                AngleArcMinutesSeconds(Left(15.0 * minutes).into())
-            },
-            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
-                AngleArcMinutesSeconds(Left(15.0 * m).into())
-            },
-            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleArcMinutesSeconds(Left(15.0 * minutes).into())
-            },
-            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
-                AngleArcMinutesSeconds(Right(15.0 * s).into())
-            }
-        }
-    }
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
+pub struct HoursMinutes;
+
+impl_new!(HoursMinutes; hours, minutes);
+impl_into! {
+    HoursMinutes: Left = value * R2H;
+    HoursMinutes: Left * H2R;
+    HoursMinutes => Radians;
+    HoursMinutes => Revolutions: 0 = Left / RV2H;
+    HoursMinutes => Degrees: 0 = Left * TA;
+    HoursMinutes => DegreesArcMinutes: Right = Right * TA;
+    HoursMinutes => DegreesArcMinutesSeconds: Middle = Right * TA;
+    HoursMinutes => ArcMinutes: 0 = Right * TA;
+    HoursMinutes => ArcMinutesSeconds: Left = Right * TA;
+    HoursMinutes => ArcSeconds: 0 = Right * TMM;
+    HoursMinutes => Hours: 0 = Left;
+    HoursMinutes => HoursMinutesSeconds: Middle = Right;
+    HoursMinutes => Minutes: 0 = Right;
+    HoursMinutes => MinutesSeconds: Left = Right;
+    HoursMinutes => Seconds: 0 = Right * 60.0;
 }
 
-impl convert::Into<Option<AngleArcMinutesSeconds>> for Angle {
-    fn into(self) -> Option<AngleArcMinutesSeconds> {
-        match self {
-            Angle::ArcMinutesSeconds(ms) => Some(ms),
-            _ => None
-        }
-    }
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
+pub struct HoursMinutesSeconds;
+
+impl_new!(HoursMinutesSeconds; hours, minutes, seconds);
+impl_into! {
+    HoursMinutesSeconds: Left = value * R2H;
+    HoursMinutesSeconds: Left * H2R;
+    HoursMinutesSeconds => Radians;
+    HoursMinutesSeconds => Revolutions: 0 = Left / RV2H;
+    HoursMinutesSeconds => Degrees: 0 = Left * TA;
+    HoursMinutesSeconds => DegreesArcMinutes: Right = Middle * TA;
+    HoursMinutesSeconds => DegreesArcMinutesSeconds: Right = Right * TA;
+    HoursMinutesSeconds => ArcMinutes: 0 = Middle * TA;
+    HoursMinutesSeconds => ArcMinutesSeconds: Right = Right * TA;
+    HoursMinutesSeconds => ArcSeconds: 0 = Right * TA;
+    HoursMinutesSeconds => Hours: 0 = Left;
+    HoursMinutesSeconds => HoursMinutes: Right = Middle;
+    HoursMinutesSeconds => Minutes: 0 = Middle;
+    HoursMinutesSeconds => MinutesSeconds: Right = Right;
+    HoursMinutesSeconds => Seconds: 0 = Right;
 }
 
-impl convert::Into<AngleArcSeconds> for Angle {
-    fn into(self) -> AngleArcSeconds {
-        match self {
-            Angle::Radians(r) => {
-                AngleArcSeconds(R2AS * r)
-            },
-            Angle::Revolutions(AngleRevolutions(r)) => {
-                AngleArcSeconds(RVARCS * r)
-            },
-            Angle::ArcDegrees(AngleArcDegrees(d)) => {
-                AngleArcSeconds(3600.0 * d)
-            },
-            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(dm)) => {
-                let Right(minutes) = dm.into();
-                AngleArcSeconds(60.0 * minutes)
-            },
-            Angle::ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds(dms)) => {
-                let Right(seconds) = dms.into();
-                AngleArcSeconds(seconds)
-            },
-            Angle::ArcMinutes(AngleArcMinutes(m)) => {
-                AngleArcSeconds(60.0 * m)
-            },
-            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
-                let Right(seconds) = ms.into();
-                AngleArcSeconds(seconds)
-            },
-            Angle::ArcSeconds(s) => s,
-            Angle::TimeHours(AngleTimeHours(h)) => {
-                AngleArcSeconds(TMHTOARCS * h)
-            },
-            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
-                let Right(minutes) = hm.into();
-                AngleArcSeconds(TMMTOARCS * minutes)
-            },
-            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
-                let Right(seconds) = hms.into();
-                AngleArcSeconds(15.0 * seconds)
-            },
-            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
-                AngleArcSeconds(TMMTOARCS * m)
-            },
-            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
-                let Right(seconds) = ms.into();
-                AngleArcSeconds(15.0 * seconds)
-            },
-            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
-                AngleArcSeconds(15.0 * s)
-            }
-        }
-    }
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
+pub struct Minutes;
+
+impl_new!(Minutes; minutes);
+impl_into! {
+    Minutes: 0 = value * R2M;
+    Minutes: 0 * M2R;
+    Minutes => Radians;
+    Minutes => Revolutions: 0 = 0 / RV2M;
+    Minutes => Degrees: 0 = 0 / TM;
+    Minutes => DegreesArcMinutes: Right = 0 * TA;
+    Minutes => DegreesArcMinutesSeconds: Middle = 0 * TA;
+    Minutes => ArcMinutes: 0 = 0 * TA;
+    Minutes => ArcMinutesSeconds: Left = 0 * TA;
+    Minutes => ArcSeconds: 0 = 0 * TMM;
+    Minutes => Hours: 0 = 0 / 60.0;
+    Minutes => HoursMinutes: Right = 0;
+    Minutes => HoursMinutesSeconds: Middle = 0;
+    Minutes => MinutesSeconds: Left = 0;
+    Minutes => Seconds: 0 = 0 * 60.0;
 }
 
-impl convert::Into<Option<AngleArcSeconds>> for Angle {
-    fn into(self) -> Option<AngleArcSeconds> {
-        match self {
-            Angle::ArcSeconds(s) => Some(s),
-            _ => None
-        }
-    }
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
+pub struct MinutesSeconds;
+
+impl_new!(MinutesSeconds; minutes, seconds);
+impl_into! {
+    MinutesSeconds: Left = value * R2M;
+    MinutesSeconds: Left * M2R;
+    MinutesSeconds => Radians;
+    MinutesSeconds => Revolutions: 0 = Left / RV2M;
+    MinutesSeconds => Degrees: 0 = Left / TM;
+    MinutesSeconds => DegreesArcMinutes: Right = Left * TA;
+    MinutesSeconds => DegreesArcMinutesSeconds: Right = Right * TA;
+    MinutesSeconds => ArcMinutes: 0 = Left * TA;
+    MinutesSeconds => ArcMinutesSeconds: Right = Right * TA;
+    MinutesSeconds => ArcSeconds: 0 = Right * TA;
+    MinutesSeconds => Hours: 0 = Left / 60.0;
+    MinutesSeconds => HoursMinutes: Right = Left;
+    MinutesSeconds => HoursMinutesSeconds: Right = Right;
+    MinutesSeconds => Minutes: 0 = Left;
+    MinutesSeconds => Seconds: 0 = Right;
 }
 
-impl convert::Into<AngleTimeHours> for Angle {
-    fn into(self) -> AngleTimeHours {
-        match self {
-            Angle::Radians(r) => {
-                AngleTimeHours(TMH * r)
-            },
-            Angle::Revolutions(AngleRevolutions(r)) => {
-                AngleTimeHours(RVTMH * r)
-            },
-            Angle::ArcDegrees(AngleArcDegrees(d)) => {
-                AngleTimeHours(d / 15.0)
-            },
-            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(dm)) => {
-                let Left(degrees) = dm.into();
-                AngleTimeHours(degrees / 15.0)
-            },
-            Angle::ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds(dms)) => {
-                let Left(degrees) = dms.into();
-                AngleTimeHours(degrees / 15.0)
-            },
-            Angle::ArcMinutes(AngleArcMinutes(m)) => {
-                AngleTimeHours(m / TMHTOARCM)
-            },
-            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleTimeHours(minutes / TMHTOARCM)
-            },
-            Angle::ArcSeconds(AngleArcSeconds(s)) => {
-                AngleTimeHours(s / TMHTOARCS)
-            },
-            Angle::TimeHours(h) => h,
-            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
-                let Left(hours) = hm.into();
-                AngleTimeHours(hours)
-            },
-            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
-                let Left(hours) = hms.into();
-                AngleTimeHours(hours)
-            },
-            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
-                AngleTimeHours(m / 60.0)
-            },
-            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleTimeHours(minutes / 60.0)
-            }
-            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
-                AngleTimeHours(s / 3600.0)
-            }
-        }
-    }
-}
 
-impl convert::Into<Option<AngleTimeHours>> for Angle {
-    fn into(self) -> Option<AngleTimeHours> {
-        match self {
-            Angle::TimeHours(h) => Some(h),
-            _ => None
-        }
-    }
-}
+#[derive(AngleMapper, Clone, Copy, Debug)]
+pub struct Seconds;
 
-impl convert::Into<AngleTimeHoursMinutes> for Angle {
-    fn into(self) -> AngleTimeHoursMinutes {
-        match self {
-            Angle::Radians(r) => {
-                AngleTimeHoursMinutes(Left(TMH * r).into())
-            },
-            Angle::Revolutions(AngleRevolutions(r)) => {
-                AngleTimeHoursMinutes(Left(RVTMH * r).into())
-            },
-            Angle::ArcDegrees(AngleArcDegrees(d)) => {
-                AngleTimeHoursMinutes(Left(d / 15.0).into())
-            },
-            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(dm)) => {
-                let Left(degrees) = dm.into();
-                AngleTimeHoursMinutes(Left(degrees / 15.0).into())
-            },
-            Angle::ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds (dms)) => {
-                let Left(degrees) = dms.into();
-                AngleTimeHoursMinutes(Left(degrees / 15.0).into())
-            },
-            Angle::ArcMinutes(AngleArcMinutes(m)) => {
-                AngleTimeHoursMinutes(Right(m / 15.0).into())
-            },
-            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleTimeHoursMinutes(Right(minutes / 15.0).into())
-            },
-            Angle::ArcSeconds(AngleArcSeconds(s)) => {
-                AngleTimeHoursMinutes(Right(s / TMMTOARCS).into())
-            },
-            Angle::TimeHours(AngleTimeHours(h)) => {
-                AngleTimeHoursMinutes(Left(h).into())
-            },
-            Angle::TimeHoursMinutes(hm) => hm,
-            Angle::TimeHoursMinutesSeconds(
-                AngleTimeHoursMinutesSeconds(LongAngle(h, m, s))
-            ) => {
-                let short = ShortAngle(m as i32, s);
-                let Left(minutes) = short.into();
-                AngleTimeHoursMinutes(ShortAngle(h, minutes))
-            },
-            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
-                AngleTimeHoursMinutes(Right(m).into())
-            },
-            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleTimeHoursMinutes(Right(minutes).into())
-            },
-            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
-                AngleTimeHoursMinutes(Right(s / 60.0).into())
-            }
-        }
-    }
-}
-
-impl convert::Into<Option<AngleTimeHoursMinutes>> for Angle {
-    fn into(self) -> Option<AngleTimeHoursMinutes> {
-        match self {
-            Angle::TimeHoursMinutes(tm) => Some(tm),
-            _ => None
-        }
-    }
-}
-
-impl convert::Into<AngleTimeHoursMinutesSeconds> for Angle {
-    fn into(self) -> AngleTimeHoursMinutesSeconds {
-        match self {
-            Angle::Radians(r) => {
-                AngleTimeHoursMinutesSeconds(Left(TMH * r).into())
-            },
-            Angle::Revolutions(AngleRevolutions(r)) => {
-                AngleTimeHoursMinutesSeconds(Left(RVTMH * r).into())
-            },
-            Angle::ArcDegrees(AngleArcDegrees(d)) => {
-                AngleTimeHoursMinutesSeconds(Left(d / 15.0).into())
-            },
-            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(dm)) => {
-                let Left(degrees) = dm.into();
-                AngleTimeHoursMinutesSeconds(Left(degrees / 15.0).into())
-            },
-            Angle::ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds(dms)) => {
-                let Left(degrees) = dms.into();
-                AngleTimeHoursMinutesSeconds(Left(degrees / 15.0).into())
-            },
-            Angle::ArcMinutes(AngleArcMinutes(m)) => {
-                AngleTimeHoursMinutesSeconds(Middle(m / 15.0).into())
-            },
-            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
-                let Right(seconds) = ms.into();
-                AngleTimeHoursMinutesSeconds(Right(seconds / 15.0).into())
-            },
-            Angle::ArcSeconds(AngleArcSeconds(s)) => {
-                AngleTimeHoursMinutesSeconds(Right(s / 15.0).into())
-            },
-            Angle::TimeHours(AngleTimeHours(h)) => {
-                AngleTimeHoursMinutesSeconds(Left(h).into())
-            },
-            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(ShortAngle(h, m))) => {
-                let ShortAngle(m, s) = Left(m).into();
-                AngleTimeHoursMinutesSeconds(LongAngle(h, m as i8, s))
-            },
-            Angle::TimeHoursMinutesSeconds(dms) => dms,
-            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
-                AngleTimeHoursMinutesSeconds(Middle(m).into())
-            },
-            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
-                let Right(seconds) = ms.into();
-                AngleTimeHoursMinutesSeconds(Right(seconds).into())
-            },
-            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
-                AngleTimeHoursMinutesSeconds(Right(s).into())
-            }
-        }
-    }
-}
-
-impl convert::Into<Option<AngleTimeHoursMinutesSeconds>> for Angle {
-    fn into(self) -> Option<AngleTimeHoursMinutesSeconds> {
-        match self {
-            Angle::TimeHoursMinutesSeconds(hms) => Some(hms),
-            _ => None
-        }
-    }
-}
-
-impl convert::Into<AngleTimeMinutes> for Angle {
-    fn into(self) -> AngleTimeMinutes {
-        match self {
-            Angle::Radians(r) => {
-                AngleTimeMinutes(TMM * r)
-            },
-            Angle::Revolutions(AngleRevolutions(r)) => {
-                AngleTimeMinutes(RVTMM * r)
-            },
-            Angle::ArcDegrees(AngleArcDegrees(d)) => {
-                AngleTimeMinutes(4.0 * d)
-            },
-            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(dm)) => {
-                let Left(degrees) = dm.into();
-                AngleTimeMinutes(4.0 * degrees)
-            },
-            Angle::ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds(dms)) => {
-                let Left(degrees) = dms.into();
-                AngleTimeMinutes(4.0 * degrees)
-            },
-            Angle::ArcMinutes(AngleArcMinutes(m)) => {
-                AngleTimeMinutes(m / 15.0)
-            },
-            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleTimeMinutes(minutes / 15.0)
-            },
-            Angle::ArcSeconds(AngleArcSeconds(s)) => {
-                AngleTimeMinutes(s / TMMTOARCS)
-            },
-            Angle::TimeHours(AngleTimeHours(h)) => {
-                AngleTimeMinutes(60.0 * h)
-            },
-            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
-                let Right(minutes) = hm.into();
-                AngleTimeMinutes(minutes)
-            },
-            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
-                let Middle(minutes) = hms.into();
-                AngleTimeMinutes(minutes)
-            },
-            Angle::TimeMinutes(m) => m,
-            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleTimeMinutes(minutes)
-            },
-            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
-                AngleTimeMinutes(s / 60.0)
-            }
-        }
-    }
-}
-
-impl convert::Into<Option<AngleTimeMinutes>> for Angle {
-    fn into(self) -> Option<AngleTimeMinutes> {
-        match self {
-            Angle::TimeMinutes(m) => Some(m),
-            _ => None
-        }
-    }
-}
-
-impl convert::Into<AngleTimeMinutesSeconds> for Angle {
-    fn into(self) -> AngleTimeMinutesSeconds {
-        match self {
-            Angle::Radians(r) => {
-                AngleTimeMinutesSeconds(Left(TMM * r).into())
-            },
-            Angle::Revolutions(AngleRevolutions(r)) => {
-                AngleTimeMinutesSeconds(Left(RVTMM * r).into())
-            },
-            Angle::ArcDegrees(AngleArcDegrees(d)) => {
-                AngleTimeMinutesSeconds(Left(4.0 * d).into())
-            },
-            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(dm)) => {
-                let Left(degrees) = dm.into();
-                AngleTimeMinutesSeconds(Left(4.0 * degrees).into())
-            },
-            Angle::ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds(dms)) => {
-                let Left(degrees) = dms.into();
-                AngleTimeMinutesSeconds(Left(4.0 * degrees).into())
-            },
-            Angle::ArcMinutes(AngleArcMinutes(m)) => {
-                AngleTimeMinutesSeconds(Left(m / 15.0).into())
-            },
-            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
-                let Left(minutes) = ms.into();
-                AngleTimeMinutesSeconds(Left(minutes / 15.0).into())
-            },
-            Angle::ArcSeconds(AngleArcSeconds(s)) => {
-                AngleTimeMinutesSeconds(Left(s / TMMTOARCS).into())
-            },
-            Angle::TimeHours(AngleTimeHours(h)) => {
-                AngleTimeMinutesSeconds(Left(60.0 * h).into())
-            },
-            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
-                let Right(minutes) = hm.into();
-                AngleTimeMinutesSeconds(Left(minutes).into())
-            },
-            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
-                let Middle(minutes) = hms.into();
-                AngleTimeMinutesSeconds(Left(minutes).into())
-            },
-            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
-                AngleTimeMinutesSeconds(Left(m).into())
-            },
-            Angle::TimeMinutesSeconds(ms) => ms,
-            Angle::TimeSeconds(AngleTimeSeconds(s)) => {
-                AngleTimeMinutesSeconds(Right(s).into())
-            }
-        }
-    }
-}
-
-impl convert::Into<Option<AngleTimeMinutesSeconds>> for Angle {
-    fn into(self) -> Option<AngleTimeMinutesSeconds> {
-        match self {
-            Angle::TimeMinutesSeconds(tm) => Some(tm),
-            _ => None
-        }
-    }
-}
-
-impl convert::Into<AngleTimeSeconds> for Angle {
-    fn into(self) -> AngleTimeSeconds {
-        match self {
-            Angle::Radians(r) => {
-                AngleTimeSeconds(r * TMS)
-            },
-            Angle::Revolutions(AngleRevolutions(r)) => {
-                AngleTimeSeconds(r * RVTMS)
-            },
-            Angle::ArcDegrees(AngleArcDegrees(d)) => {
-                AngleTimeSeconds(d * ARCDTOTMS)
-            },
-            Angle::ArcDegreesMinutes(AngleArcDegreesMinutes(dm)) => {
-                let Right(minutes) = dm.into();
-                AngleTimeSeconds(4.0 * minutes)
-            },
-            Angle::ArcDegreesMinutesSeconds(AngleArcDegreesMinutesSeconds(dms)) => {
-                let Right(seconds) = dms.into();
-                AngleTimeSeconds(seconds / 15.0)
-            },
-            Angle::ArcMinutes(AngleArcMinutes(m)) => {
-                AngleTimeSeconds(4.0 * m)
-            },
-            Angle::ArcMinutesSeconds(AngleArcMinutesSeconds(ms)) => {
-                let Right(seconds) = ms.into();
-                AngleTimeSeconds(seconds / 15.0)
-            },
-            Angle::ArcSeconds(AngleArcSeconds(s)) => {
-                AngleTimeSeconds(s / 15.0)
-            },
-            Angle::TimeHours(AngleTimeHours(h)) => {
-                AngleTimeSeconds(h * 3600.0)
-            },
-            Angle::TimeHoursMinutes(AngleTimeHoursMinutes(hm)) => {
-                let Right(minutes) = hm.into();
-                AngleTimeSeconds(minutes * 60.0)
-            },
-            Angle::TimeHoursMinutesSeconds(AngleTimeHoursMinutesSeconds(hms)) => {
-                let Right(seconds) = hms.into();
-                AngleTimeSeconds(seconds)
-            },
-            Angle::TimeMinutes(AngleTimeMinutes(m)) => {
-                AngleTimeSeconds(m * 60.0)
-            },
-            Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds(ms)) => {
-                let Right(seconds) = ms.into();
-                AngleTimeSeconds(seconds)
-            },
-            Angle::TimeSeconds(s) => s
-        }
-    }
-}
-
-impl convert::Into<Option<AngleTimeSeconds>> for Angle {
-    fn into(self) -> Option<AngleTimeSeconds> {
-        match self {
-            Angle::TimeSeconds(s) => Some(s),
-            _ => None
-        }
-    }
-}
-
-impl PartialOrd for Angle {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if self.is_nan() || other.is_nan() {
-            None
-        } else {
-            let value1: f64 = (*self).into();
-            let value2: f64 = (*other).into();
-
-            value1.partial_cmp(&value2)
-        }
-    }
-}
-
-impl Angle {
-    pub fn from_r(revolutions: f64) -> Angle {
-        Angle::Revolutions(AngleRevolutions(revolutions))
-    }
-
-    pub fn from_ad(degrees: f64) -> Angle {
-        Angle::ArcDegrees(AngleArcDegrees(degrees))
-    }
-
-    pub fn from_adm(degrees: i32, minutes: f64) -> Angle {
-        Angle::ArcDegreesMinutes(AngleArcDegreesMinutes::new(degrees, minutes))
-    }
-
-    pub fn from_adms(degrees: i32, minutes: i32, seconds: f64) -> Angle {
-        Angle::ArcDegreesMinutesSeconds(
-            AngleArcDegreesMinutesSeconds::new(degrees, minutes, seconds)
-        )
-    }
-
-    pub fn from_am(minutes: f64) -> Angle {
-        Angle::ArcMinutes(AngleArcMinutes(minutes))
-    }
-
-    pub fn from_ams(minutes: i32, seconds: f64) -> Angle {
-        Angle::ArcMinutesSeconds(AngleArcMinutesSeconds::new(minutes, seconds))
-    }
-
-    pub fn from_as(seconds: f64) -> Angle {
-        Angle::ArcSeconds(AngleArcSeconds(seconds))
-    }
-
-    pub fn from_th(hours: f64) -> Angle {
-        Angle::TimeHours(AngleTimeHours(hours))
-    }
-
-    pub fn from_thm(hours: i32, minutes: f64) -> Angle {
-        Angle::TimeHoursMinutes(AngleTimeHoursMinutes::new(hours, minutes))
-    }
-
-    pub fn from_thms(hours: i32, minutes: i32, seconds: f64) -> Angle {
-        Angle::TimeHoursMinutesSeconds(
-            AngleTimeHoursMinutesSeconds::new(hours, minutes, seconds)
-        )
-    }
-
-    pub fn from_tm(minutes: f64) -> Angle {
-        Angle::TimeMinutes(AngleTimeMinutes(minutes))
-    }
-
-    pub fn from_tms(minutes: i32, seconds: f64) -> Angle {
-        Angle::TimeMinutesSeconds(AngleTimeMinutesSeconds::new(minutes, seconds))
-    }
-
-    pub fn from_ts(seconds: f64) -> Angle {
-        Angle::TimeSeconds(AngleTimeSeconds(seconds))
-    }
-
-    pub fn is_rad(&self) -> bool {
-        match self {
-            Angle::Radians(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn is_r(&self) -> bool {
-        match self {
-            Angle::Revolutions(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn is_ad(&self) -> bool {
-        match self {
-            Angle::ArcDegrees(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn is_adm(&self) -> bool {
-        match self {
-            Angle::ArcDegreesMinutes(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn is_adms(&self) -> bool {
-        match self {
-            Angle::ArcDegreesMinutesSeconds(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn is_am(&self) -> bool {
-        match self {
-            Angle::ArcMinutes(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn is_ams(&self) -> bool {
-        match self {
-            Angle::ArcMinutesSeconds(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn is_as(&self) -> bool {
-        match self {
-            Angle::ArcSeconds(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn is_th(&self) -> bool {
-        match self {
-            Angle::TimeHours(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn is_thm(&self) -> bool {
-        match self {
-            Angle::TimeHoursMinutes(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn is_thms(&self) -> bool {
-        match self {
-            Angle::TimeHoursMinutesSeconds(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn is_tm(&self) -> bool {
-        match self {
-            Angle::TimeMinutes(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn is_tms(&self) -> bool {
-        match self {
-            Angle::TimeMinutesSeconds(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn is_ts(&self) -> bool {
-        match self {
-            Angle::TimeSeconds(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn to_rad(self) -> Angle {
-        Angle::Radians(self.into())
-    }
-
-    pub fn to_r(self) -> Angle {
-        Angle::Revolutions(self.into())
-    }
-
-    pub fn to_ad(self) -> Angle {
-        Angle::ArcDegrees(self.into())
-    }
-
-    pub fn to_adm(self) -> Angle {
-        Angle::ArcDegreesMinutes(self.into())
-    }
-
-    pub fn to_adms(self) -> Angle {
-        Angle::ArcDegreesMinutesSeconds(self.into())
-    }
-
-    pub fn to_am(self) -> Angle {
-        Angle::ArcMinutes(self.into())
-    }
-
-    pub fn to_ams(self) -> Angle {
-        Angle::ArcMinutesSeconds(self.into())
-    }
-
-    pub fn to_as(self) -> Angle {
-        Angle::ArcSeconds(self.into())
-    }
-
-    pub fn to_th(self) -> Angle {
-        Angle::TimeHours(self.into())
-    }
-
-    pub fn to_thm(self) -> Angle {
-        Angle::TimeHoursMinutes(self.into())
-    }
-
-    pub fn to_thms(self) -> Angle {
-        Angle::TimeHoursMinutesSeconds(self.into())
-    }
-
-    pub fn to_tm(self) -> Angle {
-        Angle::TimeMinutes(self.into())
-    }
-
-    pub fn to_tms(self) -> Angle {
-        Angle::TimeMinutesSeconds(self.into())
-    }
-
-    pub fn to_ts(self) -> Angle {
-        Angle::TimeSeconds(self.into())
-    }
-
-    fn is_nan(&self) -> bool {
-        match *self {
-            Angle::Radians(r) => r.is_nan(),
-            Angle::Revolutions(AngleRevolutions(r)) => r.is_nan(),
-            Angle::ArcDegrees(AngleArcDegrees(d)) => d.is_nan(),
-            Angle::ArcDegreesMinutes(
-                AngleArcDegreesMinutes(ShortAngle(_, m))
-            ) => m.is_nan(),
-            Angle::ArcDegreesMinutesSeconds(
-                AngleArcDegreesMinutesSeconds(LongAngle(.., s))
-            ) => s.is_nan(),
-            Angle::ArcMinutes(AngleArcMinutes(m)) => m.is_nan(),
-            Angle::ArcMinutesSeconds(
-                AngleArcMinutesSeconds(ShortAngle(_, s))
-            ) => s.is_nan(),
-            Angle::ArcSeconds(AngleArcSeconds(s)) => s.is_nan(),
-            Angle::TimeHours(AngleTimeHours(h)) => h.is_nan(),
-            Angle::TimeHoursMinutes(
-                AngleTimeHoursMinutes(ShortAngle(_, m))
-            ) => m.is_nan(),
-            Angle::TimeHoursMinutesSeconds(
-                AngleTimeHoursMinutesSeconds(LongAngle(.., s))
-            ) => s.is_nan(),
-            Angle::TimeMinutes(AngleTimeMinutes(m)) => m.is_nan(),
-            Angle::TimeMinutesSeconds(
-                AngleTimeMinutesSeconds(ShortAngle(_, s))
-            ) => s.is_nan(),
-            Angle::TimeSeconds(AngleTimeSeconds(s)) => s.is_nan()
-        }
-    }
+impl_new!(Seconds; seconds);
+impl_into! {
+    Seconds: 0 = value * R2S;
+    Seconds: 0 * S2R;
+    Seconds => Radians;
+    Seconds => Revolutions: 0 = 0 / RV2S;
+    Seconds => Degrees: 0 = 0 / TS;
+    Seconds => DegreesArcMinutes: Right = 0 / TM;
+    Seconds => DegreesArcMinutesSeconds: Right = 0 * TA;
+    Seconds => ArcMinutes: 0 = 0 / TM;
+    Seconds => ArcMinutesSeconds: Right = 0 * TA;
+    Seconds => ArcSeconds: 0 = 0 * TA;
+    Seconds => Hours: 0 = 0 / 3600.0;
+    Seconds => HoursMinutes: Right = 0 / 60.0;
+    Seconds => HoursMinutesSeconds: Right = 0;
+    Seconds => Minutes: 0 = 0 / 60.0;
+    Seconds => MinutesSeconds: Right = 0;
 }
 
 

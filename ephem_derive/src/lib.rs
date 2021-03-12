@@ -1,8 +1,10 @@
-#[macro_use]
-extern crate quote;
+#[macro_use] extern crate lazy_static;
+#[macro_use] extern crate quote;
 extern crate proc_macro;
 extern crate proc_macro2;
 extern crate syn;
+
+use regex::Regex;
 
 use crate::proc_macro::TokenStream;
 
@@ -10,89 +12,46 @@ use crate::proc_macro::TokenStream;
 // Angular values
 //
 
-#[proc_macro_derive(AngleOrd)]
-pub fn angle_ord_derive(input: TokenStream) -> TokenStream {
-    let ast: syn::DeriveInput = syn::parse(input).unwrap();
+#[proc_macro_derive(AngleMapper)]
+pub fn angle_mapper_derive(input: TokenStream) -> TokenStream {
+    let ast: syn::DeriveInput = syn::parse2(input.into()).unwrap();
 
     let name = &ast.ident;
-    (quote! {
-        impl ::std::cmp::PartialOrd for #name {
-            fn partial_cmp(&self, other: &Self) -> ::std::option::Option<::std::cmp::Ordering> {
-                self.0.partial_cmp(&other.0)
+    let count = parse_angle_format(&name.to_string())
+        .filter(|value| *value != "arc")
+        .count();
+
+    match count {
+        1 => (quote! {
+            impl AngleMapper for #name {
+                type Item = SimpleAngle;
             }
-        }
-    }).into()
-}
+        }).into(),
 
-
-#[proc_macro_derive(AngleValue)]
-pub fn angle_value_derive(input: TokenStream) -> TokenStream {
-    let ast: syn::DeriveInput = syn::parse(input).unwrap();
-
-    let name = &ast.ident;
-    (quote! {
-        impl ::std::convert::Into<f64> for #name {
-            fn into(self) -> f64 {
-                self.value()
+        2 => (quote! {
+            impl AngleMapper for #name {
+                type Item = ShortAngle;
             }
-        }
-    }).into()
-}
+        }).into(),
 
-
-#[proc_macro_derive(UnpackAngleValue)]
-pub fn unpack_angle_value_derive(input: TokenStream) -> TokenStream {
-    let ast: syn::DeriveInput = syn::parse(input).unwrap();
-
-    let name = &ast.ident;
-    (quote! {
-        impl ::std::convert::Into<(Sign, f64)> for #name {
-            fn into(self) -> (Sign, f64) {
-                (self.sign(), self.0.abs())
+        3 => (quote! {
+            impl AngleMapper for #name {
+                type Item = LongAngle;
             }
-        }
-    }).into()
+        }).into(),
+
+        _ => panic!("Illegal angle format name")
+    }
 }
 
 
-macro_rules! impl_angular_conv {
-    ($ast:expr, $t:ty) => {{
-        let name = &$ast.ident;
+fn parse_angle_format<'a>(name: &'a String) -> Box<dyn Iterator<Item=String> + 'a> {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r#"([A-Z][a-z]+)"#).unwrap();
+    }
 
-        (quote! {
-            impl ::std::convert::Into<$t> for #name {
-                fn into(self) -> $t {
-                    self.0.into()
-                }
-            }
-        }).into()
-    }};
-}
-
-
-#[proc_macro_derive(UnpackShortAngle)]
-pub fn unpack_short_angle_derive(input: TokenStream) -> TokenStream {
-    let ast: syn::DeriveInput = syn::parse(input).unwrap();
-    impl_angular_conv!(ast, (Sign, i32, f64))
-}
-
-
-#[proc_macro_derive(RawShortAngle)]
-pub fn raw_short_angle_derive(input: TokenStream) -> TokenStream {
-    let ast: syn::DeriveInput = syn::parse(input).unwrap();
-    impl_angular_conv!(ast, (i32, f64))
-}
-
-
-#[proc_macro_derive(UnpackLongAngle)]
-pub fn unpack_long_angle_derive(input: TokenStream) -> TokenStream {
-    let ast: syn::DeriveInput = syn::parse(input).unwrap();
-    impl_angular_conv!(ast, (Sign, i32, i32, f64))
-}
-
-
-#[proc_macro_derive(RawLongAngle)]
-pub fn raw_long_angle_derive(input: TokenStream) -> TokenStream {
-    let ast: syn::DeriveInput = syn::parse(input).unwrap();
-    impl_angular_conv!(ast, (i32, i32, f64))
+    Box::new(
+        RE.find_iter(name)
+            .map(|mat| String::from(mat.as_str()).to_lowercase())
+    )
 }

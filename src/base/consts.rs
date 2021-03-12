@@ -13,7 +13,7 @@ pub const D2R: f64 = PI / 180.0;
 ///
 /// Arc minutes to radians
 ///
-pub const AM2R: f64 = PI / (180.0 * 60);
+pub const AM2R: f64 = PI / (180.0 * 60.0);
 
 ///
 /// Arc seconds to radians
