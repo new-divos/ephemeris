@@ -897,7 +897,7 @@ impl_into! {
     DegreesArcMinutes => HoursMinutesSeconds: Middle = Right / TA;
     DegreesArcMinutes => Minutes: 0 = Right / TA;
     DegreesArcMinutes => MinutesSeconds: Left = Right / TA;
-    DegreesArcMinutes => Seconds: 0 = Right / TMM;
+    DegreesArcMinutes => Seconds: 0 = Right * TM;
 }
 
 
@@ -961,7 +961,7 @@ impl_into! {
     ArcMinutesSeconds => DegreesArcMinutesSeconds: Right = Right;
     ArcMinutesSeconds => ArcMinutes: 0 = Left;
     ArcMinutesSeconds => ArcSeconds: 0 = Right;
-    ArcMinutesSeconds => Hours: 0 = Left / TM;
+    ArcMinutesSeconds => Hours: 0 = Left / TMM;
     ArcMinutesSeconds => HoursMinutes: Right = Left / TA;
     ArcMinutesSeconds => HoursMinutesSeconds: Right = Right / TA;
     ArcMinutesSeconds => Minutes: 0 = Left / TA;
@@ -1100,7 +1100,7 @@ impl_into! {
     MinutesSeconds => ArcMinutes: 0 = Left * TA;
     MinutesSeconds => ArcMinutesSeconds: Right = Right * TA;
     MinutesSeconds => ArcSeconds: 0 = Right * TA;
-    MinutesSeconds => Hours: 0 = Left * 60.0;
+    MinutesSeconds => Hours: 0 = Left / 60.0;
     MinutesSeconds => HoursMinutes: Right = Left;
     MinutesSeconds => HoursMinutesSeconds: Right = Right;
     MinutesSeconds => Minutes: 0 = Left;
