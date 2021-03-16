@@ -51,12 +51,12 @@ impl<T: Copy> ops::Index<usize> for Vec3D<T> {
 impl<T: Copy> Vec3D<T> {
     #[inline]
     pub fn zeros() -> Self {
-        Vec3D::<T>([0.0; 3], PhantomData::<T>{})
+        Vec3D::<T>([0.0; 3], PhantomData::<T>)
     }
 
     #[inline]
     pub fn filled_by(value: f64) -> Self {
-        Vec3D::<T>([value; 3], PhantomData::<T>{})
+        Vec3D::<T>([value; 3], PhantomData::<T>)
     }
 
     pub fn get(&self, idx: usize) -> Option<f64> {
@@ -303,19 +303,19 @@ impl Vec3DNorm for Vec3D<Cartesian> {
 
 impl Vec3D<Cartesian> {
     pub fn new(x: f64, y: f64, z: f64) -> Vec3D<Cartesian> {
-        Vec3D::<Cartesian>([x, y, z], PhantomData::<Cartesian>{})
+        Vec3D::<Cartesian>([x, y, z], PhantomData::<Cartesian>)
     }
 
     pub fn unit_x() -> Vec3D<Cartesian> {
-        Vec3D::<Cartesian>([1.0, 0.0, 0.0], PhantomData::<Cartesian>{})
+        Vec3D::<Cartesian>([1.0, 0.0, 0.0], PhantomData::<Cartesian>)
     }
 
     pub fn unit_y() -> Vec3D<Cartesian> {
-        Vec3D::<Cartesian>([0.0, 1.0, 0.0], PhantomData::<Cartesian>{})
+        Vec3D::<Cartesian>([0.0, 1.0, 0.0], PhantomData::<Cartesian>)
     }
 
     pub fn unit_z() -> Vec3D<Cartesian> {
-        Vec3D::<Cartesian>([0.0, 0.0, 1.0], PhantomData::<Cartesian>{})
+        Vec3D::<Cartesian>([0.0, 0.0, 1.0], PhantomData::<Cartesian>)
     }
 
     pub fn dot(&self, other: &Vec3D<Cartesian>) -> f64 {
@@ -473,7 +473,7 @@ impl Vec3D<Cylindrical> {
                 },
                 altitude
             ],
-            PhantomData::<Cylindrical>{}
+            PhantomData::<Cylindrical>
         )
     }
 }
@@ -625,7 +625,7 @@ impl Vec3D<Spherical> {
                     }
                 )
             ],
-            PhantomData::<Spherical>{}
+            PhantomData::<Spherical>
         )
     }
 
@@ -636,7 +636,7 @@ impl Vec3D<Spherical> {
                 azimuth.fmod(PI2),
                 Vec3D::<Spherical>::clamp(colatitude)
             ],
-            PhantomData::<Spherical>{}
+            PhantomData::<Spherical>
         )
     }
 }
@@ -766,7 +766,7 @@ impl ops::Mul<Vec3D<Cartesian>> for Mat3D {
             }
         }
 
-        Vec3D::<Cartesian>(values, PhantomData::<Cartesian>{})
+        Vec3D::<Cartesian>(values, PhantomData::<Cartesian>)
     }
 }
 
@@ -1060,9 +1060,8 @@ mod tests {
     use rand::Rng;
 
     use super::*;
+    use crate::tests::{EPS, ITERATIONS};
 
-    const EPS: f64 = 1e-10;
-    const ITERATIONS: i32 = 200;
 
     fn new_random_mat3d<R: Rng + ?Sized>(rng: &mut R) -> Mat3D {
         let mut result = Mat3D::zeros();

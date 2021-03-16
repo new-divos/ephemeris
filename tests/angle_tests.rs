@@ -2,8 +2,8 @@
 
 mod common;
 
-#[macro_use]
-extern crate approx;
+#[macro_use] extern crate approx;
+extern crate serde_json;
 
 use rand::{Rng, thread_rng};
 use rand::distributions::Uniform;
@@ -1295,5 +1295,30 @@ fn into_seconds_test() {
         let a_ms =
             Angle::<MinutesSeconds>::new(test_minutes, test_seconds);
         test(a_ms.into());
+    }
+}
+
+
+#[test]
+fn radians_serde_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-PI2, PI2);
+
+    for _ in 0..common::ITERATIONS {
+        let radians = rng.sample(band);
+
+        let rad = Angle::<Radians>::from(radians);
+        let data = serde_json::to_string(&rad).unwrap();
+
+        let mut text = vec![r#"{"radians":"#];
+        let r = format!("{}", radians);
+        text.push(r.as_str());
+        text.push("}");
+
+        assert_eq!(data, text.join(""));
+
+        let tested: Angle<Radians> = serde_json::from_str(data.as_str()).unwrap();
+        let tested: f64 = tested.into();
+        assert_relative_eq!(radians, tested, epsilon=common::EPS);
     }
 }

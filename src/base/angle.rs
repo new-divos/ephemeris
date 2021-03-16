@@ -1,6 +1,10 @@
 use std::cmp::Ordering;
+use std::fmt;
 use std::convert;
 use std::marker::PhantomData;
+
+use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
+use serde::ser::{Serialize, Serializer, SerializeStruct};
 
 use crate::base::consts::{PI2, D2R, R2D, R2AM, AM2R, R2AS, AS2R,
                           H2R, R2H, M2R, R2M, S2R, R2S};
@@ -385,7 +389,8 @@ pub struct Angle<T: AngleMapper + Copy>
 
 
 impl<T> convert::Into<(Sign, f64)> for Angle<T>
-    where T: AngleMapper<Item=SimpleAngle> + Copy
+    where
+        T: AngleMapper<Item=SimpleAngle> + Copy
 {
     #[inline]
     fn into(self) -> (Sign, f64) {
@@ -394,7 +399,8 @@ impl<T> convert::Into<(Sign, f64)> for Angle<T>
 }
 
 impl<T> convert::Into<(i32, f64)> for Angle<T>
-    where T: AngleMapper<Item=ShortAngle> + Copy
+    where
+        T: AngleMapper<Item=ShortAngle> + Copy
 {
     #[inline]
     fn into(self) -> (i32, f64) {
@@ -403,7 +409,8 @@ impl<T> convert::Into<(i32, f64)> for Angle<T>
 }
 
 impl<T> convert::Into<(Sign, i32, f64)> for Angle<T>
-    where T: AngleMapper<Item=ShortAngle> + Copy
+    where
+        T: AngleMapper<Item=ShortAngle> + Copy
 {
     #[inline]
     fn into(self) -> (Sign, i32, f64) {
@@ -412,7 +419,8 @@ impl<T> convert::Into<(Sign, i32, f64)> for Angle<T>
 }
 
 impl<T> convert::Into<(i32, i32, f64)> for Angle<T>
-    where T: AngleMapper<Item=LongAngle> + Copy
+    where
+        T: AngleMapper<Item=LongAngle> + Copy
 {
     #[inline]
     fn into(self) -> (i32, i32, f64) {
@@ -421,7 +429,8 @@ impl<T> convert::Into<(i32, i32, f64)> for Angle<T>
 }
 
 impl<T> convert::Into<(Sign, i32, i32, f64)> for Angle<T>
-    where T: AngleMapper<Item=LongAngle> + Copy
+    where
+        T: AngleMapper<Item=LongAngle> + Copy
 {
     #[inline]
     fn into(self) -> (Sign, i32, i32, f64) {
@@ -431,8 +440,9 @@ impl<T> convert::Into<(Sign, i32, i32, f64)> for Angle<T>
 
 
 impl<T> Angle<T>
-    where T: AngleMapper + Copy,
-          <T as AngleMapper>::Item: AngleSign
+    where
+        T: AngleMapper + Copy,
+        <T as AngleMapper>::Item: AngleSign
 {
     #[inline]
     pub fn sign(&self) -> Sign {
@@ -451,7 +461,7 @@ macro_rules! impl_new {
 
             #[inline]
             pub fn new($v: f64) -> Self {
-                Self(SimpleAngle::from($v), PhantomData::<$t>{})
+                Self(SimpleAngle::from($v), PhantomData::<$t>)
             }
         }
     };
@@ -469,7 +479,7 @@ macro_rules! impl_new {
 
             #[inline]
             pub fn new($v1: i32, $v2: f64) -> Self {
-                Self(ShortAngle::new($v1, $v2), PhantomData::<$t>{})
+                Self(ShortAngle::new($v1, $v2), PhantomData::<$t>)
             }
         }
     };
@@ -492,7 +502,7 @@ macro_rules! impl_new {
 
             #[inline]
             pub fn new($v1: i32, $v2: i32, $v3: f64) -> Self {
-                Self(LongAngle::new($v1, $v2, $v3), PhantomData::<$t>{})
+                Self(LongAngle::new($v1, $v2, $v3), PhantomData::<$t>)
             }
         }
     };
@@ -507,7 +517,7 @@ macro_rules! impl_into {
             fn from(value: f64) -> Self {
                 Self(
                     SimpleAngle::from(value * $c),
-                    PhantomData::<$td>{}
+                    PhantomData::<$td>
                 )
             }
         }
@@ -520,7 +530,7 @@ macro_rules! impl_into {
             fn from(value: f64) -> Self {
                 Self(
                     SimpleAngle::from(value / $c),
-                    PhantomData::<$td>{}
+                    PhantomData::<$td>
                 )
             }
         }
@@ -533,7 +543,7 @@ macro_rules! impl_into {
             fn from(value: f64) -> Self {
                 Self(
                     $m(value * $c).into(),
-                    PhantomData::<$td>{}
+                    PhantomData::<$td>
                 )
             }
         }
@@ -546,7 +556,7 @@ macro_rules! impl_into {
             fn from(value: f64) -> Self {
                 Self(
                     $m(value / $c).into(),
-                    PhantomData::<$td>{}
+                    PhantomData::<$td>
                 )
             }
         }
@@ -597,7 +607,7 @@ macro_rules! impl_into {
         impl convert::Into<Angle<Radians>> for Angle<$ts> {
             #[inline]
             fn into(self) -> Angle<Radians> {
-                Angle::<Radians>(self.into(), PhantomData::<Radians>{})
+                Angle::<Radians>(self.into(), PhantomData::<Radians>)
             }
         }
 
@@ -609,7 +619,7 @@ macro_rules! impl_into {
             fn into(self) -> Angle<$td> {
                 Angle::<$td>(
                     SimpleAngle::from(self.0 * $c),
-                    PhantomData::<$td>{}
+                    PhantomData::<$td>
                 )
             }
         }
@@ -622,7 +632,7 @@ macro_rules! impl_into {
             fn into(self) -> Angle<$td> {
                 Angle::<$td>(
                     SimpleAngle::from(self.0 / $c),
-                    PhantomData::<$td>{}
+                    PhantomData::<$td>
                 )
             }
         }
@@ -633,7 +643,7 @@ macro_rules! impl_into {
         impl convert::Into<Angle<$td>> for Angle<$ts> {
             #[inline]
             fn into(self) -> Angle<$td> {
-                Angle::<$td>($m(self.0).into(), PhantomData::<$td>{})
+                Angle::<$td>($m(self.0).into(), PhantomData::<$td>)
             }
         }
 
@@ -643,7 +653,7 @@ macro_rules! impl_into {
         impl convert::Into<Angle<$td>> for Angle<$ts> {
             #[inline]
             fn into(self) -> Angle<$td> {
-                Angle::<$td>($m(self.0 * $c).into(), PhantomData::<$td>{})
+                Angle::<$td>($m(self.0 * $c).into(), PhantomData::<$td>)
             }
         }
 
@@ -653,7 +663,7 @@ macro_rules! impl_into {
         impl convert::Into<Angle<$td>> for Angle<$ts> {
             #[inline]
             fn into(self) -> Angle<$td> {
-                Angle::<$td>($m(self.0 / $c).into(), PhantomData::<$td>{})
+                Angle::<$td>($m(self.0 / $c).into(), PhantomData::<$td>)
             }
         }
 
@@ -665,7 +675,7 @@ macro_rules! impl_into {
             fn into(self) -> Angle<$td> {
                 Angle::<$td>(
                     SimpleAngle::from(self.0.0 * $c),
-                    PhantomData::<$td>{}
+                    PhantomData::<$td>
                 )
             }
         }
@@ -678,7 +688,7 @@ macro_rules! impl_into {
             fn into(self) -> Angle<$td> {
                 Angle::<$td>(
                     SimpleAngle::from(self.0.0 / $c),
-                    PhantomData::<$td>{}
+                    PhantomData::<$td>
                 )
             }
         }
@@ -689,7 +699,7 @@ macro_rules! impl_into {
         impl convert::Into<Angle<$td>> for Angle<$ts> {
             #[inline]
             fn into(self) -> Angle<$td> {
-                Angle::<$td>($m(self.0.0).into(), PhantomData::<$td>{})
+                Angle::<$td>($m(self.0.0).into(), PhantomData::<$td>)
             }
         }
 
@@ -699,7 +709,7 @@ macro_rules! impl_into {
         impl convert::Into<Angle<$td>> for Angle<$ts> {
             #[inline]
             fn into(self) -> Angle<$td> {
-                Angle::<$td>($m(self.0.0 * $c).into(), PhantomData::<$td>{})
+                Angle::<$td>($m(self.0.0 * $c).into(), PhantomData::<$td>)
             }
         }
 
@@ -709,7 +719,7 @@ macro_rules! impl_into {
         impl convert::Into<Angle<$td>> for Angle<$ts> {
             #[inline]
             fn into(self) -> Angle<$td> {
-                Angle::<$td>($m(self.0.0 / $c).into(), PhantomData::<$td>{})
+                Angle::<$td>($m(self.0.0 / $c).into(), PhantomData::<$td>)
             }
         }
 
@@ -721,7 +731,7 @@ macro_rules! impl_into {
                 let $m(value) = self.0.into();
                 Angle::<$td>(
                     SimpleAngle::from(value),
-                    PhantomData::<$td>{}
+                    PhantomData::<$td>
                 )
             }
         }
@@ -734,7 +744,7 @@ macro_rules! impl_into {
                 let $m(value) = self.0.into();
                 Angle::<$td>(
                     SimpleAngle::from(value * $c),
-                    PhantomData::<$td>{}
+                    PhantomData::<$td>
                 )
             }
         }
@@ -747,7 +757,7 @@ macro_rules! impl_into {
                 let $m(value) = self.0.into();
                 Angle::<$td>(
                     SimpleAngle::from(value / $c),
-                    PhantomData::<$td>{}
+                    PhantomData::<$td>
                 )
             }
         }
@@ -758,7 +768,7 @@ macro_rules! impl_into {
         impl convert::Into<Angle<$td>> for Angle<$ts> {
             fn into(self) -> Angle<$td> {
                 let $ms(value) = self.0.into();
-                Angle::<$td>($md(value).into(), PhantomData::<$td>{})
+                Angle::<$td>($md(value).into(), PhantomData::<$td>)
             }
         }
 
@@ -768,7 +778,7 @@ macro_rules! impl_into {
         impl convert::Into<Angle<$td>> for Angle<$ts> {
             fn into(self) -> Angle<$td> {
                 let $ms(value) = self.0.into();
-                Angle::<$td>($md(value * $c).into(), PhantomData::<$td>{})
+                Angle::<$td>($md(value * $c).into(), PhantomData::<$td>)
             }
         }
 
@@ -778,7 +788,7 @@ macro_rules! impl_into {
         impl convert::Into<Angle<$td>> for Angle<$ts> {
             fn into(self) -> Angle<$td> {
                 let $ms(value) = self.0.into();
-                Angle::<$td>($md(value / $c).into(), PhantomData::<$td>{})
+                Angle::<$td>($md(value / $c).into(), PhantomData::<$td>)
             }
         }
 
@@ -797,7 +807,7 @@ impl AngleMapper for Radians {
 impl convert::From<f64> for Angle<Radians> {
     #[inline]
     fn from(value: f64) -> Self {
-        Self(value, PhantomData::<Radians>{})
+        Self(value, PhantomData::<Radians>)
     }
 }
 
@@ -805,6 +815,72 @@ impl convert::Into<f64> for Angle<Radians> {
     #[inline]
     fn into(self) -> f64 {
         self.0
+    }
+}
+
+impl Serialize for Angle<Radians> {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("Angle", 1)?;
+        state.serialize_field("radians", &self.0)?;
+        state.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for Angle<Radians> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(field_identifier, rename_all="lowercase")]
+        enum Field { Radians }
+
+        struct RadiansVisitor;
+
+        impl<'de> Visitor<'de> for RadiansVisitor {
+            type Value = Angle<Radians>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct Angle")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<Self::Value, V::Error>
+                where
+                    V: SeqAccess<'de>,
+            {
+                let radians: f64 = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                Ok(Self::Value::from(radians))
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
+                where
+                    V: MapAccess<'de>,
+            {
+                let mut radians = None;
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::Radians => {
+                            if radians.is_some() {
+                                return Err(de::Error::duplicate_field("radians"));
+                            }
+                            radians = Some(map.next_value()?);
+                        }
+                    }
+                }
+                let radians: f64 = radians.ok_or_else(
+                    || de::Error::missing_field("radians")
+                )?;
+                Ok(Self::Value::from(radians))
+            }
+        }
+
+        const FIELDS: &'static [&'static str] = &["radians"];
+        deserializer.deserialize_struct("Angle", FIELDS, RadiansVisitor)
+
     }
 }
 
