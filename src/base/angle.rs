@@ -57,6 +57,9 @@ pub trait AngleSign {
 }
 
 
+trait AngleSerialize{}
+
+
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct SimpleAngle(f64);
 
@@ -908,7 +911,7 @@ impl_into! {
 }
 
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
 pub struct Revolutions;
 
 impl_new!(Revolutions; revolutions);
@@ -931,7 +934,7 @@ impl_into! {
 }
 
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
 pub struct Degrees;
 
 impl_new!(Degrees; degrees);
@@ -954,7 +957,7 @@ impl_into! {
 }
 
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
 pub struct DegreesArcMinutes;
 
 impl_new!(DegreesArcMinutes; degrees, arc_minutes);
@@ -977,7 +980,7 @@ impl_into! {
 }
 
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
 pub struct DegreesArcMinutesSeconds;
 
 impl_new!(DegreesArcMinutesSeconds; degrees, arc_minutes, arc_seconds);
@@ -1000,7 +1003,7 @@ impl_into! {
 }
 
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
 pub struct ArcMinutes;
 
 impl_new!(ArcMinutes; arc_minutes);
@@ -1023,7 +1026,7 @@ impl_into! {
 }
 
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
 pub struct ArcMinutesSeconds;
 
 impl_new!(ArcMinutesSeconds; arc_minutes, arc_seconds);
@@ -1046,7 +1049,7 @@ impl_into! {
 }
 
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
 pub struct ArcSeconds;
 
 impl_new!(ArcSeconds; arc_seconds);
@@ -1069,7 +1072,7 @@ impl_into! {
 }
 
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
 pub struct Hours;
 
 impl_new!(Hours; hours);
@@ -1092,7 +1095,7 @@ impl_into! {
 }
 
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
 pub struct HoursMinutes;
 
 impl_new!(HoursMinutes; hours, minutes);
@@ -1115,7 +1118,7 @@ impl_into! {
 }
 
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
 pub struct HoursMinutesSeconds;
 
 impl_new!(HoursMinutesSeconds; hours, minutes, seconds);
@@ -1138,7 +1141,7 @@ impl_into! {
 }
 
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
 pub struct Minutes;
 
 impl_new!(Minutes; minutes);
@@ -1161,7 +1164,7 @@ impl_into! {
 }
 
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
 pub struct MinutesSeconds;
 
 impl_new!(MinutesSeconds; minutes, seconds);
@@ -1184,7 +1187,7 @@ impl_into! {
 }
 
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
 pub struct Seconds;
 
 impl_new!(Seconds; seconds);

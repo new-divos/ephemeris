@@ -1307,8 +1307,8 @@ fn radians_serde_test() {
     for _ in 0..common::ITERATIONS {
         let radians = rng.sample(band);
 
-        let rad = Angle::<Radians>::from(radians);
-        let data = serde_json::to_string(&rad).unwrap();
+        let a_rad = Angle::<Radians>::from(radians);
+        let data = serde_json::to_string(&a_rad).unwrap();
 
         let mut text = vec![r#"{"radians":"#];
         let r = format!("{}", radians);
@@ -1320,5 +1320,60 @@ fn radians_serde_test() {
         let tested: Angle<Radians> = serde_json::from_str(data.as_str()).unwrap();
         let tested: f64 = tested.into();
         assert_relative_eq!(radians, tested, epsilon=common::EPS);
+    }
+}
+
+
+#[test]
+fn revolutions_serde_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-2.0_f64, 2.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let revolutions = rng.sample(band);
+
+        let a_rev = Angle::<Revolutions>::new(revolutions);
+        let data = serde_json::to_string(&a_rev).unwrap();
+
+        println!("{}", data);
+    }
+}
+
+
+#[test]
+fn degrees_arc_minutes_serde_test() {
+    let mut rng = thread_rng();
+    let degrees_band = Uniform::new(-360i32, 360i32);
+    let arc_minutes_band = Uniform::new(0.0_f64, 60.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let degrees = rng.sample(degrees_band);
+        let arc_minutes = rng.sample(arc_minutes_band);
+
+        let a_dam = Angle::<DegreesArcMinutes>::new(degrees, arc_minutes);
+        let data = serde_json::to_string(&a_dam).unwrap();
+
+        println!("{}", data);
+    }
+}
+
+
+#[test]
+fn degrees_arc_minutes_seconds_serde_test() {
+    let mut rng = thread_rng();
+    let degrees_band = Uniform::new(-360i32, 360i32);
+    let arc_minutes_band = Uniform::new(0i32, 60i32);
+    let arc_seconds_band = Uniform::new(0.0_f64, 60.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let degrees = rng.sample(degrees_band);
+        let arc_minutes = rng.sample(arc_minutes_band);
+        let arc_seconds = rng.sample(arc_seconds_band);
+
+        let a_dams =
+            Angle::<DegreesArcMinutesSeconds>::new(degrees, arc_minutes, arc_seconds);
+        let data = serde_json::to_string(&a_dams).unwrap();
+
+        println!("{}", data);
     }
 }
