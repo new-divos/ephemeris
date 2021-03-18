@@ -57,9 +57,6 @@ pub trait AngleSign {
 }
 
 
-trait AngleSerialize{}
-
-
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct SimpleAngle(f64);
 
@@ -911,7 +908,7 @@ impl_into! {
 }
 
 
-#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
+#[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Revolutions;
 
 impl_new!(Revolutions; revolutions);
@@ -933,8 +930,10 @@ impl_into! {
     Revolutions => Seconds: 0 = 0 * RV2S;
 }
 
+angle_serialize!(Revolutions);
 
-#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Degrees;
 
 impl_new!(Degrees; degrees);
@@ -956,8 +955,10 @@ impl_into! {
     Degrees => Seconds: 0 = 0 * TS;
 }
 
+angle_serialize!(Degrees);
 
-#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct DegreesArcMinutes;
 
 impl_new!(DegreesArcMinutes; degrees, arc_minutes);
@@ -979,8 +980,10 @@ impl_into! {
     DegreesArcMinutes => Seconds: 0 = Right * TM;
 }
 
+angle_serialize!(DegreesArcMinutes);
 
-#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct DegreesArcMinutesSeconds;
 
 impl_new!(DegreesArcMinutesSeconds; degrees, arc_minutes, arc_seconds);
@@ -1002,8 +1005,10 @@ impl_into! {
     DegreesArcMinutesSeconds => Seconds: 0 = Right / TA;
 }
 
+angle_serialize!(DegreesArcMinutesSeconds);
 
-#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct ArcMinutes;
 
 impl_new!(ArcMinutes; arc_minutes);
@@ -1025,8 +1030,10 @@ impl_into! {
     ArcMinutes => Seconds: 0 = 0 * TM;
 }
 
+angle_serialize!(ArcMinutes);
 
-#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct ArcMinutesSeconds;
 
 impl_new!(ArcMinutesSeconds; arc_minutes, arc_seconds);
@@ -1048,8 +1055,10 @@ impl_into! {
     ArcMinutesSeconds => Seconds: 0 = Right / TA;
 }
 
+angle_serialize!(ArcMinutesSeconds);
 
-#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct ArcSeconds;
 
 impl_new!(ArcSeconds; arc_seconds);
@@ -1071,8 +1080,10 @@ impl_into! {
     ArcSeconds => Seconds: 0 = 0 / TA;
 }
 
+angle_serialize!(ArcSeconds);
 
-#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Hours;
 
 impl_new!(Hours; hours);
@@ -1094,8 +1105,10 @@ impl_into! {
     Hours => Seconds: 0 = 0 * 3600.0;
 }
 
+angle_serialize!(Hours);
 
-#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct HoursMinutes;
 
 impl_new!(HoursMinutes; hours, minutes);
@@ -1117,8 +1130,10 @@ impl_into! {
     HoursMinutes => Seconds: 0 = Right * 60.0;
 }
 
+angle_serialize!(HoursMinutes);
 
-#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct HoursMinutesSeconds;
 
 impl_new!(HoursMinutesSeconds; hours, minutes, seconds);
@@ -1140,8 +1155,10 @@ impl_into! {
     HoursMinutesSeconds => Seconds: 0 = Right;
 }
 
+angle_serialize!(HoursMinutesSeconds);
 
-#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Minutes;
 
 impl_new!(Minutes; minutes);
@@ -1163,8 +1180,10 @@ impl_into! {
     Minutes => Seconds: 0 = 0 * 60.0;
 }
 
+angle_serialize!(Minutes);
 
-#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct MinutesSeconds;
 
 impl_new!(MinutesSeconds; minutes, seconds);
@@ -1186,8 +1205,10 @@ impl_into! {
     MinutesSeconds => Seconds: 0 = Right;
 }
 
+angle_serialize!(MinutesSeconds);
 
-#[derive(AngleMapper, AngleSerialize, Clone, Copy, Debug)]
+
+#[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Seconds;
 
 impl_new!(Seconds; seconds);
@@ -1209,6 +1230,8 @@ impl_into! {
     Seconds => MinutesSeconds: Right = 0;
 }
 
+angle_serialize!(Seconds);
+
 
 #[cfg(test)]
 mod tests {
@@ -1216,9 +1239,8 @@ mod tests {
     use rand::distributions::Uniform;
 
     use super::*;
+    use crate::tests::{EPS, ITERATIONS};
 
-    const EPS: f64 = 1e-8;
-    const ITERATIONS: i32 = 200;
 
     #[test]
     fn short_angle_test() {

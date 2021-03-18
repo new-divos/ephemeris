@@ -18,6 +18,6 @@ extern crate serde_json;
 
 #[cfg(test)]
 mod tests {
-    pub const EPS: f64 = 1e-10;
+    pub const EPS: f64 = 1e-8;
     pub const ITERATIONS: i32 = 200;
 }

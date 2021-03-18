@@ -2,7 +2,7 @@
 #[macro_use] extern crate quote;
 extern crate proc_macro;
 extern crate proc_macro2;
-extern crate syn;
+#[macro_use] extern crate syn;
 
 use regex::Regex;
 
@@ -11,6 +11,35 @@ use crate::proc_macro::TokenStream;
 //
 // Angular values
 //
+
+struct AngleSignature {
+    name: syn::Ident
+}
+
+impl syn::parse::Parse for AngleSignature {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        if input.is_empty() {
+            panic!("Write full angle item signature.");
+        }
+
+        Ok(AngleSignature {
+            name: input.parse().unwrap()
+        })
+    }
+}
+
+
+fn parse_angle_format<'a>(name: &'a String) -> Box<dyn Iterator<Item=String> + 'a> {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r#"([A-Z][a-z]+)"#).unwrap();
+    }
+
+    Box::new(
+        RE.find_iter(name)
+            .map(|mat| String::from(mat.as_str()).to_lowercase())
+    )
+}
+
 
 #[proc_macro_derive(AngleMapper)]
 pub fn angle_mapper_derive(input: TokenStream) -> TokenStream {
@@ -40,16 +69,16 @@ pub fn angle_mapper_derive(input: TokenStream) -> TokenStream {
             }
         }).into(),
 
-        _ => panic!("Illegal angle format name")
+        _ => panic!("Illegal angle item name.")
     }
 }
 
 
-#[proc_macro_derive(AngleSerialize)]
-pub fn angle_serialize_derive(input: TokenStream) -> TokenStream {
-    let ast: syn::DeriveInput = syn::parse2(input.into()).unwrap();
+#[proc_macro]
+pub fn angle_serialize(input: TokenStream) -> TokenStream {
+    let signature = parse_macro_input!(input as AngleSignature);
 
-    let name = &ast.ident;
+    let name = &signature.name;
     let units: Vec<String> = parse_angle_format(&name.to_string())
         .collect();
 
@@ -66,7 +95,7 @@ pub fn angle_serialize_derive(input: TokenStream) -> TokenStream {
                 key.push_str(value.as_str());
 
                 key
-            }
+            }55555
         })
         .filter(|value| *value != "arc")
         .collect();
@@ -132,18 +161,7 @@ pub fn angle_serialize_derive(input: TokenStream) -> TokenStream {
             }).into()
         },
 
-        _ => panic!("Illegal angle format name")
+        _ => panic!("Illegal angle item name.")
     }
 }
 
-
-fn parse_angle_format<'a>(name: &'a String) -> Box<dyn Iterator<Item=String> + 'a> {
-    lazy_static! {
-        static ref RE: Regex = Regex::new(r#"([A-Z][a-z]+)"#).unwrap();
-    }
-
-    Box::new(
-        RE.find_iter(name)
-            .map(|mat| String::from(mat.as_str()).to_lowercase())
-    )
-}
