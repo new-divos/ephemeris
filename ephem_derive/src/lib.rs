@@ -95,7 +95,7 @@ pub fn angle_serialize(input: TokenStream) -> TokenStream {
                 key.push_str(value.as_str());
 
                 key
-            }55555
+            }
         })
         .filter(|value| *value != "arc")
         .collect();
