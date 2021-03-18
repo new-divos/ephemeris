@@ -7,6 +7,7 @@ extern crate proc_macro2;
 use regex::Regex;
 
 use crate::proc_macro::TokenStream;
+use proc_macro2::Span;
 
 //
 // Angular values
@@ -52,19 +53,19 @@ pub fn angle_mapper_derive(input: TokenStream) -> TokenStream {
 
     match count {
         1 => (quote! {
-            impl AngleMapper for #name {
+            impl crate::base::angle::AngleMapper for #name {
                 type Item = SimpleAngle;
             }
         }).into(),
 
         2 => (quote! {
-            impl AngleMapper for #name {
+            impl crate::base::angle::AngleMapper for #name {
                 type Item = ShortAngle;
             }
         }).into(),
 
         3 => (quote! {
-            impl AngleMapper for #name {
+            impl crate::base::angle::AngleMapper for #name {
                 type Item = LongAngle;
             }
         }).into(),
@@ -79,8 +80,10 @@ pub fn angle_serialize(input: TokenStream) -> TokenStream {
     let signature = parse_macro_input!(input as AngleSignature);
 
     let name = &signature.name;
-    let units: Vec<String> = parse_angle_format(&name.to_string())
+    let struct_name = name.to_string();
+    let units: Vec<String> = parse_angle_format(&struct_name)
         .collect();
+    let struct_name = format!("Angle{}", struct_name);
 
     let arc_pos = units.iter()
         .position(|value| *value == "arc")
@@ -91,10 +94,7 @@ pub fn angle_serialize(input: TokenStream) -> TokenStream {
             if idx <= arc_pos {
                 value.to_owned()
             } else {
-                let mut key = String::from("arc_");
-                key.push_str(value.as_str());
-
-                key
+                format!("arc_{}", value)
             }
         })
         .filter(|value| *value != "arc")
@@ -105,13 +105,15 @@ pub fn angle_serialize(input: TokenStream) -> TokenStream {
             let key = keys[0].to_owned();
 
             (quote! {
-                impl Serialize for Angle<#name> {
+                impl serde::ser::Serialize for crate::base::angle::Angle<#name> {
                     fn serialize<S>(&self, serializer: S) ->
                             std::result::Result<S::Ok, S::Error>
                         where
-                            S: Serializer,
+                            S: serde::ser::Serializer,
                     {
-                        let mut state = serializer.serialize_struct("Angle", 1)?;
+                        use serde::ser::SerializeStruct;
+
+                        let mut state = serializer.serialize_struct(#struct_name, 1)?;
                         state.serialize_field(#key, &self.0.0)?;
                         state.end()
                     }
@@ -124,13 +126,15 @@ pub fn angle_serialize(input: TokenStream) -> TokenStream {
             let key2 = keys[1].to_owned();
 
             (quote! {
-                impl Serialize for Angle<#name> {
+                impl serde::ser::Serialize for crate::base::angle::Angle<#name> {
                     fn serialize<S>(&self, serializer: S) ->
                             std::result::Result<S::Ok, S::Error>
                         where
-                            S: Serializer,
+                            S: serde::ser::Serializer,
                     {
-                        let mut state = serializer.serialize_struct("Angle", 2)?;
+                        use serde::ser::SerializeStruct;
+
+                        let mut state = serializer.serialize_struct(#struct_name, 2)?;
                         state.serialize_field(#key1, &self.0.0)?;
                         state.serialize_field(#key2, &self.0.1)?;
                         state.end()
@@ -145,13 +149,15 @@ pub fn angle_serialize(input: TokenStream) -> TokenStream {
             let key3 = keys[2].to_owned();
 
             (quote! {
-                impl Serialize for Angle<#name> {
+                impl serde::ser::Serialize for crate::base::angle::Angle<#name> {
                     fn serialize<S>(&self, serializer: S) ->
                             std::result::Result<S::Ok, S::Error>
                         where
-                            S: Serializer,
+                            S: serde::ser::Serializer,
                     {
-                        let mut state = serializer.serialize_struct("Angle", 3)?;
+                        use serde::ser::SerializeStruct;
+
+                        let mut state = serializer.serialize_struct(#struct_name, 3)?;
                         state.serialize_field(#key1, &self.0.0)?;
                         state.serialize_field(#key2, &(self.0.1 as i32))?;
                         state.serialize_field(#key3, &self.0.2)?;
@@ -165,3 +171,61 @@ pub fn angle_serialize(input: TokenStream) -> TokenStream {
     }
 }
 
+
+#[proc_macro]
+pub fn angle_deserialize(input: TokenStream) -> TokenStream {
+    let signature = parse_macro_input!(input as AngleSignature);
+
+    let name = &signature.name;
+    let units: Vec<String> = parse_angle_format(&name.to_string())
+        .collect();
+
+    let arc_pos = units.iter()
+        .position(|value| *value == "arc")
+        .unwrap_or(usize::max_value());
+    let keys: Vec<(String, String)> = units.iter()
+        .enumerate()
+        .map(|(idx, value)| {
+            let item = {
+                let mut c = value.chars();
+                match c.next() {
+                    None => String::new(),
+                    Some(f) => f.to_uppercase().chain(c).collect()
+                }
+            };
+
+            if idx <= arc_pos {
+                (value.to_owned(), item)
+            } else {
+                (format!("arc_{}", value), format!("Arc{}", item))
+            }
+        })
+        .filter(|value| (*value).0 != "arc")
+        .collect();
+
+    fn split(key: &(String, String)) -> (String, syn::Ident) {
+        (
+            (*key).0.to_owned(),
+            syn::Ident::new((*key).1.as_str(), Span::mixed_site())
+        )
+    }
+
+    match keys.len() {
+        1 => {
+            let (_key, _item) = split(&keys[0]);
+
+            (quote! {
+            }).into()
+        },
+
+        2 => {
+            (quote! {}).into()
+        },
+
+        3 => {
+            (quote! {}).into()
+        },
+
+        _ => panic!("Illegal angle item name.")
+    }
+}

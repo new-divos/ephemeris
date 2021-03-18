@@ -4,7 +4,7 @@ use std::convert;
 use std::marker::PhantomData;
 
 use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
-use serde::ser::{Serialize, Serializer, SerializeStruct};
+use serde::ser::{Serialize, Serializer};
 
 use crate::base::consts::{PI2, D2R, R2D, R2AM, AM2R, R2AS, AS2R,
                           H2R, R2H, M2R, R2M, S2R, R2S};
@@ -823,6 +823,8 @@ impl Serialize for Angle<Radians> {
         where
             S: Serializer,
     {
+        use serde::ser::SerializeStruct;
+
         let mut state = serializer.serialize_struct("Angle", 1)?;
         state.serialize_field("radians", &self.0)?;
         state.end()
@@ -931,6 +933,7 @@ impl_into! {
 }
 
 angle_serialize!(Revolutions);
+angle_deserialize!(Revolutions);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -956,6 +959,7 @@ impl_into! {
 }
 
 angle_serialize!(Degrees);
+angle_deserialize!(Degrees);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -981,6 +985,7 @@ impl_into! {
 }
 
 angle_serialize!(DegreesArcMinutes);
+angle_deserialize!(DegreesArcMinutes);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -1006,6 +1011,7 @@ impl_into! {
 }
 
 angle_serialize!(DegreesArcMinutesSeconds);
+angle_deserialize!(DegreesArcMinutesSeconds);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -1031,6 +1037,7 @@ impl_into! {
 }
 
 angle_serialize!(ArcMinutes);
+angle_deserialize!(ArcMinutes);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -1056,6 +1063,7 @@ impl_into! {
 }
 
 angle_serialize!(ArcMinutesSeconds);
+angle_deserialize!(ArcMinutesSeconds);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -1081,6 +1089,7 @@ impl_into! {
 }
 
 angle_serialize!(ArcSeconds);
+angle_deserialize!(ArcSeconds);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -1106,6 +1115,7 @@ impl_into! {
 }
 
 angle_serialize!(Hours);
+angle_deserialize!(Hours);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -1131,6 +1141,7 @@ impl_into! {
 }
 
 angle_serialize!(HoursMinutes);
+angle_deserialize!(HoursMinutes);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -1156,6 +1167,7 @@ impl_into! {
 }
 
 angle_serialize!(HoursMinutesSeconds);
+angle_deserialize!(HoursMinutesSeconds);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -1181,6 +1193,7 @@ impl_into! {
 }
 
 angle_serialize!(Minutes);
+angle_deserialize!(Minutes);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -1206,6 +1219,7 @@ impl_into! {
 }
 
 angle_serialize!(MinutesSeconds);
+angle_deserialize!(MinutesSeconds);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -1231,6 +1245,7 @@ impl_into! {
 }
 
 angle_serialize!(Seconds);
+angle_deserialize!(Seconds);
 
 
 #[cfg(test)]
