@@ -80,10 +80,10 @@ pub fn angle_serialize(input: TokenStream) -> TokenStream {
     let signature = parse_macro_input!(input as AngleSignature);
 
     let name = &signature.name;
-    let struct_name = name.to_string();
-    let units: Vec<String> = parse_angle_format(&struct_name)
+    let type_name = name.to_string();
+    let units: Vec<String> = parse_angle_format(&type_name)
         .collect();
-    let struct_name = format!("Angle{}", struct_name);
+    let struct_name = format!("Angle{}", type_name);
 
     let arc_pos = units.iter()
         .position(|value| *value == "arc")
@@ -177,8 +177,16 @@ pub fn angle_deserialize(input: TokenStream) -> TokenStream {
     let signature = parse_macro_input!(input as AngleSignature);
 
     let name = &signature.name;
+    let type_name = name.to_string();
     let units: Vec<String> = parse_angle_format(&name.to_string())
         .collect();
+    let visitor_name = format!("Visitor{}", type_name);
+    let struct_name = format!("Angle{}", type_name);
+
+    let visitor = syn::Ident::new(
+        visitor_name.as_str(),
+        Span::mixed_site()
+    );
 
     let arc_pos = units.iter()
         .position(|value| *value == "arc")
@@ -212,9 +220,102 @@ pub fn angle_deserialize(input: TokenStream) -> TokenStream {
 
     match keys.len() {
         1 => {
-            let (_key, _item) = split(&keys[0]);
+            let (key, item) = split(&keys[0]);
 
             (quote! {
+                impl<'de> serde::de::Deserialize<'de> for crate::base::angle::Angle<#name> {
+                    fn deserialize<D>(deserializer: D)
+                        -> std::result::Result<Self, D::Error>
+                    where
+                        D: serde::de::Deserializer<'de>,
+                    {
+                        use std::fmt;
+
+                        enum Field { #item, }
+
+                        impl<'de> serde::de::Deserialize<'de> for Field {
+                            fn deserialize<D>(deserializer: D)
+                                -> std::result::Result<Field, D::Error>
+                            where
+                                D: serde::de::Deserializer<'de>,
+                            {
+                                struct FieldVisitor;
+
+                                impl<'de> serde::de::Visitor<'de> for FieldVisitor {
+                                    type Value = Field;
+
+                                    fn expecting(
+                                        &self,
+                                        formatter: &mut fmt::Formatter
+                                    ) -> fmt::Result
+                                    {
+                                        let parts = vec!["`", #key, "`"];
+                                        formatter.write_str(parts.join("").as_str())
+                                    }
+
+                                    fn visit_str<E>(self, value: &str)
+                                        -> std::result::Result<Field, E>
+                                    where
+                                        E: serde::de::Error,
+                                    {
+                                        match value {
+                                            #key => Ok(Field::#item),
+                                            _ => Err(
+                                                serde::de::Error::unknown_field(value, FIELDS)
+                                            ),
+                                        }
+                                    }
+                                }
+
+                                deserializer.deserialize_identifier(FieldVisitor)
+                            }
+                        }
+
+                        struct #visitor;
+
+                        impl<'de> serde::de::Visitor<'de> for #visitor {
+                            type Value = crate::base::angle::Angle<#name>;
+
+                            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                                let parts = vec!["struct Angle<", #type_name, ">"];
+                                formatter.write_str(parts.join("").as_str())
+                            }
+
+                            fn visit_seq<V>(self, mut seq: V)
+                                -> std::result::Result<crate::base::angle::Angle<#name>, V::Error>
+                            where
+                                V: serde::de::SeqAccess<'de>,
+                            {
+                                let value = seq.next_element()?
+                                    .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
+                                Ok(crate::base::angle::Angle::<#name>::new(value))
+                            }
+
+                            fn visit_map<V>(self, mut map: V)
+                                -> std::result::Result<crate::base::angle::Angle<#name>, V::Error>
+                            where
+                                V: serde::de::MapAccess<'de>,
+                            {
+                                let mut value = None;
+                                while let Some(key) = map.next_key()? {
+                                    if let Field::#item = key {
+                                        if value.is_some() {
+                                            return Err(serde::de::Error::duplicate_field(#key));
+                                        }
+                                        value = Some(map.next_value()?);
+                                    }
+                                }
+                                let value = value.ok_or_else(
+                                    || serde::de::Error::missing_field(#key)
+                                )?;
+                                Ok(crate::base::angle::Angle::<#name>::new(value))
+                            }
+                        }
+
+                        const FIELDS: &'static [&'static str] = &[#key];
+                        deserializer.deserialize_struct(#struct_name, FIELDS, #visitor)
+                    }
+                }
             }).into()
         },
 

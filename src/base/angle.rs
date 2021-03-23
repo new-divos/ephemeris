@@ -825,7 +825,8 @@ impl Serialize for Angle<Radians> {
     {
         use serde::ser::SerializeStruct;
 
-        let mut state = serializer.serialize_struct("Angle", 1)?;
+        let mut state =
+            serializer.serialize_struct("AngleRadians", 1)?;
         state.serialize_field("radians", &self.0)?;
         state.end()
     }
@@ -846,7 +847,7 @@ impl<'de> Deserialize<'de> for Angle<Radians> {
             type Value = Angle<Radians>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("struct Angle")
+                formatter.write_str("struct Angle<Radians>")
             }
 
             fn visit_seq<V>(self, mut seq: V) -> Result<Self::Value, V::Error>
@@ -881,7 +882,7 @@ impl<'de> Deserialize<'de> for Angle<Radians> {
         }
 
         const FIELDS: &'static [&'static str] = &["radians"];
-        deserializer.deserialize_struct("Angle", FIELDS, RadiansVisitor)
+        deserializer.deserialize_struct("AngleRadians", FIELDS, RadiansVisitor)
 
     }
 }

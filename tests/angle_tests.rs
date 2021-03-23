@@ -1335,7 +1335,15 @@ fn revolutions_serde_test() {
         let a_rev = Angle::<Revolutions>::new(revolutions);
         let data = serde_json::to_string(&a_rev).unwrap();
 
-        println!("{}", data);
+        let mut text = vec![r#"{"revolutions":"#];
+        let r = format!("{}", a_rev.revolutions());
+        text.push(r.as_str());
+        text.push("}");
+
+        assert_eq!(data, text.join(""));
+
+        let tested: Angle<Revolutions> = serde_json::from_str(data.as_str()).unwrap();
+        assert_relative_eq!(a_rev.revolutions(), tested.revolutions(), epsilon=common::EPS);
     }
 }
 
