@@ -54,7 +54,7 @@ pub fn angle_mapper_derive(input: TokenStream) -> TokenStream {
     match count {
         1 => (quote! {
             impl crate::base::angle::AngleMapper for #name {
-                type Item = SimpleAngle;
+                type Item = f64;
             }
         }).into(),
 
@@ -114,7 +114,7 @@ pub fn angle_serialize(input: TokenStream) -> TokenStream {
                         use serde::ser::SerializeStruct;
 
                         let mut state = serializer.serialize_struct(#struct_name, 1)?;
-                        state.serialize_field(#key, &self.0.0)?;
+                        state.serialize_field(#key, &self.0)?;
                         state.end()
                     }
                 }
