@@ -198,7 +198,8 @@ fn angle_radians_test() {
         assert_relative_eq!(v, radians, epsilon = common::EPS);
 
         let (deg, arcmin) = to_short(degrees);
-        let a_adm = Angle::<DegreesArcMinutes>::new(deg, arcmin);
+        let a_adm =
+            Angle::<DegreesArcMinutes>::new(deg, arcmin);
         assert_eq!(a_adm.degrees(), deg);
         assert_relative_eq!(a_adm.arc_minutes(), arcmin, epsilon = common::EPS);
         v = a_adm.into();
@@ -209,14 +210,16 @@ fn angle_radians_test() {
         assert_relative_eq!(v, radians, epsilon = common::EPS);
 
         let (deg, arcmin, arcsec) = to_long(degrees);
-        let a_adms = Angle::<DegreesArcMinutesSeconds>::new(deg, arcmin, arcsec);
+        let a_adms =
+            Angle::<DegreesArcMinutesSeconds>::new(deg, arcmin, arcsec);
         assert_eq!(a_adms.degrees(), deg);
         assert_eq!(a_adms.arc_minutes(), arcmin);
         assert_relative_eq!(a_adms.arc_seconds(), arcsec, epsilon = common::EPS);
         v = a_adms.into();
         assert_relative_eq!(v, radians, epsilon = common::EPS);
 
-        let a_adms = Angle::<DegreesArcMinutesSeconds>::from(radians);
+        let a_adms =
+            Angle::<DegreesArcMinutesSeconds>::from(radians);
         v = a_adms.into();
         assert_relative_eq!(v, radians, epsilon = common::EPS);
 
@@ -230,7 +233,8 @@ fn angle_radians_test() {
         assert_relative_eq!(v, radians, epsilon = common::EPS);
 
         let (arcmin, arcsec) = to_short(arc_minutes);
-        let a_ams = Angle::<ArcMinutesSeconds>::new(arcmin, arcsec);
+        let a_ams =
+            Angle::<ArcMinutesSeconds>::new(arcmin, arcsec);
         assert_eq!(a_ams.arc_minutes(), arcmin);
         assert_relative_eq!(a_adms.arc_seconds(), arcsec, epsilon = common::EPS);
         v = a_ams.into();
@@ -1306,13 +1310,16 @@ fn radians_serde_test() {
 
     for _ in 0..common::ITERATIONS {
         let radians = rng.sample(band);
+        if radians < common::SERDE_THRESHOLD {
+            continue;
+        }
 
         let a_rad = Angle::<Radians>::from(radians);
         let data = serde_json::to_string(&a_rad).unwrap();
 
         let mut text = vec![r#"{"radians":"#];
-        let r = format!("{}", radians);
-        text.push(r.as_str());
+        let s = radians.to_string();
+        text.push(s.as_str());
         text.push("}");
 
         assert_eq!(data, text.join(""));
@@ -1331,19 +1338,49 @@ fn revolutions_serde_test() {
 
     for _ in 0..common::ITERATIONS {
         let revolutions = rng.sample(band);
+        if revolutions < common::SERDE_THRESHOLD {
+            continue;
+        }
 
         let a_rev = Angle::<Revolutions>::new(revolutions);
         let data = serde_json::to_string(&a_rev).unwrap();
 
         let mut text = vec![r#"{"revolutions":"#];
-        let r = format!("{}", a_rev.revolutions());
-        text.push(r.as_str());
+        let s = revolutions.to_string();
+        text.push(s.as_str());
         text.push("}");
 
         assert_eq!(data, text.join(""));
 
         let tested: Angle<Revolutions> = serde_json::from_str(data.as_str()).unwrap();
         assert_relative_eq!(a_rev.revolutions(), tested.revolutions(), epsilon=common::EPS);
+    }
+}
+
+
+#[test]
+fn degrees_serde_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-360_f64, 360_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let degrees = rng.sample(band);
+        if degrees < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_d = Angle::<Degrees>::new(degrees);
+        let data = serde_json::to_string(&a_d).unwrap();
+
+        let mut text = vec![r#"{"degrees":"#];
+        let s = degrees.to_string();
+        text.push(s.as_str());
+        text.push("}");
+
+        assert_eq!(data, text.join(""));
+
+        let tested: Angle<Degrees> = serde_json::from_str(data.as_str()).unwrap();
+        assert_relative_eq!(a_d.degrees(), tested.degrees(), epsilon=common::EPS);
     }
 }
 
@@ -1357,11 +1394,26 @@ fn degrees_arc_minutes_serde_test() {
     for _ in 0..common::ITERATIONS {
         let degrees = rng.sample(degrees_band);
         let arc_minutes = rng.sample(arc_minutes_band);
+        if arc_minutes < common::SERDE_THRESHOLD {
+            continue;
+        }
 
         let a_dam = Angle::<DegreesArcMinutes>::new(degrees, arc_minutes);
         let data = serde_json::to_string(&a_dam).unwrap();
 
-        println!("{}", data);
+        let mut text = vec![r#"{"degrees":"#];
+        let s1 = a_dam.degrees().to_string();
+        text.push(s1.as_str());
+        text.push(r#","arc_minutes":"#);
+        let s2 = a_dam.arc_minutes().to_string();
+        text.push(s2.as_str());
+        text.push("}");
+
+        assert_eq!(data, text.join(""));
+
+        let tested: Angle<DegreesArcMinutes> = serde_json::from_str(data.as_str()).unwrap();
+        assert_eq!(a_dam.degrees(), tested.degrees());
+        assert_relative_eq!(a_dam.arc_minutes(), tested.arc_minutes(), epsilon=common::EPS);
     }
 }
 
@@ -1377,11 +1429,306 @@ fn degrees_arc_minutes_seconds_serde_test() {
         let degrees = rng.sample(degrees_band);
         let arc_minutes = rng.sample(arc_minutes_band);
         let arc_seconds = rng.sample(arc_seconds_band);
+        if arc_seconds < common::SERDE_THRESHOLD {
+            continue;
+        }
 
         let a_dams =
             Angle::<DegreesArcMinutesSeconds>::new(degrees, arc_minutes, arc_seconds);
         let data = serde_json::to_string(&a_dams).unwrap();
 
-        println!("{}", data);
+        let mut text = vec![r#"{"degrees":"#];
+        let s1 = a_dams.degrees().to_string();
+        text.push(s1.as_str());
+        text.push(r#","arc_minutes":"#);
+        let s2 = a_dams.arc_minutes().to_string();
+        text.push(s2.as_str());
+        text.push(r#","arc_seconds":"#);
+        let s3 = a_dams.arc_seconds().to_string();
+        text.push(s3.as_str());
+        text.push("}");
+
+        assert_eq!(data, text.join(""));
+
+        let tested: Angle<DegreesArcMinutesSeconds> =
+            serde_json::from_str(data.as_str()).unwrap();
+        assert_eq!(a_dams.degrees(), tested.degrees());
+        assert_eq!(a_dams.arc_minutes(), tested.arc_minutes());
+        assert_relative_eq!(a_dams.arc_seconds(), tested.arc_seconds(), epsilon=common::EPS);
+    }
+}
+
+
+#[test]
+fn arc_minutes_serde_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-360.0 * 60.0_f64, 360.0 * 60.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let arc_minutes = rng.sample(band);
+        if arc_minutes < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_am = Angle::<ArcMinutes>::new(arc_minutes);
+        let data = serde_json::to_string(&a_am).unwrap();
+
+        let mut text = vec![r#"{"arc_minutes":"#];
+        let s = arc_minutes.to_string();
+        text.push(s.as_str());
+        text.push("}");
+
+        assert_eq!(data, text.join(""));
+
+        let tested: Angle<ArcMinutes> = serde_json::from_str(data.as_str()).unwrap();
+        assert_relative_eq!(a_am.arc_minutes(), tested.arc_minutes(), epsilon=common::EPS);
+    }
+}
+
+
+#[test]
+fn arc_minutes_seconds_serde_test() {
+    let mut rng = thread_rng();
+    let arc_minutes_band = Uniform::new(-360 * 60i32, 360 * 60i32);
+    let arc_seconds_band = Uniform::new(0.0_f64, 60.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let arc_minutes = rng.sample(arc_minutes_band);
+        let arc_seconds = rng.sample(arc_seconds_band);
+        if arc_seconds < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_ams = Angle::<ArcMinutesSeconds>::new(arc_minutes, arc_seconds);
+        let data = serde_json::to_string(&a_ams).unwrap();
+
+        let mut text = vec![r#"{"arc_minutes":"#];
+        let s1 = a_ams.arc_minutes().to_string();
+        text.push(s1.as_str());
+        text.push(r#","arc_seconds":"#);
+        let s2 = a_ams.arc_seconds().to_string();
+        text.push(s2.as_str());
+        text.push("}");
+
+        assert_eq!(data, text.join(""));
+
+        let tested: Angle<ArcMinutesSeconds> = serde_json::from_str(data.as_str()).unwrap();
+        assert_eq!(a_ams.arc_minutes(), tested.arc_minutes());
+        assert_relative_eq!(a_ams.arc_seconds(), tested.arc_seconds(), epsilon=common::EPS);
+    }
+}
+
+
+#[test]
+fn arc_seconds_serde_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-360.0 * 3600.0_f64, 360.0 * 3600.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let arc_seconds = rng.sample(band);
+        if arc_seconds < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_as = Angle::<ArcSeconds>::new(arc_seconds);
+        let data = serde_json::to_string(&a_as).unwrap();
+
+        let mut text = vec![r#"{"arc_seconds":"#];
+        let s = arc_seconds.to_string();
+        text.push(s.as_str());
+        text.push("}");
+
+        assert_eq!(data, text.join(""));
+
+        let tested: Angle<ArcSeconds> = serde_json::from_str(data.as_str()).unwrap();
+        assert_relative_eq!(a_as.arc_seconds(), tested.arc_seconds(), epsilon=common::EPS);
+    }
+}
+
+
+#[test]
+fn hours_serde_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-24.0_f64, 24.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let hours = rng.sample(band);
+        if hours < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_h = Angle::<Hours>::new(hours);
+        let data = serde_json::to_string(&a_h).unwrap();
+
+        let mut text = vec![r#"{"hours":"#];
+        let s = hours.to_string();
+        text.push(s.as_str());
+        text.push("}");
+
+        assert_eq!(data, text.join(""));
+
+        let tested: Angle<Hours> = serde_json::from_str(data.as_str()).unwrap();
+        assert_relative_eq!(a_h.hours(), tested.hours(), epsilon=common::EPS);
+    }
+}
+
+
+#[test]
+fn hours_minutes_serde_test() {
+    let mut rng = thread_rng();
+    let hours_band = Uniform::new(-24i32, 24i32);
+    let minutes_band = Uniform::new(0.0_f64, 60.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let hours = rng.sample(hours_band);
+        let minutes = rng.sample(minutes_band);
+        if minutes < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_hm = Angle::<HoursMinutes>::new(hours, minutes);
+        let data = serde_json::to_string(&a_hm).unwrap();
+
+        let mut text = vec![r#"{"hours":"#];
+        let s1 = a_hm.hours().to_string();
+        text.push(s1.as_str());
+        text.push(r#","minutes":"#);
+        let s2 = a_hm.minutes().to_string();
+        text.push(s2.as_str());
+        text.push("}");
+
+        assert_eq!(data, text.join(""));
+
+        let tested: Angle<HoursMinutes> = serde_json::from_str(data.as_str()).unwrap();
+        assert_eq!(a_hm.hours(), tested.hours());
+        assert_relative_eq!(a_hm.minutes(), tested.minutes(), epsilon=common::EPS);
+    }
+}
+
+
+#[test]
+fn hours_minutes_seconds_serde_test() {
+    let mut rng = thread_rng();
+    let hours_band = Uniform::new(-24i32, 24i32);
+    let minutes_band = Uniform::new(0i32, 60i32);
+    let seconds_band = Uniform::new(0.0_f64, 60.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let hours = rng.sample(hours_band);
+        let minutes = rng.sample(minutes_band);
+        let seconds = rng.sample(seconds_band);
+        if seconds < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_hms =
+            Angle::<HoursMinutesSeconds>::new(hours, minutes, seconds);
+        let data = serde_json::to_string(&a_hms).unwrap();
+
+        let mut text = vec![r#"{"hours":"#];
+        let s1 = a_hms.hours().to_string();
+        text.push(s1.as_str());
+        text.push(r#","minutes":"#);
+        let s2 = a_hms.minutes().to_string();
+        text.push(s2.as_str());
+        text.push(r#","seconds":"#);
+        let s3 = a_hms.seconds().to_string();
+        text.push(s3.as_str());
+        text.push("}");
+
+        assert_eq!(data, text.join(""));
+
+        let tested: Angle<HoursMinutesSeconds> =
+            serde_json::from_str(data.as_str()).unwrap();
+        assert_eq!(a_hms.hours(), tested.hours());
+        assert_eq!(a_hms.minutes(), tested.minutes());
+        assert_relative_eq!(a_hms.seconds(), tested.seconds(), epsilon=common::EPS);
+    }
+}
+
+
+#[test]
+fn minutes_serde_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-24.0 * 60.0_f64, 24.0 * 60.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let minutes = rng.sample(band);
+        if minutes < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_m = Angle::<Minutes>::new(minutes);
+        let data = serde_json::to_string(&a_m).unwrap();
+
+        let mut text = vec![r#"{"minutes":"#];
+        let s = minutes.to_string();
+        text.push(s.as_str());
+        text.push("}");
+
+        assert_eq!(data, text.join(""));
+
+        let tested: Angle<Minutes> = serde_json::from_str(data.as_str()).unwrap();
+        assert_relative_eq!(a_m.minutes(), tested.minutes(), epsilon=common::EPS);
+    }
+}
+
+
+#[test]
+fn minutes_seconds_serde_test() {
+    let mut rng = thread_rng();
+    let minutes_band = Uniform::new(-24 * 60i32, 24 * 60i32);
+    let seconds_band = Uniform::new(0.0_f64, 60.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let minutes = rng.sample(minutes_band);
+        let seconds = rng.sample(seconds_band);
+        if seconds < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_ms = Angle::<MinutesSeconds>::new(minutes, seconds);
+        let data = serde_json::to_string(&a_ms).unwrap();
+
+        let mut text = vec![r#"{"minutes":"#];
+        let s1 = a_ms.minutes().to_string();
+        text.push(s1.as_str());
+        text.push(r#","seconds":"#);
+        let s2 = a_ms.seconds().to_string();
+        text.push(s2.as_str());
+        text.push("}");
+
+        assert_eq!(data, text.join(""));
+
+        let tested: Angle<MinutesSeconds> = serde_json::from_str(data.as_str()).unwrap();
+        assert_eq!(a_ms.minutes(), tested.minutes());
+        assert_relative_eq!(a_ms.seconds(), tested.seconds(), epsilon=common::EPS);
+    }
+}
+
+
+#[test]
+fn seconds_serde_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-24.0 * 3600.0_f64, 24.0 * 3600.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let seconds = rng.sample(band);
+        if seconds < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_s = Angle::<Seconds>::new(seconds);
+        let data = serde_json::to_string(&a_s).unwrap();
+
+        let mut text = vec![r#"{"seconds":"#];
+        let s = seconds.to_string();
+        text.push(s.as_str());
+        text.push("}");
+
+        assert_eq!(data, text.join(""));
+
+        let tested: Angle<Seconds> = serde_json::from_str(data.as_str()).unwrap();
+        assert_relative_eq!(a_s.seconds(), tested.seconds(), epsilon=common::EPS);
     }
 }

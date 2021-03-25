@@ -258,11 +258,10 @@ pub fn angle_deserialize(input: TokenStream) -> TokenStream {
                                     where
                                         E: serde::de::Error,
                                     {
-                                        match value {
-                                            #key => Ok(Field::#item),
-                                            _ => Err(
-                                                serde::de::Error::unknown_field(value, FIELDS)
-                                            ),
+                                        if value == #key {
+                                            Ok(Field::#item)
+                                        } else {
+                                            Err(serde::de::Error::unknown_field(value, FIELDS))
                                         }
                                     }
                                 }
@@ -320,11 +319,260 @@ pub fn angle_deserialize(input: TokenStream) -> TokenStream {
         },
 
         2 => {
-            (quote! {}).into()
+            let (key1, item1) = split(&keys[0]);
+            let (key2, item2) = split(&keys[1]);
+
+            (quote! {
+                impl<'de> serde::de::Deserialize<'de> for crate::base::angle::Angle<#name> {
+                    fn deserialize<D>(deserializer: D)
+                        -> std::result::Result<Self, D::Error>
+                    where
+                        D: serde::de::Deserializer<'de>,
+                    {
+                        use std::fmt;
+
+                        enum Field { #item1, #item2 }
+
+                        impl<'de> serde::de::Deserialize<'de> for Field {
+                            fn deserialize<D>(deserializer: D)
+                                -> std::result::Result<Field, D::Error>
+                            where
+                                D: serde::de::Deserializer<'de>,
+                            {
+                                struct FieldVisitor;
+
+                                impl<'de> serde::de::Visitor<'de> for FieldVisitor {
+                                    type Value = Field;
+
+                                    fn expecting(
+                                        &self,
+                                        formatter: &mut fmt::Formatter
+                                    ) -> fmt::Result
+                                    {
+                                        let parts = vec!["`", #key1, "` or `", #key2, "`"];
+                                        formatter.write_str(parts.join("").as_str())
+                                    }
+
+                                    fn visit_str<E>(self, value: &str)
+                                        -> std::result::Result<Field, E>
+                                    where
+                                        E: serde::de::Error,
+                                    {
+                                        match value {
+                                            #key1 => Ok(Field::#item1),
+                                            #key2 => Ok(Field::#item2),
+                                            _ => Err(
+                                                serde::de::Error::unknown_field(value, FIELDS)
+                                            ),
+                                        }
+                                    }
+                                }
+
+                                deserializer.deserialize_identifier(FieldVisitor)
+                            }
+                        }
+
+                        struct #visitor;
+
+                        impl<'de> serde::de::Visitor<'de> for #visitor {
+                            type Value = crate::base::angle::Angle<#name>;
+
+                            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                                let parts = vec!["struct Angle<", #type_name, ">"];
+                                formatter.write_str(parts.join("").as_str())
+                            }
+
+                            fn visit_seq<V>(self, mut seq: V)
+                                -> std::result::Result<crate::base::angle::Angle<#name>, V::Error>
+                            where
+                                V: serde::de::SeqAccess<'de>,
+                            {
+                                let value1 = seq.next_element()?
+                                    .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
+                                let value2 = seq.next_element()?
+                                    .ok_or_else(|| serde::de::Error::invalid_length(1, &self))?;
+                                Ok(crate::base::angle::Angle::<#name>::new(value1, value2))
+                            }
+
+                            fn visit_map<V>(self, mut map: V)
+                                -> std::result::Result<crate::base::angle::Angle<#name>, V::Error>
+                            where
+                                V: serde::de::MapAccess<'de>,
+                            {
+                                let mut value1 = None;
+                                let mut value2 = None;
+                                while let Some(key) = map.next_key()? {
+                                    match key {
+                                        Field::#item1 => {
+                                            if value1.is_some() {
+                                                return Err(
+                                                    serde::de::Error::duplicate_field(#key1)
+                                                );
+                                            }
+                                            value1 = Some(map.next_value()?);
+                                        },
+                                        Field::#item2 => {
+                                            if value2.is_some() {
+                                                return Err(
+                                                    serde::de::Error::duplicate_field(#key2)
+                                                );
+                                            }
+                                            value2 = Some(map.next_value()?);
+                                        },
+                                    }
+                                }
+                                let value1 = value1.ok_or_else(
+                                    || serde::de::Error::missing_field(#key1)
+                                )?;
+                                let value2 = value2.ok_or_else(
+                                    || serde::de::Error::missing_field(#key2)
+                                )?;
+                                Ok(crate::base::angle::Angle::<#name>::new(value1, value2))
+                            }
+                        }
+
+                        const FIELDS: &'static [&'static str] = &[#key1, #key2];
+                        deserializer.deserialize_struct(#struct_name, FIELDS, #visitor)
+                    }
+                }
+            }).into()
         },
 
         3 => {
-            (quote! {}).into()
+            let (key1, item1) = split(&keys[0]);
+            let (key2, item2) = split(&keys[1]);
+            let (key3, item3) = split(&keys[2]);
+
+            (quote! {
+                impl<'de> serde::de::Deserialize<'de> for crate::base::angle::Angle<#name> {
+                    fn deserialize<D>(deserializer: D)
+                        -> std::result::Result<Self, D::Error>
+                    where
+                        D: serde::de::Deserializer<'de>,
+                    {
+                        use std::fmt;
+
+                        enum Field { #item1, #item2, #item3 }
+
+                        impl<'de> serde::de::Deserialize<'de> for Field {
+                            fn deserialize<D>(deserializer: D)
+                                -> std::result::Result<Field, D::Error>
+                            where
+                                D: serde::de::Deserializer<'de>,
+                            {
+                                struct FieldVisitor;
+
+                                impl<'de> serde::de::Visitor<'de> for FieldVisitor {
+                                    type Value = Field;
+
+                                    fn expecting(
+                                        &self,
+                                        formatter: &mut fmt::Formatter
+                                    ) -> fmt::Result
+                                    {
+                                        let parts = vec!["`", #key1, "`, `", #key2,
+                                            "` or `", #key3];
+                                        formatter.write_str(parts.join("").as_str())
+                                    }
+
+                                    fn visit_str<E>(self, value: &str)
+                                        -> std::result::Result<Field, E>
+                                    where
+                                        E: serde::de::Error,
+                                    {
+                                        match value {
+                                            #key1 => Ok(Field::#item1),
+                                            #key2 => Ok(Field::#item2),
+                                            #key3 => Ok(Field::#item3),
+                                            _ => Err(
+                                                serde::de::Error::unknown_field(value, FIELDS)
+                                            ),
+                                        }
+                                    }
+                                }
+
+                                deserializer.deserialize_identifier(FieldVisitor)
+                            }
+                        }
+
+                        struct #visitor;
+
+                        impl<'de> serde::de::Visitor<'de> for #visitor {
+                            type Value = crate::base::angle::Angle<#name>;
+
+                            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                                let parts = vec!["struct Angle<", #type_name, ">"];
+                                formatter.write_str(parts.join("").as_str())
+                            }
+
+                            fn visit_seq<V>(self, mut seq: V)
+                                -> std::result::Result<crate::base::angle::Angle<#name>, V::Error>
+                            where
+                                V: serde::de::SeqAccess<'de>,
+                            {
+                                let value1 = seq.next_element()?
+                                    .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
+                                let value2 = seq.next_element()?
+                                    .ok_or_else(|| serde::de::Error::invalid_length(1, &self))?;
+                                let value3 = seq.next_element()?
+                                    .ok_or_else(|| serde::de::Error::invalid_length(2, &self))?;
+                                Ok(crate::base::angle::Angle::<#name>::new(value1, value2, value3))
+                            }
+
+                            fn visit_map<V>(self, mut map: V)
+                                -> std::result::Result<crate::base::angle::Angle<#name>, V::Error>
+                            where
+                                V: serde::de::MapAccess<'de>,
+                            {
+                                let mut value1 = None;
+                                let mut value2 = None;
+                                let mut value3 = None;
+                                while let Some(key) = map.next_key()? {
+                                    match key {
+                                        Field::#item1 => {
+                                            if value1.is_some() {
+                                                return Err(
+                                                    serde::de::Error::duplicate_field(#key1)
+                                                );
+                                            }
+                                            value1 = Some(map.next_value()?);
+                                        },
+                                        Field::#item2 => {
+                                            if value2.is_some() {
+                                                return Err(
+                                                    serde::de::Error::duplicate_field(#key2)
+                                                );
+                                            }
+                                            value2 = Some(map.next_value()?);
+                                        },
+                                        Field::#item3 => {
+                                            if value3.is_some() {
+                                                return Err(
+                                                    serde::de::Error::duplicate_field(#key3)
+                                                );
+                                            }
+                                            value3 = Some(map.next_value()?);
+                                        },
+                                    }
+                                }
+                                let value1 = value1.ok_or_else(
+                                    || serde::de::Error::missing_field(#key1)
+                                )?;
+                                let value2 = value2.ok_or_else(
+                                    || serde::de::Error::missing_field(#key2)
+                                )?;
+                                let value3 = value3.ok_or_else(
+                                    || serde::de::Error::missing_field(#key3)
+                                )?;
+                                Ok(crate::base::angle::Angle::<#name>::new(value1, value2, value3))
+                            }
+                        }
+
+                        const FIELDS: &'static [&'static str] = &[#key1, #key2, #key3];
+                        deserializer.deserialize_struct(#struct_name, FIELDS, #visitor)
+                    }
+                }
+            }).into()
         },
 
         _ => panic!("Illegal angle item name.")
