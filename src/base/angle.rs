@@ -15,8 +15,8 @@ const RV2M: f64 = RV2H * 60.0;
 const RV2S: f64 = RV2M * 60.0;
 
 const TA: f64 = 15.0;
-const TM: f64 = 60.0 / TA;
-const TS: f64 = 3600.0 / TA;
+const TM: f64 = 4.0;     // TM = 60.0 / TA;
+const TS: f64 = 240.0;   // TS = 3600.0 / TA;
 
 const TMM: f64 = TA * 60.0;
 const TMS: f64 = TMM * 60.0;
@@ -417,213 +417,215 @@ macro_rules! angle_new {
 }
 
 
-macro_rules! impl_into {
-    () => {};
-    ($td:ty: 0 = value * $c:expr; $($tail:tt)*) => {
+macro_rules! angle_from {
+    (@impl_from $td:ty: $ts:ty => (0 = 0 * $c:expr)) => {
+        impl convert::From<Angle<$ts>> for Angle<$td> {
+            #[inline]
+            fn from(angle: Angle<$ts>) -> Self {
+                Self(angle.0 * $c, PhantomData::<$td>)
+            }
+        }
+    };
+
+    (@impl_from $td:ty: $ts:ty => (0 = 0 / $c:expr)) => {
+        impl convert::From<Angle<$ts>> for Angle<$td> {
+            #[inline]
+            fn from(angle: Angle<$ts>) -> Self {
+                Self(angle.0 / $c, PhantomData::<$td>)
+            }
+        }
+    };
+
+    (@impl_from $td:ty: $ts:ty => ($m:ident = 0 * $c:expr)) => {
+        impl convert::From<Angle<$ts>> for Angle<$td> {
+            #[inline]
+            fn from(angle: Angle<$ts>) -> Self {
+                Self($m(angle.0 * $c).into(), PhantomData::<$td>)
+            }
+        }
+    };
+
+    ($td:ty:) => {};
+
+    ($td:ty: Radians => (0 = 0 * $c:expr), $($tail:tt)*) => {
         impl convert::From<f64> for Angle<$td> {
             #[inline]
-            fn from(value: f64) -> Self {
+            fn from(radians: f64) -> Self {
+                Self(radians * $c, PhantomData::<$td>)
+            }
+        }
+
+        angle_from!(
+            @impl_from
+            $td: Radians => (0 = 0 * $c)
+        );
+
+        angle_from!($td: $($tail)*);
+    };
+
+    ($td:ty: $ts:ty => (0 = 0 * $c:expr), $($tail:tt)*) => {
+        angle_from!(
+            @impl_from
+            $td: $ts => (0 = 0 * $c)
+        );
+
+        angle_from!($td: $($tail)*);
+    };
+
+    ($td:ty: Radians => (0 = 0 / $c:expr), $($tail:tt)*) => {
+        impl convert::From<f64> for Angle<$td> {
+            #[inline]
+            fn from(radians: f64) -> Self {
+                Self(radians / $c, PhantomData::<$td>)
+            }
+        }
+
+        angle_from!(
+            @impl_from
+            $td: Radians => (0 = 0 / $c)
+        );
+
+        angle_from!($td: $($tail)*);
+    };
+
+    ($td:ty: $ts:ty => (0 = 0 / $c:expr), $($tail:tt)*) => {
+        angle_from!(
+            @impl_from
+            $td: $ts => (0 = 0 / $c)
+        );
+
+        angle_from!($td: $($tail)*);
+    };
+
+    ($td:ty: $ts:ty => ($m:ident = 0), $($tail:tt)*) => {
+        impl convert::From<Angle<$ts>> for Angle<$td> {
+            #[inline]
+            fn from(angle: Angle<$ts>) -> Self {
+                Self($m(angle.0).into(), PhantomData::<$td>)
+            }
+        }
+
+        angle_from!($td: $($tail)*);
+    };
+
+    ($td:ty: Radians => ($m:ident = 0 * $c:expr), $($tail:tt)*) => {
+        impl convert::From<f64> for Angle<$td> {
+            #[inline]
+            fn from(radians: f64) -> Self {
+                Self($m(radians * $c).into(), PhantomData::<$td>)
+            }
+        }
+
+        angle_from!(
+            @impl_from
+            $td:ty: $ts:ty => ($m:ident = 0 * $c:expr)
+        );
+
+        angle_from!($td: $($tail)*);
+    };
+
+    ($td:ty: $ts:ty => ($m:ident = 0 * $c:expr), $($tail:tt)*) => {
+        angle_from!(
+            @impl_from
+            $td:ty: $ts:ty => ($m:ident = 0 * $c:expr)
+        );
+
+        angle_from!($td: $($tail)*);
+    };
+
+    ($td:ty: $ts:ty => ($m:ident = 0 / $c:expr), $($tail:tt)*) => {
+        impl convert::From<Angle<$ts>> for Angle<$td> {
+            #[inline]
+            fn from(angle: Angle<$ts>) -> Self {
+                Self($m(angle.0 / $c).into(), PhantomData::<$td>)
+            }
+        }
+
+        angle_from!($td: $($tail)*);
+    };
+
+    ($td:ty: $ts:ty => (0 = $m:ident), $($tail:tt)*) => {
+        impl convert::From<Angle<$ts>> for Angle<$td> {
+            #[inline]
+            fn from(angle: Angle<$ts>) -> Self {
+                let $m(value) = angle.0.into();
+                Self(value, PhantomData::<$td>)
+            }
+        }
+
+        angle_from!($td: $($tail)*);
+    };
+
+    ($td:ty: $ts:ty => (0 = $m:ident * $c:expr), $($tail:tt)*) => {
+        impl convert::From<Angle<$ts>> for Angle<$td> {
+            #[inline]
+            fn from(angle: Angle<$ts>) -> Self {
+                let $m(value) = angle.0.into();
                 Self(value * $c, PhantomData::<$td>)
             }
         }
 
-        impl_into!($($tail)*);
+        angle_from!($td: $($tail)*);
     };
-    ($td:ty: 0 = value / $c:expr; $($tail:tt)*) => {
-        impl convert::From<f64> for Angle<$td> {
+
+    ($td:ty: $ts:ty => (0 = $m:ident / $c:expr), $($tail:tt)*) => {
+        impl convert::From<Angle<$ts>> for Angle<$td> {
             #[inline]
-            fn from(value: f64) -> Self {
+            fn from(angle: Angle<$ts>) -> Self {
+                let $m(value) = angle.0.into();
                 Self(value / $c, PhantomData::<$td>)
             }
         }
 
-        impl_into!($($tail)*);
+        angle_from!($td: $($tail)*);
     };
-    ($td:ty: $m:ident = value * $c:expr; $($tail:tt)*) => {
-        impl convert::From<f64> for Angle<$td> {
+
+    ($td:ty: $ts:ty => ($md:ident = $ms:ident), $($tail:tt)*) => {
+        impl convert::From<Angle<$ts>> for Angle<$td> {
             #[inline]
-            fn from(value: f64) -> Self {
-                Self(
-                    $m(value * $c).into(),
-                    PhantomData::<$td>
-                )
+            fn from(angle: Angle<$ts>) -> Self {
+                let $ms(value) = angle.0.into();
+                Self($md(value).into(), PhantomData::<$td>)
             }
         }
 
-        impl_into!($($tail)*);
+        angle_from!($td: $($tail)*);
     };
-    ($td:ty: $m:ident = value * $c:expr; $($tail:tt)*) => {
-        impl convert::From<f64> for Angle<$td> {
+
+    ($td:ty: $ts:ty => ($md:ident = $ms:ident * $c:expr), $($tail:tt)*) => {
+        impl convert::From<Angle<$ts>> for Angle<$td> {
             #[inline]
-            fn from(value: f64) -> Self {
-                Self(
-                    $m(value / $c).into(),
-                    PhantomData::<$td>
-                )
+            fn from(angle: Angle<$ts>) -> Self {
+                let $ms(value) = angle.0.into();
+                Self($md(value * $c).into(), PhantomData::<$td>)
             }
         }
 
-        impl_into!($($tail)*);
+        angle_from!($td: $($tail)*);
     };
-    ($ts:ty: 0 * $c:expr; $($tail:tt)*) => {
+
+    ($td:ty: $ts:ty => ($md:ident = $ms:ident / $c:expr), $($tail:tt)*) => {
+        impl convert::From<Angle<$ts>> for Angle<$td> {
+            #[inline]
+            fn from(angle: Angle<$ts>) -> Self {
+                let $ms(value) = angle.0.into();
+                Self($md(value / $c).into(), PhantomData::<$td>)
+            }
+        }
+
+        angle_from!($td: $($tail)*);
+    };
+}
+
+
+macro_rules! angle_value {
+    ($ts:ty: 0 * $c:expr) => {
         impl convert::Into<f64> for Angle<$ts> {
             #[inline]
             fn into(self) -> f64 {
                 self.0 * $c
             }
         }
-
-        impl_into!($($tail)*);
-    };
-    ($ts:ty: 0 / $c:expr; $($tail:tt)*) => {
-        impl convert::Into<f64> for Angle<$ts> {
-            #[inline]
-            fn into(self) -> f64 {
-                self.0 / $c
-            }
-        }
-
-        impl_into!($($tail)*);
-    };
-    ($ts:ty : $m:ident * $c:expr; $($tail:tt)*) => {
-        impl convert::Into<f64> for Angle<$ts> {
-            fn into(self) -> f64 {
-                let $m(value) = self.0.into();
-                value * $c
-            }
-        }
-
-        impl_into!($($tail)*);
-    };
-    ($ts:ty: $m:ident / $c:expr; $($tail:tt)*) => {
-        impl convert::Into<f64> for Angle<$ts> {
-            fn into(self) -> f64 {
-                let $m(value) = self.0.into();
-                value / $c
-            }
-        }
-
-        impl_into!($($tail)*);
-    };
-    ($ts:ty => Radians; $($tail:tt)*) => {
-        impl convert::Into<Angle<Radians>> for Angle<$ts> {
-            #[inline]
-            fn into(self) -> Angle<Radians> {
-                Angle::<Radians>(self.into(), PhantomData::<Radians>)
-            }
-        }
-
-        impl_into!($($tail)*);
-    };
-    ($ts:ty => $td:ty: 0 = 0 * $c:expr; $($tail:tt)*) => {
-        impl convert::Into<Angle<$td>> for Angle<$ts> {
-            #[inline]
-            fn into(self) -> Angle<$td> {
-                Angle::<$td>(self.0 * $c, PhantomData::<$td>)
-            }
-        }
-
-        impl_into!($($tail)*);
-    };
-    ($ts:ty => $td:ty: 0 = 0 / $c:expr; $($tail:tt)*) => {
-        impl convert::Into<Angle<$td>> for Angle<$ts> {
-            #[inline]
-            fn into(self) -> Angle<$td> {
-                Angle::<$td>(self.0 / $c, PhantomData::<$td>)
-            }
-        }
-
-        impl_into!($($tail)*);
-    };
-    ($ts:ty => $td:ty: $m:ident = 0; $($tail:tt)*) => {
-        impl convert::Into<Angle<$td>> for Angle<$ts> {
-            #[inline]
-            fn into(self) -> Angle<$td> {
-                Angle::<$td>($m(self.0).into(), PhantomData::<$td>)
-            }
-        }
-
-        impl_into!($($tail)*);
-    };
-    ($ts:ty => $td:ty: $m:ident = 0 * $c:expr; $($tail:tt)*) => {
-        impl convert::Into<Angle<$td>> for Angle<$ts> {
-            #[inline]
-            fn into(self) -> Angle<$td> {
-                Angle::<$td>($m(self.0 * $c).into(), PhantomData::<$td>)
-            }
-        }
-
-        impl_into!($($tail)*);
-    };
-    ($ts:ty => $td:ty: $m:ident = 0 / $c:expr; $($tail:tt)*) => {
-        impl convert::Into<Angle<$td>> for Angle<$ts> {
-            #[inline]
-            fn into(self) -> Angle<$td> {
-                Angle::<$td>($m(self.0 / $c).into(), PhantomData::<$td>)
-            }
-        }
-
-        impl_into!($($tail)*);
-    };
-    ($ts:ty => $td:ty: 0 = $m:ident; $($tail:tt)*) => {
-        impl convert::Into<Angle<$td>> for Angle<$ts> {
-            fn into(self) -> Angle<$td> {
-                let $m(value) = self.0.into();
-                Angle::<$td>(value, PhantomData::<$td>)
-            }
-        }
-
-        impl_into!($($tail)*);
-    };
-    ($ts:ty => $td:ty: 0 = $m:ident * $c:expr; $($tail:tt)*) => {
-        impl convert::Into<Angle<$td>> for Angle<$ts> {
-            fn into(self) -> Angle<$td> {
-                let $m(value) = self.0.into();
-                Angle::<$td>(value * $c, PhantomData::<$td>)
-            }
-        }
-
-        impl_into!($($tail)*);
-    };
-    ($ts:ty => $td:ty: 0 = $m:ident / $c:expr; $($tail:tt)*) => {
-        impl convert::Into<Angle<$td>> for Angle<$ts> {
-            fn into(self) -> Angle<$td> {
-                let $m(value) = self.0.into();
-                Angle::<$td>(value / $c, PhantomData::<$td>)
-            }
-        }
-
-        impl_into!($($tail)*);
-    };
-    ($ts:ty => $td:ty: $md:ident = $ms:ident; $($tail:tt)*) => {
-        impl convert::Into<Angle<$td>> for Angle<$ts> {
-            fn into(self) -> Angle<$td> {
-                let $ms(value) = self.0.into();
-                Angle::<$td>($md(value).into(), PhantomData::<$td>)
-            }
-        }
-
-        impl_into!($($tail)*);
-    };
-    ($ts:ty => $td:ty: $md:ident = $ms:ident * $c:expr; $($tail:tt)*) => {
-        impl convert::Into<Angle<$td>> for Angle<$ts> {
-            fn into(self) -> Angle<$td> {
-                let $ms(value) = self.0.into();
-                Angle::<$td>($md(value * $c).into(), PhantomData::<$td>)
-            }
-        }
-
-        impl_into!($($tail)*);
-    };
-    ($ts:ty => $td:ty: $md:ident = $ms:ident / $c:expr; $($tail:tt)*) => {
-        impl convert::Into<Angle<$td>> for Angle<$ts> {
-            fn into(self) -> Angle<$td> {
-                let $ms(value) = self.0.into();
-                Angle::<$td>($md(value / $c).into(), PhantomData::<$td>)
-            }
-        }
-
-        impl_into!($($tail)*);
     };
 }
 
@@ -646,100 +648,85 @@ impl convert::Into<f64> for Angle<Radians> {
 }
 
 angle_new!(Radians; radians);
-impl_into! {
-    Radians => Revolutions: 0 = 0 / PI2;
-    Radians => Degrees: 0 = 0 * R2D;
-    Radians => DegreesArcMinutes: Left = 0 * R2D;
-    Radians => DegreesArcMinutesSeconds: Left = 0 * R2D;
-    Radians => ArcMinutes: 0 = 0 * R2AM;
-    Radians => ArcMinutesSeconds: Left = 0 * R2AM;
-    Radians => ArcSeconds: 0 = 0 * R2AS;
-    Radians => Hours: 0 = 0 * R2H;
-    Radians => HoursMinutes: Left = 0 * R2H;
-    Radians => HoursMinutesSeconds: Left = 0 * R2H;
-    Radians => Minutes: 0 = 0 * R2M;
-    Radians => MinutesSeconds: Left = 0 * R2M;
-    Radians => Seconds: 0 = 0 * R2S;
-}
-
 angle_serialize!(Radians);
 angle_deserialize!(Radians);
+
+angle_from! {
+    Radians:
+        Revolutions => (0 = 0 * PI2),
+        Degrees => (0 = 0 * D2R),
+        DegreesArcMinutes => (0 = Left * D2R),
+        DegreesArcMinutesSeconds => (0 = Left * D2R),
+        ArcMinutes => (0 = 0 * AM2R),
+        ArcMinutesSeconds => (0 = Left * AM2R),
+        ArcSeconds => (0 = 0 * AS2R),
+        Hours => (0 = 0 * H2R),
+        HoursMinutes => (0 = Left * H2R),
+        HoursMinutesSeconds => (0 = Left * H2R),
+        Minutes => (0 = 0 * M2R),
+        MinutesSeconds => (0 = Left * M2R),
+        Seconds => (0 = 0 * S2R),
+}
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Revolutions;
 
 angle_new!(Revolutions; revolutions);
-impl_into! {
-    Revolutions: 0 = value / PI2;
-    Revolutions: 0 * PI2;
-    Revolutions => Radians;
-    Revolutions => Degrees: 0 = 0 * RV2D;
-    Revolutions => DegreesArcMinutes: Left = 0 * RV2D;
-    Revolutions => DegreesArcMinutesSeconds: Left = 0 * RV2D;
-    Revolutions => ArcMinutes: 0 = 0 * RV2AM;
-    Revolutions => ArcMinutesSeconds: Left = 0 * RV2AM;
-    Revolutions => ArcSeconds: 0 = 0 * RV2AS;
-    Revolutions => Hours: 0 = 0 * RV2H;
-    Revolutions => HoursMinutes: Left = 0 * RV2H;
-    Revolutions => HoursMinutesSeconds: Left = 0 * RV2H;
-    Revolutions => Minutes: 0 = 0 * RV2M;
-    Revolutions => MinutesSeconds: Left = 0 * RV2M;
-    Revolutions => Seconds: 0 = 0 * RV2S;
-}
-
 angle_serialize!(Revolutions);
 angle_deserialize!(Revolutions);
+
+angle_from! {
+    Revolutions:
+        Radians => (0 = 0 / PI2),
+        Degrees => (0 = 0 / RV2D),
+        DegreesArcMinutes => (0 = Left / RV2D),
+        DegreesArcMinutesSeconds => (0 = Left / RV2D),
+        ArcMinutes => (0 = 0 / RV2AM),
+        ArcMinutesSeconds => (0 = Left / RV2AM),
+        ArcSeconds => (0 = 0 / RV2AS),
+        Hours => (0 = 0 / RV2H),
+        HoursMinutes => (0 = Left / RV2H),
+        HoursMinutesSeconds => (0 = Left / RV2H),
+        Minutes => (0 = 0 / RV2M),
+        MinutesSeconds => (0 = Left / RV2M),
+        Seconds => (0 = 0 / RV2S),
+}
+
+angle_value!(Revolutions: 0 * PI2);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Degrees;
 
 angle_new!(Degrees; degrees);
-impl_into! {
-    Degrees: 0 = value * R2D;
-    Degrees: 0 * D2R;
-    Degrees => Radians;
-    Degrees => Revolutions: 0 = 0 / RV2D;
-    Degrees => DegreesArcMinutes: Left = 0;
-    Degrees => DegreesArcMinutesSeconds: Left = 0;
-    Degrees => ArcMinutes: 0 = 0 * 60.0;
-    Degrees => ArcMinutesSeconds: Left = 0 * 60.0;
-    Degrees => ArcSeconds: 0 = 0 * 3600.0;
-    Degrees => Hours: 0 = 0 / TA;
-    Degrees => HoursMinutes: Left = 0 / TA;
-    Degrees => HoursMinutesSeconds: Left = 0 / TA;
-    Degrees => Minutes: 0 = 0 * TM;
-    Degrees => MinutesSeconds: Left = 0 * TM;
-    Degrees => Seconds: 0 = 0 * TS;
-}
-
 angle_serialize!(Degrees);
 angle_deserialize!(Degrees);
+
+angle_from! {
+    Degrees:
+        Radians => (0 = 0 * R2D),
+        Revolutions => (0 = 0 * RV2D),
+        DegreesArcMinutes => (0 = Left),
+        DegreesArcMinutesSeconds => (0 = Left),
+        ArcMinutes => (0 = 0 / 60.0),
+        ArcMinutesSeconds => (0 = Left / 60.0),
+        ArcSeconds => (0 = 0 / 3600.0),
+        Hours => (0 = 0 * TA),
+        HoursMinutes => (0 = Left * TA),
+        HoursMinutesSeconds => (0 = Left * TA),
+        Minutes => (0 = 0 / TM),
+        MinutesSeconds => (0 = Left / TM),
+        Seconds => (0 = 0 / TS),
+}
+
+angle_value!(Degrees: 0 * D2R);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct DegreesArcMinutes;
 
 angle_new!(DegreesArcMinutes; degrees, arc_minutes);
-impl_into! {
-    DegreesArcMinutes: Left = value * R2D;
-    DegreesArcMinutes: Left * D2R;
-    DegreesArcMinutes => Radians;
-    DegreesArcMinutes => Revolutions: 0 = Left / RV2D;
-    DegreesArcMinutes => Degrees: 0 = Left;
-    DegreesArcMinutes => DegreesArcMinutesSeconds: Middle = Right;
-    DegreesArcMinutes => ArcMinutes: 0 = Right;
-    DegreesArcMinutes => ArcMinutesSeconds: Left = Right;
-    DegreesArcMinutes => ArcSeconds: 0 = Right * 60.0;
-    DegreesArcMinutes => Hours: 0 = Left / TA;
-    DegreesArcMinutes => HoursMinutes: Right = Right / TA;
-    DegreesArcMinutes => HoursMinutesSeconds: Middle = Right / TA;
-    DegreesArcMinutes => Minutes: 0 = Right / TA;
-    DegreesArcMinutes => MinutesSeconds: Left = Right / TA;
-    DegreesArcMinutes => Seconds: 0 = Right * TM;
-}
-
 angle_serialize!(DegreesArcMinutes);
 angle_deserialize!(DegreesArcMinutes);
 
@@ -748,24 +735,6 @@ angle_deserialize!(DegreesArcMinutes);
 pub struct DegreesArcMinutesSeconds;
 
 angle_new!(DegreesArcMinutesSeconds; degrees, arc_minutes, arc_seconds);
-impl_into! {
-    DegreesArcMinutesSeconds: Left = value * R2D;
-    DegreesArcMinutesSeconds: Left * D2R;
-    DegreesArcMinutesSeconds => Radians;
-    DegreesArcMinutesSeconds => Revolutions: 0 = Left / RV2D;
-    DegreesArcMinutesSeconds => Degrees: 0 = Left;
-    DegreesArcMinutesSeconds => DegreesArcMinutes: Right = Middle;
-    DegreesArcMinutesSeconds => ArcMinutes: 0 = Middle;
-    DegreesArcMinutesSeconds => ArcMinutesSeconds: Right = Right;
-    DegreesArcMinutesSeconds => ArcSeconds: 0 = Right;
-    DegreesArcMinutesSeconds => Hours: 0 = Left / TA;
-    DegreesArcMinutesSeconds => HoursMinutes: Right = Middle / TA;
-    DegreesArcMinutesSeconds => HoursMinutesSeconds: Right = Right / TA;
-    DegreesArcMinutesSeconds => Minutes: 0 = Middle / TA;
-    DegreesArcMinutesSeconds => MinutesSeconds: Right = Right / TA;
-    DegreesArcMinutesSeconds => Seconds: 0 = Right / TA;
-}
-
 angle_serialize!(DegreesArcMinutesSeconds);
 angle_deserialize!(DegreesArcMinutesSeconds);
 
@@ -774,24 +743,6 @@ angle_deserialize!(DegreesArcMinutesSeconds);
 pub struct ArcMinutes;
 
 angle_new!(ArcMinutes; arc_minutes);
-impl_into! {
-    ArcMinutes: 0 = value * R2AM;
-    ArcMinutes: 0 * AM2R;
-    ArcMinutes => Radians;
-    ArcMinutes => Revolutions: 0 = 0 / RV2AM;
-    ArcMinutes => Degrees: 0 = 0 / 60.0;
-    ArcMinutes => DegreesArcMinutes: Right = 0;
-    ArcMinutes => DegreesArcMinutesSeconds: Middle = 0;
-    ArcMinutes => ArcMinutesSeconds: Left = 0;
-    ArcMinutes => ArcSeconds: 0 = 0 * 60.0;
-    ArcMinutes => Hours: 0 = 0 / TMM;
-    ArcMinutes => HoursMinutes: Right = 0 / TA;
-    ArcMinutes => HoursMinutesSeconds: Middle = 0 / TA;
-    ArcMinutes => Minutes: 0 = 0 / TA;
-    ArcMinutes => MinutesSeconds: Left = 0 / TA;
-    ArcMinutes => Seconds: 0 = 0 * TM;
-}
-
 angle_serialize!(ArcMinutes);
 angle_deserialize!(ArcMinutes);
 
@@ -800,24 +751,6 @@ angle_deserialize!(ArcMinutes);
 pub struct ArcMinutesSeconds;
 
 angle_new!(ArcMinutesSeconds; arc_minutes, arc_seconds);
-impl_into! {
-    ArcMinutesSeconds: Left = value * R2AM;
-    ArcMinutesSeconds: Left * AM2R;
-    ArcMinutesSeconds => Radians;
-    ArcMinutesSeconds => Revolutions: 0 = Left / RV2AM;
-    ArcMinutesSeconds => Degrees: 0 = Left / 60.0;
-    ArcMinutesSeconds => DegreesArcMinutes: Right = Left;
-    ArcMinutesSeconds => DegreesArcMinutesSeconds: Right = Right;
-    ArcMinutesSeconds => ArcMinutes: 0 = Left;
-    ArcMinutesSeconds => ArcSeconds: 0 = Right;
-    ArcMinutesSeconds => Hours: 0 = Left / TMM;
-    ArcMinutesSeconds => HoursMinutes: Right = Left / TA;
-    ArcMinutesSeconds => HoursMinutesSeconds: Right = Right / TA;
-    ArcMinutesSeconds => Minutes: 0 = Left / TA;
-    ArcMinutesSeconds => MinutesSeconds: Right = Right / TA;
-    ArcMinutesSeconds => Seconds: 0 = Right / TA;
-}
-
 angle_serialize!(ArcMinutesSeconds);
 angle_deserialize!(ArcMinutesSeconds);
 
@@ -826,24 +759,6 @@ angle_deserialize!(ArcMinutesSeconds);
 pub struct ArcSeconds;
 
 angle_new!(ArcSeconds; arc_seconds);
-impl_into! {
-    ArcSeconds: 0 = value * R2AS;
-    ArcSeconds: 0 * AS2R;
-    ArcSeconds => Radians;
-    ArcSeconds => Revolutions: 0 = 0 / RV2AS;
-    ArcSeconds => Degrees: 0 = 0 / 3600.0;
-    ArcSeconds => DegreesArcMinutes: Right = 0 / 60.0;
-    ArcSeconds => DegreesArcMinutesSeconds: Right = 0;
-    ArcSeconds => ArcMinutes: 0 = 0 / 60.0;
-    ArcSeconds => ArcMinutesSeconds: Left = 0 / 60.0;
-    ArcSeconds => Hours: 0 = 0 / TMS;
-    ArcSeconds => HoursMinutes: Right = 0 / TMM;
-    ArcSeconds => HoursMinutesSeconds: Right = 0 / TA;
-    ArcSeconds => Minutes: 0 = 0 / TMM;
-    ArcSeconds => MinutesSeconds: Right = 0 / TA;
-    ArcSeconds => Seconds: 0 = 0 / TA;
-}
-
 angle_serialize!(ArcSeconds);
 angle_deserialize!(ArcSeconds);
 
@@ -852,24 +767,6 @@ angle_deserialize!(ArcSeconds);
 pub struct Hours;
 
 angle_new!(Hours; hours);
-impl_into! {
-    Hours: 0 = value * R2H;
-    Hours: 0 * H2R;
-    Hours => Radians;
-    Hours => Revolutions: 0 = 0 / RV2H;
-    Hours => Degrees: 0 = 0 * TA;
-    Hours => DegreesArcMinutes: Left = 0 * TA;
-    Hours => DegreesArcMinutesSeconds: Left = 0 * TA;
-    Hours => ArcMinutes: 0 = 0 * TMM;
-    Hours => ArcMinutesSeconds: Left = 0 * TMM;
-    Hours => ArcSeconds: 0 = 0 * TMS;
-    Hours => HoursMinutes: Left = 0;
-    Hours => HoursMinutesSeconds: Left = 0;
-    Hours => Minutes: 0 = 0 * 60.0;
-    Hours => MinutesSeconds: Left = 0 * 60.0;
-    Hours => Seconds: 0 = 0 * 3600.0;
-}
-
 angle_serialize!(Hours);
 angle_deserialize!(Hours);
 
@@ -878,24 +775,6 @@ angle_deserialize!(Hours);
 pub struct HoursMinutes;
 
 angle_new!(HoursMinutes; hours, minutes);
-impl_into! {
-    HoursMinutes: Left = value * R2H;
-    HoursMinutes: Left * H2R;
-    HoursMinutes => Radians;
-    HoursMinutes => Revolutions: 0 = Left / RV2H;
-    HoursMinutes => Degrees: 0 = Left * TA;
-    HoursMinutes => DegreesArcMinutes: Right = Right * TA;
-    HoursMinutes => DegreesArcMinutesSeconds: Middle = Right * TA;
-    HoursMinutes => ArcMinutes: 0 = Right * TA;
-    HoursMinutes => ArcMinutesSeconds: Left = Right * TA;
-    HoursMinutes => ArcSeconds: 0 = Right * TMM;
-    HoursMinutes => Hours: 0 = Left;
-    HoursMinutes => HoursMinutesSeconds: Middle = Right;
-    HoursMinutes => Minutes: 0 = Right;
-    HoursMinutes => MinutesSeconds: Left = Right;
-    HoursMinutes => Seconds: 0 = Right * 60.0;
-}
-
 angle_serialize!(HoursMinutes);
 angle_deserialize!(HoursMinutes);
 
@@ -904,24 +783,6 @@ angle_deserialize!(HoursMinutes);
 pub struct HoursMinutesSeconds;
 
 angle_new!(HoursMinutesSeconds; hours, minutes, seconds);
-impl_into! {
-    HoursMinutesSeconds: Left = value * R2H;
-    HoursMinutesSeconds: Left * H2R;
-    HoursMinutesSeconds => Radians;
-    HoursMinutesSeconds => Revolutions: 0 = Left / RV2H;
-    HoursMinutesSeconds => Degrees: 0 = Left * TA;
-    HoursMinutesSeconds => DegreesArcMinutes: Right = Middle * TA;
-    HoursMinutesSeconds => DegreesArcMinutesSeconds: Right = Right * TA;
-    HoursMinutesSeconds => ArcMinutes: 0 = Middle * TA;
-    HoursMinutesSeconds => ArcMinutesSeconds: Right = Right * TA;
-    HoursMinutesSeconds => ArcSeconds: 0 = Right * TA;
-    HoursMinutesSeconds => Hours: 0 = Left;
-    HoursMinutesSeconds => HoursMinutes: Right = Middle;
-    HoursMinutesSeconds => Minutes: 0 = Middle;
-    HoursMinutesSeconds => MinutesSeconds: Right = Right;
-    HoursMinutesSeconds => Seconds: 0 = Right;
-}
-
 angle_serialize!(HoursMinutesSeconds);
 angle_deserialize!(HoursMinutesSeconds);
 
@@ -930,24 +791,6 @@ angle_deserialize!(HoursMinutesSeconds);
 pub struct Minutes;
 
 angle_new!(Minutes; minutes);
-impl_into! {
-    Minutes: 0 = value * R2M;
-    Minutes: 0 * M2R;
-    Minutes => Radians;
-    Minutes => Revolutions: 0 = 0 / RV2M;
-    Minutes => Degrees: 0 = 0 / TM;
-    Minutes => DegreesArcMinutes: Right = 0 * TA;
-    Minutes => DegreesArcMinutesSeconds: Middle = 0 * TA;
-    Minutes => ArcMinutes: 0 = 0 * TA;
-    Minutes => ArcMinutesSeconds: Left = 0 * TA;
-    Minutes => ArcSeconds: 0 = 0 * TMM;
-    Minutes => Hours: 0 = 0 / 60.0;
-    Minutes => HoursMinutes: Right = 0;
-    Minutes => HoursMinutesSeconds: Middle = 0;
-    Minutes => MinutesSeconds: Left = 0;
-    Minutes => Seconds: 0 = 0 * 60.0;
-}
-
 angle_serialize!(Minutes);
 angle_deserialize!(Minutes);
 
@@ -956,24 +799,6 @@ angle_deserialize!(Minutes);
 pub struct MinutesSeconds;
 
 angle_new!(MinutesSeconds; minutes, seconds);
-impl_into! {
-    MinutesSeconds: Left = value * R2M;
-    MinutesSeconds: Left * M2R;
-    MinutesSeconds => Radians;
-    MinutesSeconds => Revolutions: 0 = Left / RV2M;
-    MinutesSeconds => Degrees: 0 = Left / TM;
-    MinutesSeconds => DegreesArcMinutes: Right = Left * TA;
-    MinutesSeconds => DegreesArcMinutesSeconds: Right = Right * TA;
-    MinutesSeconds => ArcMinutes: 0 = Left * TA;
-    MinutesSeconds => ArcMinutesSeconds: Right = Right * TA;
-    MinutesSeconds => ArcSeconds: 0 = Right * TA;
-    MinutesSeconds => Hours: 0 = Left / 60.0;
-    MinutesSeconds => HoursMinutes: Right = Left;
-    MinutesSeconds => HoursMinutesSeconds: Right = Right;
-    MinutesSeconds => Minutes: 0 = Left;
-    MinutesSeconds => Seconds: 0 = Right;
-}
-
 angle_serialize!(MinutesSeconds);
 angle_deserialize!(MinutesSeconds);
 
@@ -982,24 +807,6 @@ angle_deserialize!(MinutesSeconds);
 pub struct Seconds;
 
 angle_new!(Seconds; seconds);
-impl_into! {
-    Seconds: 0 = value * R2S;
-    Seconds: 0 * S2R;
-    Seconds => Radians;
-    Seconds => Revolutions: 0 = 0 / RV2S;
-    Seconds => Degrees: 0 = 0 / TS;
-    Seconds => DegreesArcMinutes: Right = 0 / TM;
-    Seconds => DegreesArcMinutesSeconds: Right = 0 * TA;
-    Seconds => ArcMinutes: 0 = 0 / TM;
-    Seconds => ArcMinutesSeconds: Right = 0 * TA;
-    Seconds => ArcSeconds: 0 = 0 * TA;
-    Seconds => Hours: 0 = 0 / 3600.0;
-    Seconds => HoursMinutes: Right = 0 / 60.0;
-    Seconds => HoursMinutesSeconds: Right = 0;
-    Seconds => Minutes: 0 = 0 / 60.0;
-    Seconds => MinutesSeconds: Right = 0;
-}
-
 angle_serialize!(Seconds);
 angle_deserialize!(Seconds);
 
