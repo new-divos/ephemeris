@@ -48,6 +48,16 @@ pub enum Sign {
     Positive
 }
 
+fn sign(value: f64) -> Sign {
+    if value > 0.0 {
+        Sign::Positive
+    } else if value < 0.0 {
+        Sign::Negative
+    } else {
+        Sign::Zero
+    }
+}
+
 
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct ShortAngle(i32, f64);
@@ -347,14 +357,9 @@ macro_rules! angle_new {
                 self.0
             }
 
+            #[inline]
             pub fn sign(&self) -> Sign {
-                if self.0 > 0.0 {
-                    Sign::Positive
-                } else if self.0 < 0.0 {
-                    Sign::Negative
-                } else {
-                    Sign::Zero
-                }
+                sign(self.0)
             }
 
             #[inline]
@@ -518,7 +523,7 @@ macro_rules! angle_from {
 
         angle_from!(
             @impl_from
-            $td:ty: $ts:ty => ($m:ident = 0 * $c:expr)
+            $td: Radians => ($m = 0 * $c)
         );
 
         angle_from!($td: $($tail)*);
@@ -527,7 +532,7 @@ macro_rules! angle_from {
     ($td:ty: $ts:ty => ($m:ident = 0 * $c:expr), $($tail:tt)*) => {
         angle_from!(
             @impl_from
-            $td:ty: $ts:ty => ($m:ident = 0 * $c:expr)
+            $td: $ts => ($m = 0 * $c)
         );
 
         angle_from!($td: $($tail)*);
@@ -618,7 +623,7 @@ macro_rules! angle_from {
 }
 
 
-macro_rules! angle_value {
+macro_rules! angle_raw {
     ($ts:ty: 0 * $c:expr) => {
         impl convert::Into<f64> for Angle<$ts> {
             #[inline]
@@ -627,25 +632,52 @@ macro_rules! angle_value {
             }
         }
     };
+
+    ($ts:ty: $m:ident * $c:expr) => {
+        impl convert::Into<f64> for Angle<$ts> {
+            #[inline]
+            fn into(self) -> f64 {
+                let $m(value) = self.0.into();
+                value * $c
+            }
+        }
+    }
+}
+
+
+impl<T> convert::Into<(Sign, f64)> for Angle<T>
+    where
+        T: AngleMapper<Item=f64> + Copy,
+{
+    #[inline]
+    fn into(self) -> (Sign, f64) {
+        (sign(self.0), self.0.abs())
+    }
+}
+
+impl<T> convert::Into<(Sign, i32, f64)> for Angle<T>
+    where
+        T: AngleMapper<Item=ShortAngle> + Copy,
+{
+    #[inline]
+    fn into(self) -> (Sign, i32, f64) {
+        (self.0.sign(), self.0.0.abs(), self.0.1.abs())
+    }
+}
+
+impl<T> convert::Into<(Sign, i32, i32, f64)> for Angle<T>
+    where
+        T: AngleMapper<Item=LongAngle> + Copy,
+{
+    #[inline]
+    fn into(self) -> (Sign, i32, i32, f64) {
+        (self.0.sign(), self.0.0.abs(), (self.0.1 as i32).abs(), self.0.2.abs())
+    }
 }
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Radians;
-
-impl convert::From<f64> for Angle<Radians> {
-    #[inline]
-    fn from(value: f64) -> Self {
-        Self(value, PhantomData::<Radians>)
-    }
-}
-
-impl convert::Into<f64> for Angle<Radians> {
-    #[inline]
-    fn into(self) -> f64 {
-        self.0
-    }
-}
 
 angle_new!(Radians; radians);
 angle_serialize!(Radians);
@@ -666,6 +698,20 @@ angle_from! {
         Minutes => (0 = 0 * M2R),
         MinutesSeconds => (0 = Left * M2R),
         Seconds => (0 = 0 * S2R),
+}
+
+impl convert::From<f64> for Angle<Radians> {
+    #[inline]
+    fn from(value: f64) -> Self {
+        Self(value, PhantomData::<Radians>)
+    }
+}
+
+impl convert::Into<f64> for Angle<Radians> {
+    #[inline]
+    fn into(self) -> f64 {
+        self.0
+    }
 }
 
 
@@ -693,7 +739,7 @@ angle_from! {
         Seconds => (0 = 0 / RV2S),
 }
 
-angle_value!(Revolutions: 0 * PI2);
+angle_raw!(Revolutions: 0 * PI2);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -720,7 +766,7 @@ angle_from! {
         Seconds => (0 = 0 / TS),
 }
 
-angle_value!(Degrees: 0 * D2R);
+angle_raw!(Degrees: 0 * D2R);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -730,6 +776,25 @@ angle_new!(DegreesArcMinutes; degrees, arc_minutes);
 angle_serialize!(DegreesArcMinutes);
 angle_deserialize!(DegreesArcMinutes);
 
+angle_from! {
+    DegreesArcMinutes:
+        Radians => (Left = 0 * R2D),
+        Revolutions => (Left = 0 * RV2D),
+        Degrees => (Left = 0),
+        DegreesArcMinutesSeconds => (Right = Middle),
+        ArcMinutes => (Right = 0),
+        ArcMinutesSeconds => (Right = Left),
+        ArcSeconds => (Right = 0 / 60.0),
+        Hours => (Left = 0 * TA),
+        HoursMinutes => (Left = Left * TA),
+        HoursMinutesSeconds => (Left = Left * TA),
+        Minutes => (Right = 0 * TA),
+        MinutesSeconds => (Right = Left * TA),
+        Seconds => (Right = 0 / TM),
+}
+
+angle_raw!(DegreesArcMinutes: Left * D2R);
+
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct DegreesArcMinutesSeconds;
@@ -737,6 +802,25 @@ pub struct DegreesArcMinutesSeconds;
 angle_new!(DegreesArcMinutesSeconds; degrees, arc_minutes, arc_seconds);
 angle_serialize!(DegreesArcMinutesSeconds);
 angle_deserialize!(DegreesArcMinutesSeconds);
+
+angle_from! {
+    DegreesArcMinutesSeconds:
+        Radians => (Left = 0 * R2D),
+        Revolutions => (Left = 0 * RV2D),
+        Degrees => (Left = 0),
+        DegreesArcMinutes => (Middle = Right),
+        ArcMinutes => (Middle = 0),
+        ArcMinutesSeconds => (Right = Right),
+        ArcSeconds => (Right = 0),
+        Hours => (Left = 0 * TA),
+        HoursMinutes => (Left = Left * TA),
+        HoursMinutesSeconds => (Left = Left * TA),
+        Minutes => (Middle = 0 * TA),
+        MinutesSeconds => (Right = Right * TA),
+        Seconds => (Right = 0 * TA),
+}
+
+angle_raw!(DegreesArcMinutesSeconds: Left * D2R);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -746,6 +830,25 @@ angle_new!(ArcMinutes; arc_minutes);
 angle_serialize!(ArcMinutes);
 angle_deserialize!(ArcMinutes);
 
+angle_from! {
+    ArcMinutes:
+        Radians => (0 = 0 * R2AM),
+        Revolutions => (0 = 0 * RV2AM),
+        Degrees => (0 = 0 * 60.0),
+        DegreesArcMinutes => (0 = Right),
+        DegreesArcMinutesSeconds => (0 = Middle),
+        ArcMinutesSeconds => (0 = Left),
+        ArcSeconds => (0 = 0 / 60.0),
+        Hours => (0 = 0 * TMM),
+        HoursMinutes => (0 = Right * TA),
+        HoursMinutesSeconds => (0 = Middle * TA),
+        Minutes => (0 = 0 * TA),
+        MinutesSeconds => (0 = Left * TA),
+        Seconds => (0 = 0 / TM),
+}
+
+angle_raw!(ArcMinutes: 0 * AM2R);
+
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct ArcMinutesSeconds;
@@ -753,6 +856,25 @@ pub struct ArcMinutesSeconds;
 angle_new!(ArcMinutesSeconds; arc_minutes, arc_seconds);
 angle_serialize!(ArcMinutesSeconds);
 angle_deserialize!(ArcMinutesSeconds);
+
+angle_from! {
+    ArcMinutesSeconds:
+        Radians => (Left = 0 * R2AM),
+        Revolutions => (Left = 0 * RV2AM),
+        Degrees => (Left = 0 * 60.0),
+        DegreesArcMinutes => (Left = Right),
+        DegreesArcMinutesSeconds => (Right = Right),
+        ArcMinutes => (Left = 0),
+        ArcSeconds => (Right = 0),
+        Hours => (Left = 0 * TMM),
+        HoursMinutes => (Left = Right * TA),
+        HoursMinutesSeconds => (Right = Right * TA),
+        Minutes => (Left = 0 * TA),
+        MinutesSeconds => (Right = Right * TA),
+        Seconds => (Right = 0 * TA),
+}
+
+angle_raw!(ArcMinutesSeconds: Left * AM2R);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -762,6 +884,25 @@ angle_new!(ArcSeconds; arc_seconds);
 angle_serialize!(ArcSeconds);
 angle_deserialize!(ArcSeconds);
 
+angle_from! {
+    ArcSeconds:
+        Radians => (0 = 0 * R2AS),
+        Revolutions => (0 = 0 * RV2AS),
+        Degrees => (0 = 0 * 3600.0),
+        DegreesArcMinutes => (0 = Right * 60.0),
+        DegreesArcMinutesSeconds => (0 = Right),
+        ArcMinutes => (0 = 0 * 60.0),
+        ArcMinutesSeconds => (0 = Right),
+        Hours => (0 = 0 * TMS),
+        HoursMinutes => (0 = Right * TMM),
+        HoursMinutesSeconds => (0 = Right * TA),
+        Minutes => (0 = 0 * TMM),
+        MinutesSeconds => (0 = Right * TA),
+        Seconds => (0 = 0 * TA),
+}
+
+angle_raw!(ArcSeconds: 0 * AS2R);
+
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Hours;
@@ -769,6 +910,25 @@ pub struct Hours;
 angle_new!(Hours; hours);
 angle_serialize!(Hours);
 angle_deserialize!(Hours);
+
+angle_from! {
+    Hours:
+        Radians => (0 = 0 * R2H),
+        Revolutions => (0 = 0 * RV2H),
+        Degrees => (0 = 0 / TA),
+        DegreesArcMinutes => (0 = Left / TA),
+        DegreesArcMinutesSeconds => (0 = Left / TA),
+        ArcMinutes => (0 = 0 / TMM),
+        ArcMinutesSeconds => (0 = Left / TMM),
+        ArcSeconds => (0 = 0 / TMS),
+        HoursMinutes => (0 = Left),
+        HoursMinutesSeconds => (0 = Left),
+        Minutes => (0 = 0 / 60.0),
+        MinutesSeconds => (0 = Left / 60.0),
+        Seconds => (0 = 0 / 3600.0),
+}
+
+angle_raw!(Hours: 0 * H2R);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -778,6 +938,25 @@ angle_new!(HoursMinutes; hours, minutes);
 angle_serialize!(HoursMinutes);
 angle_deserialize!(HoursMinutes);
 
+angle_from! {
+    HoursMinutes:
+        Radians => (Left = 0 * R2H),
+        Revolutions => (Left = 0 * RV2H),
+        Degrees => (Left = 0 / TA),
+        DegreesArcMinutes => (Right = Right / TA),
+        DegreesArcMinutesSeconds => (Right = Middle / TA),
+        ArcMinutes => (Right = 0 / TA),
+        ArcMinutesSeconds => (Right = Left / TA),
+        ArcSeconds => (Right = 0 / TMM),
+        Hours => (Left = 0),
+        HoursMinutesSeconds => (Right = Middle),
+        Minutes => (Right = 0),
+        MinutesSeconds => (Right = Left),
+        Seconds => (Right = 0 / 60.0),
+}
+
+angle_raw!(HoursMinutes: Left * H2R);
+
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct HoursMinutesSeconds;
@@ -785,6 +964,25 @@ pub struct HoursMinutesSeconds;
 angle_new!(HoursMinutesSeconds; hours, minutes, seconds);
 angle_serialize!(HoursMinutesSeconds);
 angle_deserialize!(HoursMinutesSeconds);
+
+angle_from! {
+    HoursMinutesSeconds:
+        Radians => (Left = 0 * R2H),
+        Revolutions => (Left = 0 * RV2H),
+        Degrees => (Left = 0 / TA),
+        DegreesArcMinutes => (Middle = Right / TA),
+        DegreesArcMinutesSeconds => (Right = Right / TA),
+        ArcMinutes => (Middle = 0 / TA),
+        ArcMinutesSeconds => (Right = Right / TA),
+        ArcSeconds => (Right = 0 / TA),
+        Hours => (Left = 0),
+        HoursMinutes => (Middle = Right),
+        Minutes => (Middle = 0),
+        MinutesSeconds => (Right = Right),
+        Seconds => (Right = 0),
+}
+
+angle_raw!(HoursMinutesSeconds: Left * H2R);
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -794,6 +992,25 @@ angle_new!(Minutes; minutes);
 angle_serialize!(Minutes);
 angle_deserialize!(Minutes);
 
+angle_from! {
+    Minutes:
+        Radians => (0 = 0 * R2M),
+        Revolutions => (0 = 0 * RV2M),
+        Degrees => (0 = 0 * TM),
+        DegreesArcMinutes => (0 = Right / TA),
+        DegreesArcMinutesSeconds => (0 = Middle / TA),
+        ArcMinutes => (0 = 0 / TA),
+        ArcMinutesSeconds => (0 = Left / TA),
+        ArcSeconds => (0 = 0 / TMM),
+        Hours => (0 = 0 * 60.0),
+        HoursMinutes => (0 = Right),
+        HoursMinutesSeconds => (0 = Middle),
+        MinutesSeconds => (0 = Left),
+        Seconds => (0 = 0 / 60.0),
+}
+
+angle_raw!(Minutes: 0 * M2R);
+
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct MinutesSeconds;
@@ -802,6 +1019,25 @@ angle_new!(MinutesSeconds; minutes, seconds);
 angle_serialize!(MinutesSeconds);
 angle_deserialize!(MinutesSeconds);
 
+angle_from! {
+    MinutesSeconds:
+        Radians => (Left = 0 * R2M),
+        Revolutions => (Left = 0 * RV2M),
+        Degrees => (Left = 0 * TM),
+        DegreesArcMinutes => (Left = Right / TA),
+        DegreesArcMinutesSeconds => (Right = Right / TA),
+        ArcMinutes => (Left = 0 / TA),
+        ArcMinutesSeconds => (Right = Right / TA),
+        ArcSeconds => (Right = 0 / TA),
+        Hours => (Left = 0 * 60.0),
+        HoursMinutes => (Left = Right),
+        HoursMinutesSeconds => (Right = Right),
+        Minutes => (Left = 0),
+        Seconds => (Right = 0),
+}
+
+angle_raw!(MinutesSeconds: Left * M2R);
+
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Seconds;
@@ -809,6 +1045,25 @@ pub struct Seconds;
 angle_new!(Seconds; seconds);
 angle_serialize!(Seconds);
 angle_deserialize!(Seconds);
+
+angle_from! {
+    Seconds:
+        Radians => (0 = 0 * R2S),
+        Revolutions => (0 = 0 * RV2S),
+        Degrees => (0 = 0 * TS),
+        DegreesArcMinutes => (0 = Right * TM),
+        DegreesArcMinutesSeconds => (0 = Right / TA),
+        ArcMinutes => (0 = 0 * TM),
+        ArcMinutesSeconds => (0 = Right / TA),
+        ArcSeconds => (0 = 0 / TA),
+        Hours => (0 = 0 * 3600.0),
+        HoursMinutes => (0 = Right * 60.0),
+        HoursMinutesSeconds => (0 = Right),
+        Minutes => (0 = 0 * 60.0),
+        MinutesSeconds => (0 = Right),
+}
+
+angle_raw!(Seconds: 0 * S2R);
 
 
 #[cfg(test)]
