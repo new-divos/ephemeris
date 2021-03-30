@@ -598,14 +598,18 @@ impl Vec3DNorm for Vec3D<Spherical> {
 
 impl Vec3D<Spherical> {
     #[inline]
-    fn clamp(theta: f64) -> f64 {
-        if theta < -FRAC_PI_2 {
-            -FRAC_PI_2
-        } else if theta > FRAC_PI_2 {
-            FRAC_PI_2
-        } else {
-            theta
-        }
+    pub fn radius(&self) -> f64 {
+        self.0[0]
+    }
+
+    #[inline]
+    pub fn azimuth(&self) -> f64 {
+        self.0[1]
+    }
+
+    #[inline]
+    pub fn colatitude(&self) -> f64 {
+        self.0[2]
     }
 
     pub fn new(radius: f64, azimuth: f64, colatitude: f64) -> Vec3D<Spherical> {
@@ -638,6 +642,17 @@ impl Vec3D<Spherical> {
             ],
             PhantomData::<Spherical>
         )
+    }
+
+    #[inline]
+    fn clamp(theta: f64) -> f64 {
+        if theta < -FRAC_PI_2 {
+            -FRAC_PI_2
+        } else if theta > FRAC_PI_2 {
+            FRAC_PI_2
+        } else {
+            theta
+        }
     }
 }
 

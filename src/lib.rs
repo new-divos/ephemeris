@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 pub mod base;
+mod coords;
 #[macro_use] pub mod macros;
 
 #[cfg(test)]
