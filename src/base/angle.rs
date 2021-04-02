@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::convert;
+use std::fmt;
 use std::marker::PhantomData;
 
 use crate::base::consts::{PI2, D2R, R2D, R2AM, AM2R, R2AS, AS2R,
@@ -351,6 +352,14 @@ pub struct Angle<T: AngleMapper + Copy>
 
 macro_rules! angle_new {
     ($t:ty; $v:ident) => {
+        impl fmt::Debug for Angle<$t> {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.debug_struct(concat!("Angle<", stringify!($t), ">"))
+                    .field(stringify!($v), &self.0)
+                    .finish()
+            }
+        }
+
         impl Angle<$t> {
             #[inline]
             pub fn $v(&self) -> f64 {
@@ -369,6 +378,15 @@ macro_rules! angle_new {
         }
     };
     ($t:ty; $v1:ident, $v2:ident) => {
+        impl fmt::Debug for Angle<$t> {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.debug_struct(concat!("Angle<", stringify!($t), ">"))
+                    .field(stringify!($v1), &self.0.0)
+                    .field(stringify!($v2), &self.0.1)
+                    .finish()
+            }
+        }
+
         impl Angle<$t> {
             #[inline]
             pub fn $v1(&self) -> i32 {
@@ -392,6 +410,16 @@ macro_rules! angle_new {
         }
     };
     ($t:ty; $v1:ident, $v2:ident, $v3:ident) => {
+        impl fmt::Debug for Angle<$t> {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.debug_struct(concat!("Angle<", stringify!($t), ">"))
+                    .field(stringify!($v1), &self.0.0)
+                    .field(stringify!($v2), &self.0.1)
+                    .field(stringify!($v3), &self.0.2)
+                    .finish()
+            }
+        }
+
         impl Angle<$t> {
             #[inline]
             pub fn $v1(&self) -> i32 {

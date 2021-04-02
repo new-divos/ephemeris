@@ -13,41 +13,12 @@ use proc_macro2::Span;
 // Angular values
 //
 
-struct AngleSignature {
-    name: syn::Ident
-}
-
-impl syn::parse::Parse for AngleSignature {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        if input.is_empty() {
-            panic!("Write full angle item signature.");
-        }
-
-        Ok(AngleSignature {
-            name: input.parse().unwrap()
-        })
-    }
-}
-
-
-fn parse_angle_format<'a>(name: &'a String) -> Box<dyn Iterator<Item=String> + 'a> {
-    lazy_static! {
-        static ref RE: Regex = Regex::new(r#"([A-Z][a-z]+)"#).unwrap();
-    }
-
-    Box::new(
-        RE.find_iter(name)
-            .map(|mat| String::from(mat.as_str()).to_lowercase())
-    )
-}
-
-
 #[proc_macro_derive(AngleMapper)]
 pub fn angle_mapper_derive(input: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse2(input.into()).unwrap();
 
     let name = &ast.ident;
-    let count = parse_angle_format(&name.to_string())
+    let count = parse_signature_name(&name.to_string())
         .filter(|value| *value != "arc")
         .count();
 
@@ -70,7 +41,7 @@ pub fn angle_mapper_derive(input: TokenStream) -> TokenStream {
             }
         }).into(),
 
-        _ => panic!("Illegal angle item name.")
+        _ => unreachable!()
     }
 }
 
@@ -81,24 +52,11 @@ pub fn angle_serialize(input: TokenStream) -> TokenStream {
 
     let name = &signature.name;
     let type_name = name.to_string();
-    let units: Vec<String> = parse_angle_format(&type_name)
+    let units: Vec<String> = parse_signature_name(&type_name)
         .collect();
     let struct_name = format!("Angle{}", type_name);
 
-    let arc_pos = units.iter()
-        .position(|value| *value == "arc")
-        .unwrap_or(usize::max_value());
-    let keys: Vec<String> = units.iter()
-        .enumerate()
-        .map(|(idx, value)| {
-            if idx <= arc_pos {
-                value.to_owned()
-            } else {
-                format!("arc_{}", value)
-            }
-        })
-        .filter(|value| *value != "arc")
-        .collect();
+    let keys = get_keys(units);
 
     match keys.len() {
         1 => {
@@ -167,7 +125,7 @@ pub fn angle_serialize(input: TokenStream) -> TokenStream {
             }).into()
         },
 
-        _ => panic!("Illegal angle item name.")
+        _ => unreachable!(),
     }
 }
 
@@ -178,7 +136,7 @@ pub fn angle_deserialize(input: TokenStream) -> TokenStream {
 
     let name = &signature.name;
     let type_name = name.to_string();
-    let units: Vec<String> = parse_angle_format(&name.to_string())
+    let units: Vec<String> = parse_signature_name(&name.to_string())
         .collect();
     let visitor_name = format!("Visitor{}", type_name);
     let struct_name = format!("Angle{}", type_name);
@@ -190,7 +148,7 @@ pub fn angle_deserialize(input: TokenStream) -> TokenStream {
 
     let arc_pos = units.iter()
         .position(|value| *value == "arc")
-        .unwrap_or(usize::max_value());
+        .unwrap_or(usize::MAX);
     let keys: Vec<(String, String)> = units.iter()
         .enumerate()
         .map(|(idx, value)| {
@@ -575,6 +533,57 @@ pub fn angle_deserialize(input: TokenStream) -> TokenStream {
             }).into()
         },
 
-        _ => panic!("Illegal angle item name.")
+        _ => unreachable!(),
     }
+}
+
+//
+// AngleSignature
+//
+
+struct AngleSignature {
+    name: syn::Ident
+}
+
+impl syn::parse::Parse for AngleSignature {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        if input.is_empty() {
+            panic!("Write full angle item signature.");
+        }
+
+        Ok(AngleSignature {
+            name: input.parse().unwrap()
+        })
+    }
+}
+
+fn parse_signature_name<'a>(name: &'a String) -> Box<dyn Iterator<Item=String> + 'a> {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r#"([A-Z][a-z]+)"#).unwrap();
+    }
+
+    Box::new(
+        RE.find_iter(name)
+            .map(|mat| String::from(mat.as_str()).to_lowercase())
+    )
+}
+
+fn get_keys(units: Vec<String>) -> Vec<String> {
+    let arc_pos = units.iter()
+        .position(|value| *value == "arc")
+        .unwrap_or(usize::MAX);
+
+    let keys: Vec<String> = units.iter()
+        .enumerate()
+        .map(|(idx, value)| {
+            if idx <= arc_pos {
+                value.to_owned()
+            } else {
+                format!("arc_{}", value)
+            }
+        })
+        .filter(|value| *value != "arc")
+        .collect();
+
+    keys
 }

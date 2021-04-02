@@ -1732,3 +1732,342 @@ fn seconds_serde_test() {
         assert_relative_eq!(a_s.seconds(), tested.seconds(), epsilon=common::EPS);
     }
 }
+
+#[test]
+fn radians_debug_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-PI2, PI2);
+
+    for _ in 0..common::ITERATIONS {
+        let radians = rng.sample(band);
+        if radians < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_rad = Angle::<Radians>::from(radians);
+
+        assert_eq!(
+            format!("{:?}", a_rad),
+            format!("Angle<Radians> {{ radians: {} }}", radians)
+        );
+    }
+}
+
+#[test]
+fn revolutions_debug_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-2.0_f64, 2.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let revolutions = rng.sample(band);
+        if revolutions < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_rev = Angle::<Revolutions>::new(revolutions);
+
+        assert_eq!(
+            format!("{:?}", a_rev),
+            format!("Angle<Revolutions> {{ revolutions: {} }}", revolutions)
+        );
+    }
+}
+
+
+#[test]
+fn degrees_debug_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-360_f64, 360_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let degrees = rng.sample(band);
+        if degrees < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_d = Angle::<Degrees>::new(degrees);
+
+        assert_eq!(
+            format!("{:?}", a_d),
+            format!("Angle<Degrees> {{ degrees: {} }}", degrees)
+        );
+    }
+}
+
+
+#[test]
+fn degrees_arc_minutes_debug_test() {
+    let mut rng = thread_rng();
+    let degrees_band = Uniform::new(-360i32, 360i32);
+    let arc_minutes_band = Uniform::new(0.0_f64, 60.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let degrees = rng.sample(degrees_band);
+        let arc_minutes = rng.sample(arc_minutes_band);
+        if arc_minutes < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_dam = Angle::<DegreesArcMinutes>::new(degrees, arc_minutes);
+
+        assert_eq!(
+            format!("{:?}", a_dam),
+            format!(
+                "Angle<DegreesArcMinutes> {{ degrees: {}, arc_minutes: {} }}",
+                a_dam.degrees(),
+                a_dam.arc_minutes()
+            )
+        );
+    }
+}
+
+
+#[test]
+fn degrees_arc_minutes_seconds_debug_test() {
+    let mut rng = thread_rng();
+    let degrees_band = Uniform::new(-360i32, 360i32);
+    let arc_minutes_band = Uniform::new(0i32, 60i32);
+    let arc_seconds_band = Uniform::new(0.0_f64, 60.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let degrees = rng.sample(degrees_band);
+        let arc_minutes = rng.sample(arc_minutes_band);
+        let arc_seconds = rng.sample(arc_seconds_band);
+        if arc_seconds < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_dams =
+            Angle::<DegreesArcMinutesSeconds>::new(degrees, arc_minutes, arc_seconds);
+
+        assert_eq!(
+            format!("{:?}", a_dams),
+            format!(
+                "Angle<DegreesArcMinutesSeconds> \
+                    {{ degrees: {}, arc_minutes: {}, arc_seconds: {} }}",
+                a_dams.degrees(),
+                a_dams.arc_minutes(),
+                a_dams.arc_seconds()
+            )
+        );
+    }
+}
+
+
+#[test]
+fn arc_minutes_debug_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-360.0 * 60.0_f64, 360.0 * 60.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let arc_minutes = rng.sample(band);
+        if arc_minutes < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_am = Angle::<ArcMinutes>::new(arc_minutes);
+
+        assert_eq!(
+            format!("{:?}", a_am),
+            format!("Angle<ArcMinutes> {{ arc_minutes: {} }}", arc_minutes)
+        );
+    }
+}
+
+
+#[test]
+fn arc_minutes_seconds_debug_test() {
+    let mut rng = thread_rng();
+    let arc_minutes_band = Uniform::new(-360 * 60i32, 360 * 60i32);
+    let arc_seconds_band = Uniform::new(0.0_f64, 60.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let arc_minutes = rng.sample(arc_minutes_band);
+        let arc_seconds = rng.sample(arc_seconds_band);
+        if arc_seconds < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_ams = Angle::<ArcMinutesSeconds>::new(arc_minutes, arc_seconds);
+
+        assert_eq!(
+            format!("{:?}", a_ams),
+            format!(
+                "Angle<ArcMinutesSeconds> {{ arc_minutes: {}, arc_seconds: {} }}",
+                a_ams.arc_minutes(),
+                a_ams.arc_seconds()
+            )
+        );
+    }
+}
+
+
+#[test]
+fn arc_seconds_debug_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-360.0 * 3600.0_f64, 360.0 * 3600.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let arc_seconds = rng.sample(band);
+        if arc_seconds < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_as = Angle::<ArcSeconds>::new(arc_seconds);
+
+        assert_eq!(
+            format!("{:?}", a_as),
+            format!("Angle<ArcSeconds> {{ arc_seconds: {} }}", arc_seconds)
+        );
+    }
+}
+
+
+#[test]
+fn hours_debug_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-24.0_f64, 24.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let hours = rng.sample(band);
+        if hours < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_h = Angle::<Hours>::new(hours);
+
+        assert_eq!(
+            format!("{:?}", a_h),
+            format!("Angle<Hours> {{ hours: {} }}", hours)
+        );
+    }
+}
+
+
+#[test]
+fn hours_minutes_debug_test() {
+    let mut rng = thread_rng();
+    let hours_band = Uniform::new(-24i32, 24i32);
+    let minutes_band = Uniform::new(0.0_f64, 60.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let hours = rng.sample(hours_band);
+        let minutes = rng.sample(minutes_band);
+        if minutes < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_hm = Angle::<HoursMinutes>::new(hours, minutes);
+
+        assert_eq!(
+            format!("{:?}", a_hm),
+            format!(
+                "Angle<HoursMinutes> {{ hours: {}, minutes: {} }}",
+                a_hm.hours(),
+                a_hm.minutes()
+            )
+        );
+    }
+}
+
+
+#[test]
+fn hours_minutes_seconds_debug_test() {
+    let mut rng = thread_rng();
+    let hours_band = Uniform::new(-24i32, 24i32);
+    let minutes_band = Uniform::new(0i32, 60i32);
+    let seconds_band = Uniform::new(0.0_f64, 60.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let hours = rng.sample(hours_band);
+        let minutes = rng.sample(minutes_band);
+        let seconds = rng.sample(seconds_band);
+        if seconds < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_hms =
+            Angle::<HoursMinutesSeconds>::new(hours, minutes, seconds);
+
+        assert_eq!(
+            format!("{:?}", a_hms),
+            format!(
+                "Angle<HoursMinutesSeconds> \
+                    {{ hours: {}, minutes: {}, seconds: {} }}",
+                a_hms.hours(),
+                a_hms.minutes(),
+                a_hms.seconds()
+            )
+        );
+    }
+}
+
+
+#[test]
+fn minutes_debug_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-24.0 * 60.0_f64, 24.0 * 60.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let minutes = rng.sample(band);
+        if minutes < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_m = Angle::<Minutes>::new(minutes);
+
+        assert_eq!(
+            format!("{:?}", a_m),
+            format!("Angle<Minutes> {{ minutes: {} }}", minutes)
+        );
+    }
+}
+
+
+#[test]
+fn minutes_seconds_debug_test() {
+    let mut rng = thread_rng();
+    let minutes_band = Uniform::new(-24 * 60i32, 24 * 60i32);
+    let seconds_band = Uniform::new(0.0_f64, 60.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let minutes = rng.sample(minutes_band);
+        let seconds = rng.sample(seconds_band);
+        if seconds < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_ms = Angle::<MinutesSeconds>::new(minutes, seconds);
+
+        assert_eq!(
+            format!("{:?}", a_ms),
+            format!(
+                "Angle<MinutesSeconds> {{ minutes: {}, seconds: {} }}",
+                a_ms.minutes(),
+                a_ms.seconds()
+            )
+        );
+    }
+}
+
+
+#[test]
+fn seconds_debug_test() {
+    let mut rng = thread_rng();
+    let band = Uniform::new(-24.0 * 3600.0_f64, 24.0 * 3600.0_f64);
+
+    for _ in 0..common::ITERATIONS {
+        let seconds = rng.sample(band);
+        if seconds < common::SERDE_THRESHOLD {
+            continue;
+        }
+
+        let a_s = Angle::<Seconds>::new(seconds);
+
+        assert_eq!(
+            format!("{:?}", a_s),
+            format!("Angle<Seconds> {{ seconds: {} }}", seconds)
+        );
+    }
+}
+
