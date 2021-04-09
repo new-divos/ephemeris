@@ -54,6 +54,7 @@ impl_real!(f32);
 pub struct PertPair(f64, f64);
 
 impl From<f64> for PertPair {
+    #[inline]
     fn from(angle: f64) -> Self {
         let (s, c) = angle.sin_cos();
         Self(s, c)
@@ -61,14 +62,16 @@ impl From<f64> for PertPair {
 }
 
 impl Default for PertPair {
+    #[inline]
     fn default() -> Self {
-        Self::from_zero()
+        Self::new()
     }
 }
 
 impl Neg for PertPair {
     type Output = Self;
 
+    #[inline]
     fn neg(self) -> Self {
         Self(-self.0, self.1)
     }
@@ -86,6 +89,7 @@ impl Add for PertPair {
 }
 
 impl AddAssign for PertPair {
+    #[inline]
     fn add_assign(&mut self, rhs: Self) {
         *self = self.add(rhs);
     }
@@ -96,7 +100,7 @@ impl Mul<i32> for PertPair {
 
     fn mul(self, rhs: i32) -> Self {
         if rhs == 0 {
-            Self::from_zero()
+            Self::new()
         } else if rhs == 1 {
             self
         } else if rhs == 2 {
@@ -120,32 +124,37 @@ impl Mul<i32> for PertPair {
 impl Mul<PertPair> for i32 {
     type Output = PertPair;
 
+    #[inline]
     fn mul(self, rhs: PertPair) -> PertPair {
         rhs.mul(self)
     }
 }
 
 impl MulAssign<i32> for PertPair {
+    #[inline]
     fn mul_assign(&mut self, rhs: i32) {
         *self = self.mul(rhs);
     }
 }
 
 impl PertPair {
-    pub fn from_zero() -> PertPair {
+    #[inline]
+    pub fn new() -> PertPair {
         PertPair(0.0, 1.0)
     }
 
+    #[inline]
     pub fn sin(&self) -> f64 {
         self.0
     }
 
+    #[inline]
     pub fn cos(&self) -> f64 {
         self.1
     }
 
+    #[inline]
     pub fn sin_cos(&self) -> (f64, f64) {
-        let PertPair(s, c) = *self;
-        (s, c)
+        (self.0, self.1)
     }
 }

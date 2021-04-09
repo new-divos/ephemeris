@@ -96,9 +96,9 @@ fn new_random_svec3d<R: Rng + ?Sized>(rng: &mut R) -> linalg::Vec3D<linalg::Sphe
 #[test]
 fn create_cartesian_vec3d_test() {
     let zero = linalg::Vec3D::<linalg::Cartesian>::zeros();
-    assert_eq!(zero[linalg::Cartesian::X], 0.0);
-    assert_eq!(zero[linalg::Cartesian::Y], 0.0);
-    assert_eq!(zero[linalg::Cartesian::Z], 0.0);
+    assert_eq!(zero[0], 0.0);
+    assert_eq!(zero[1], 0.0);
+    assert_eq!(zero[2], 0.0);
 
     let (x, y, z) = zero.into();
     assert_eq!(x, 0.0);
@@ -106,9 +106,9 @@ fn create_cartesian_vec3d_test() {
     assert_eq!(z, 0.0);
 
     let ux = linalg::Vec3D::<linalg::Cartesian>::unit_x();
-    assert_eq!(ux[linalg::Cartesian::X], 1.0);
-    assert_eq!(ux[linalg::Cartesian::Y], 0.0);
-    assert_eq!(ux[linalg::Cartesian::Z], 0.0);
+    assert_eq!(ux[0], 1.0);
+    assert_eq!(ux[1], 0.0);
+    assert_eq!(ux[2], 0.0);
 
     let (x, y, z) = ux.into();
     assert_eq!(x, 1.0);
@@ -116,9 +116,9 @@ fn create_cartesian_vec3d_test() {
     assert_eq!(z, 0.0);
 
     let uy = linalg::Vec3D::<linalg::Cartesian>::unit_y();
-    assert_eq!(uy[linalg::Cartesian::X], 0.0);
-    assert_eq!(uy[linalg::Cartesian::Y], 1.0);
-    assert_eq!(uy[linalg::Cartesian::Z], 0.0);
+    assert_eq!(uy[0], 0.0);
+    assert_eq!(uy[1], 1.0);
+    assert_eq!(uy[0], 0.0);
 
     let (x, y, z) = uy.into();
     assert_eq!(x, 0.0);
@@ -126,9 +126,9 @@ fn create_cartesian_vec3d_test() {
     assert_eq!(z, 0.0);
 
     let uz = linalg::Vec3D::<linalg::Cartesian>::unit_z();
-    assert_eq!(uz[linalg::Cartesian::X], 0.0);
-    assert_eq!(uz[linalg::Cartesian::Y], 0.0);
-    assert_eq!(uz[linalg::Cartesian::Z], 1.0);
+    assert_eq!(uz[0], 0.0);
+    assert_eq!(uz[1], 0.0);
+    assert_eq!(uz[2], 1.0);
 
     let (x, y, z) = uz.into();
     assert_eq!(x, 0.0);
@@ -136,9 +136,9 @@ fn create_cartesian_vec3d_test() {
     assert_eq!(z, 1.0);
 
     let v = linalg::Vec3D::<linalg::Cartesian>::new(1.0, 2.0, 3.0);
-    assert_eq!(v[linalg::Cartesian::X], 1.0);
-    assert_eq!(v[linalg::Cartesian::Y], 2.0);
-    assert_eq!(v[linalg::Cartesian::Z], 3.0);
+    assert_eq!(v[0], 1.0);
+    assert_eq!(v[1], 2.0);
+    assert_eq!(v[2], 3.0);
 
     let (x, y, z) = v.into();
     assert_eq!(x, 1.0);
@@ -152,21 +152,21 @@ fn create_cartesian_vec3d_test() {
         let z = 200.0 * rng.gen::<f64>() - 100.0;
 
         let v = linalg::Vec3D::<linalg::Cartesian>::new(x, y, z);
-        assert_eq!(v[linalg::Cartesian::X], x);
-        assert_eq!(v[linalg::Cartesian::Y], y);
-        assert_eq!(v[linalg::Cartesian::Z], z);
+        assert_eq!(v[0], x);
+        assert_eq!(v[1], y);
+        assert_eq!(v[2], z);
 
         let c: linalg::Vec3D<linalg::Cylindrical> = v.into();
         let t: linalg::Vec3D<linalg::Cartesian> = c.into();
-        assert_relative_eq!(t[linalg::Cartesian::X], x, epsilon=common::EPS);
-        assert_relative_eq!(t[linalg::Cartesian::Y], y, epsilon=common::EPS);
-        assert_relative_eq!(t[linalg::Cartesian::Z], z, epsilon=common::EPS);
+        assert_relative_eq!(t[0], x, epsilon=common::EPS);
+        assert_relative_eq!(t[1], y, epsilon=common::EPS);
+        assert_relative_eq!(t[2], z, epsilon=common::EPS);
 
         let s: linalg::Vec3D<linalg::Spherical> = v.into();
         let t: linalg::Vec3D<linalg::Cartesian> = s.into();
-        assert_relative_eq!(t[linalg::Cartesian::X], x, epsilon=common::EPS);
-        assert_relative_eq!(t[linalg::Cartesian::Y], y, epsilon=common::EPS);
-        assert_relative_eq!(t[linalg::Cartesian::Z], z, epsilon=common::EPS);
+        assert_relative_eq!(t[0], x, epsilon=common::EPS);
+        assert_relative_eq!(t[1], y, epsilon=common::EPS);
+        assert_relative_eq!(t[2], z, epsilon=common::EPS);
     }
 }
 
@@ -178,22 +178,23 @@ fn create_cylindrical_vec3d_test() {
         let phi = PI2 * rng.gen::<f64>();
         let z = 200.0 * rng.gen::<f64>() - 100.0;
 
-        let v = linalg::Vec3D::<linalg::Cylindrical>::new(rho, phi, z);
-        assert_eq!(v[linalg::Cylindrical::Radius], rho);
-        assert_eq!(v[linalg::Cylindrical::Azimuth], phi);
-        assert_eq!(v[linalg::Cylindrical::Altitude], z);
+        let v =
+            linalg::Vec3D::<linalg::Cylindrical>::new(rho, phi, z);
+        assert_eq!(v[0], rho);
+        assert_eq!(v[1], phi);
+        assert_eq!(v[2], z);
 
         let c: linalg::Vec3D<linalg::Cartesian> = v.into();
         let t: linalg::Vec3D<linalg::Cylindrical> = c.into();
-        assert_relative_eq!(t[linalg::Cylindrical::Radius], rho, epsilon=common::EPS);
-        assert_relative_eq!(t[linalg::Cylindrical::Azimuth], phi, epsilon=common::EPS);
-        assert_relative_eq!(t[linalg::Cylindrical::Altitude], z, epsilon=common::EPS);
+        assert_relative_eq!(t[0], rho, epsilon=common::EPS);
+        assert_relative_eq!(t[1], phi, epsilon=common::EPS);
+        assert_relative_eq!(t[2], z, epsilon=common::EPS);
 
         let s: linalg::Vec3D<linalg::Spherical> = v.into();
         let t: linalg::Vec3D<linalg::Cylindrical> = s.into();
-        assert_relative_eq!(t[linalg::Cylindrical::Radius], rho, epsilon=common::EPS);
-        assert_relative_eq!(t[linalg::Cylindrical::Azimuth], phi, epsilon=common::EPS);
-        assert_relative_eq!(t[linalg::Cylindrical::Altitude], z, epsilon=common::EPS);
+        assert_relative_eq!(t[0], rho, epsilon=common::EPS);
+        assert_relative_eq!(t[1], phi, epsilon=common::EPS);
+        assert_relative_eq!(t[2], z, epsilon=common::EPS);
     }
 }
 
@@ -205,44 +206,46 @@ fn create_spherical_vec3d_test() {
         let phi = PI2 * rng.gen::<f64>();
         let theta = PI * rng.gen::<f64>() - FRAC_PI_2;
 
-        let v = linalg::Vec3D::<linalg::Spherical>::new(r, phi, theta);
-        assert_eq!(v[linalg::Spherical::Radius], r);
-        assert_eq!(v[linalg::Spherical::Azimuth], phi);
-        assert_eq!(v[linalg::Spherical::Colatitude], theta);
+        let v =
+            linalg::Vec3D::<linalg::Spherical>::new(r, phi, theta);
+        assert_eq!(v[0], r);
+        assert_eq!(v[1], phi);
+        assert_eq!(v[2], theta);
 
         let c: linalg::Vec3D<linalg::Cartesian> = v.into();
         let t: linalg::Vec3D<linalg::Spherical> = c.into();
-        assert_relative_eq!(t[linalg::Spherical::Radius], r, epsilon=common::EPS);
-        assert_relative_eq!(t[linalg::Spherical::Azimuth], phi, epsilon=common::EPS);
-        assert_relative_eq!(t[linalg::Spherical::Colatitude], theta, epsilon=common::EPS);
+        assert_relative_eq!(t[0], r, epsilon=common::EPS);
+        assert_relative_eq!(t[1], phi, epsilon=common::EPS);
+        assert_relative_eq!(t[2], theta, epsilon=common::EPS);
 
         let y: linalg::Vec3D<linalg::Cylindrical> = v.into();
         let t: linalg::Vec3D<linalg::Spherical> = y.into();
-        assert_relative_eq!(t[linalg::Spherical::Radius], r, epsilon=common::EPS);
-        assert_relative_eq!(t[linalg::Spherical::Azimuth], phi, epsilon=common::EPS);
-        assert_relative_eq!(t[linalg::Spherical::Colatitude], theta, epsilon=common::EPS);
+        assert_relative_eq!(t[0], r, epsilon=common::EPS);
+        assert_relative_eq!(t[1], phi, epsilon=common::EPS);
+        assert_relative_eq!(t[2], theta, epsilon=common::EPS);
     }
 
     for _ in 0..common::ITERATIONS {
         let phi = PI2 * rng.gen::<f64>();
         let theta = PI * rng.gen::<f64>() - FRAC_PI_2;
 
-        let u = linalg::Vec3D::<linalg::Spherical>::unit(phi, theta);
-        assert_eq!(u[linalg::Spherical::Radius], 1.0);
-        assert_eq!(u[linalg::Spherical::Azimuth], phi);
-        assert_eq!(u[linalg::Spherical::Colatitude], theta);
+        let u =
+            linalg::Vec3D::<linalg::Spherical>::unit(phi, theta);
+        assert_eq!(u[0], 1.0);
+        assert_eq!(u[1], phi);
+        assert_eq!(u[2], theta);
 
         let c: linalg::Vec3D<linalg::Cartesian> = u.into();
         let t: linalg::Vec3D<linalg::Spherical> = c.into();
-        assert_relative_eq!(t[linalg::Spherical::Radius], 1.0, epsilon=common::EPS);
-        assert_relative_eq!(t[linalg::Spherical::Azimuth], phi, epsilon=common::EPS);
-        assert_relative_eq!(t[linalg::Spherical::Colatitude], theta, epsilon=common::EPS);
+        assert_relative_eq!(t[0], 1.0, epsilon=common::EPS);
+        assert_relative_eq!(t[1], phi, epsilon=common::EPS);
+        assert_relative_eq!(t[2], theta, epsilon=common::EPS);
 
         let y: linalg::Vec3D<linalg::Cylindrical> = u.into();
         let t: linalg::Vec3D<linalg::Spherical> = y.into();
-        assert_relative_eq!(t[linalg::Spherical::Radius], 1.0, epsilon=common::EPS);
-        assert_relative_eq!(t[linalg::Spherical::Azimuth], phi, epsilon=common::EPS);
-        assert_relative_eq!(t[linalg::Spherical::Colatitude], theta, epsilon=common::EPS);
+        assert_relative_eq!(t[0], 1.0, epsilon=common::EPS);
+        assert_relative_eq!(t[1], phi, epsilon=common::EPS);
+        assert_relative_eq!(t[2], theta, epsilon=common::EPS);
     }
 }
 
@@ -253,17 +256,17 @@ fn vec3d_iter_test() {
 
     for _ in 0..common::ITERATIONS {
         let v = new_random_vec3d(&mut rng);
-        for (i, a) in v.iter().enumerate() {
+        for (i, a) in v.into_iter().enumerate() {
             assert_eq!(a, v[i]);
         }
 
         let v = new_random_cvec3d(&mut rng);
-        for (i, a) in v.iter().enumerate() {
+        for (i, a) in v.into_iter().enumerate() {
             assert_eq!(a, v[i]);
         }
 
         let v = new_random_svec3d(&mut rng);
-        for (i, a) in v.iter().enumerate() {
+        for (i, a) in v.into_iter().enumerate() {
             assert_eq!(a, v[i]);
         }
     }
@@ -646,7 +649,7 @@ fn vec3d_operation_dot_test() {
         let result = v1.dot(&v2);
 
         let mut value = 0.0;
-        for (e1, e2) in v1.iter().zip(v2.iter()) {
+        for (e1, e2) in v1.into_iter().zip(v2.into_iter()) {
             value += e1 * e2;
         }
 
