@@ -12,6 +12,7 @@ use ephem::vec3d;
 use ephem::base::consts::PI2;
 use ephem::base::error::Error;
 use ephem::base::linalg;
+use ephem::base::linalg::{Vec3D, Cartesian};
 
 
 #[test]
@@ -269,6 +270,32 @@ fn vec3d_iter_test() {
         for (i, a) in v.iter().enumerate() {
             assert_eq!(a, v[i]);
         }
+    }
+
+    for _ in 0..common::ITERATIONS {
+        let x = 200.0 * rng.gen::<f64>() - 100.0;
+        let y = 200.0 * rng.gen::<f64>() - 100.0;
+        let z = 200.0 * rng.gen::<f64>() - 100.0;
+
+        let v = Vec3D::<Cartesian>::new(x, y, z);
+        let mut i = v.iter();
+
+        assert_eq!(i.next(), Some(v.x()));
+        assert_eq!(i.next(), Some(v.y()));
+        assert_eq!(i.next(), Some(v.z()));
+        assert_eq!(i.next(), None);
+
+        let mut w = Vec3D::<Cartesian>::zeros();
+        for (cw, cv) in w.iter_mut().zip(v.iter()) {
+            *cw = cv;
+        }
+
+        let mut i = w.iter();
+
+        assert_eq!(i.next(), Some(x));
+        assert_eq!(i.next(), Some(y));
+        assert_eq!(i.next(), Some(z));
+        assert_eq!(i.next(), None);
     }
 }
 
