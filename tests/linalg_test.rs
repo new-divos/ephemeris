@@ -297,6 +297,48 @@ fn vec3d_iter_test() {
         assert_eq!(i.next(), Some(z));
         assert_eq!(i.next(), None);
     }
+
+    for _ in 0..common::ITERATIONS {
+        let x = 200.0 * rng.gen::<f64>() - 100.0;
+        let y = 200.0 * rng.gen::<f64>() - 100.0;
+        let z = 200.0 * rng.gen::<f64>() - 100.0;
+        let w = 200.0 * rng.gen::<f64>() - 100.0;
+
+        let v = vec![x, y, z, w];
+        let u: Vec3D<Cartesian> = v.iter().cloned().collect();
+
+        assert_eq!(u.x(), x);
+        assert_eq!(u.y(), y);
+        assert_eq!(u.z(), z);
+
+        let v = vec![x, y, z];
+        let u: Vec3D<Cartesian> = v.iter().cloned().collect();
+
+        assert_eq!(u.x(), x);
+        assert_eq!(u.y(), y);
+        assert_eq!(u.z(), z);
+
+        let v = vec![x, y];
+        let u: Vec3D<Cartesian> = v.iter().cloned().collect();
+
+        assert_eq!(u.x(), x);
+        assert_eq!(u.y(), y);
+        assert_eq!(u.z(), 0.0);
+
+        let v = vec![x];
+        let u: Vec3D<Cartesian> = v.iter().cloned().collect();
+
+        assert_eq!(u.x(), x);
+        assert_eq!(u.y(), 0.0);
+        assert_eq!(u.z(), 0.0);
+
+        let v = Vec::new();
+        let u: Vec3D<Cartesian> = v.iter().cloned().collect();
+
+        assert_eq!(u.x(), 0.0);
+        assert_eq!(u.y(), 0.0);
+        assert_eq!(u.z(), 0.0);
+    }
 }
 
 

@@ -36,6 +36,21 @@ impl<T: Copy> default::Default for Vec3D<T> {
     }
 }
 
+impl<T: Copy> iter::FromIterator<f64> for Vec3D<T>
+    where
+        Vec3D<T>: convert::From<(f64, f64, f64)>
+{
+    fn from_iter<I: IntoIterator<Item=f64>>(iter: I) -> Self {
+        let mut i = iter.into_iter().fuse();
+
+        Self::from((
+            i.next().unwrap_or_default(),
+            i.next().unwrap_or_default(),
+            i.next().unwrap_or_default()
+        ))
+    }
+}
+
 impl<'a, T: Copy> iter::IntoIterator for &'a Vec3D<T> {
     type Item = f64;
     type IntoIter = Vec3DIter<'a>;
@@ -58,12 +73,12 @@ impl<T: Copy> ops::Index<usize> for Vec3D<T> {
 impl<T: Copy> Vec3D<T> {
     #[inline]
     pub fn zeros() -> Self {
-        Vec3D::<T>([0.0; 3], PhantomData::<T>)
+        Self([0.0; 3], PhantomData::<T>)
     }
 
     #[inline]
     pub fn filled_by(value: f64) -> Self {
-        Vec3D::<T>([value; 3], PhantomData::<T>)
+        Self([value; 3], PhantomData::<T>)
     }
 
     pub fn get(&self, idx: usize) -> Option<f64> {
@@ -177,6 +192,13 @@ macro_rules! l {
 
 #[derive(Copy, Clone)]
 pub struct Cartesian;
+
+impl convert::From<(f64, f64, f64)> for Vec3D<Cartesian> {
+    #[inline]
+    fn from(t: (f64, f64, f64)) -> Self {
+        Self::new(t.0, t.1, t.2)
+    }
+}
 
 impl convert::Into<Vec3D<Cylindrical>> for Vec3D<Cartesian> {
     fn into(self) -> Vec3D<Cylindrical> {
@@ -395,6 +417,13 @@ impl Vec3D<Cartesian> {
 #[derive(Copy, Clone)]
 pub struct Cylindrical;
 
+impl convert::From<(f64, f64, f64)> for Vec3D<Cylindrical> {
+    #[inline]
+    fn from(t: (f64, f64, f64)) -> Self {
+        Self::new(t.0, t.1, t.2)
+    }
+}
+
 impl convert::Into<Vec3D<Cartesian>> for Vec3D<Cylindrical> {
     fn into(self) -> Vec3D<Cartesian> {
         let (sin_a, cos_a) = a!(self).sin_cos();
@@ -540,6 +569,13 @@ impl Vec3D<Cylindrical> {
 
 #[derive(Copy, Clone)]
 pub struct Spherical;
+
+impl convert::From<(f64, f64, f64)> for Vec3D<Spherical> {
+    #[inline]
+    fn from(t: (f64, f64, f64)) -> Self {
+        Self::new(t.0, t.1, t.2)
+    }
+}
 
 impl convert::Into<Vec3D<Cartesian>> for Vec3D<Spherical> {
     fn into(self) -> Vec3D<Cartesian> {
