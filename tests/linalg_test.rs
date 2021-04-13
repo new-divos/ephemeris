@@ -256,17 +256,17 @@ fn vec3d_iter_test() {
 
     for _ in 0..common::ITERATIONS {
         let v = new_random_vec3d(&mut rng);
-        for (i, a) in v.into_iter().enumerate() {
+        for (i, a) in v.iter().enumerate() {
             assert_eq!(a, v[i]);
         }
 
         let v = new_random_cvec3d(&mut rng);
-        for (i, a) in v.into_iter().enumerate() {
+        for (i, a) in v.iter().enumerate() {
             assert_eq!(a, v[i]);
         }
 
         let v = new_random_svec3d(&mut rng);
-        for (i, a) in v.into_iter().enumerate() {
+        for (i, a) in v.iter().enumerate() {
             assert_eq!(a, v[i]);
         }
     }

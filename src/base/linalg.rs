@@ -6,7 +6,7 @@ use std::fmt;
 use std::iter;
 use std::marker::PhantomData;
 use std::ops;
-use std::ops::{Div, Mul, Index};
+use std::ops::{Div, Mul};
 
 use crate::base::consts::PI2;
 use crate::base::error::Error;
@@ -36,29 +36,13 @@ impl<T: Copy> default::Default for Vec3D<T> {
     }
 }
 
-impl<T: Copy> iter::IntoIterator for Vec3D<T> {
-    type Item = f64;
-    type IntoIter = Vec3DCopyIterator<T>;
-
-    #[inline]
-    fn into_iter(self) -> Self::IntoIter {
-        Vec3DCopyIterator::<T> {
-            vector: self,
-            count: 0,
-        }
-    }
-}
-
 impl<'a, T: Copy> iter::IntoIterator for &'a Vec3D<T> {
     type Item = f64;
-    type IntoIter = Vec3DIterator<'a, T>;
+    type IntoIter = Vec3DIter<'a>;
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        Vec3DIterator::<T> {
-            vector: self,
-            count: 0,
-        }
+        self.iter()
     }
 }
 
@@ -88,6 +72,11 @@ impl<T: Copy> Vec3D<T> {
             _ => None,
         }
     }
+
+    #[inline]
+    pub fn iter(&self) -> Vec3DIter {
+        Vec3DIter(Some(self.0.as_ref()))
+    }
 }
 
 impl<T: Copy> Vec3D<T>
@@ -105,25 +94,19 @@ where
 }
 
 
-#[derive(Clone, Copy)]
-pub struct Vec3DCopyIterator<T: Copy> {
-    vector: Vec3D<T>,
-    count: usize,
-}
+pub struct Vec3DIter<'a> (
+    Option<&'a [f64]>
+);
 
-impl<T: Copy> iter::Iterator for Vec3DCopyIterator<T> {
+impl<'a> iter::Iterator for Vec3DIter<'a> {
     type Item = f64;
 
-    //noinspection Duplicates
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.count < 3 {
-            let idx = self.count;
-            self.count += 1;
-
-            Some(self.vector.0[idx])
-        } else {
-            None
-        }
+    fn next(self: &'_ mut Vec3DIter<'a>) -> Option<Self::Item> {
+        self.0.take().and_then(|v| {
+            let (head, tail) = v.split_first()?;
+            self.0 = Some(tail);
+            Some(*head)
+        })
     }
 
     #[inline]
@@ -133,25 +116,19 @@ impl<T: Copy> iter::Iterator for Vec3DCopyIterator<T> {
 }
 
 
-#[derive(Clone, Copy)]
-pub struct Vec3DIterator<'a, T: Copy> {
-    vector: &'a Vec3D<T>,
-    count: usize,
-}
+pub struct Vec3DIterMut<'a> (
+    Option<&'a mut [f64]>
+);
 
-impl<'a, T: Copy> iter::Iterator for Vec3DIterator<'a, T> {
-    type Item = f64;
+impl<'a> iter::Iterator for Vec3DIterMut<'a> {
+    type Item = &'a mut f64;
 
-    //noinspection Duplicates
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.count < 3 {
-            let idx = self.count;
-            self.count += 1;
-
-            Some(self.vector.0[idx])
-        } else {
-            None
-        }
+    fn next(self: &'_ mut Vec3DIterMut<'a>) -> Option<Self::Item> {
+        self.0.take().and_then(|v| {
+            let (head, tail) = v.split_first_mut()?;
+            self.0 = Some(tail);
+            Some(head)
+        })
     }
 
     #[inline]
@@ -197,6 +174,7 @@ macro_rules! l {
     };
 }
 
+
 #[derive(Copy, Clone)]
 pub struct Cartesian;
 
@@ -236,6 +214,16 @@ impl fmt::Debug for Vec3D<Cartesian> {
 impl fmt::Display for Vec3D<Cartesian> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[x={}, y={}, z={}]", x!(self), y!(self), z!(self))
+    }
+}
+
+impl<'a> iter::IntoIterator for &'a mut Vec3D<Cartesian> {
+    type Item = &'a mut f64;
+    type IntoIter = Vec3DIterMut<'a>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
     }
 }
 
@@ -386,6 +374,11 @@ impl Vec3D<Cartesian> {
     #[inline]
     pub fn z(&self) -> f64 {
         z!(self)
+    }
+
+    #[inline]
+    pub fn iter_mut(&mut self) -> Vec3DIterMut {
+        Vec3DIterMut(Some(self.0.as_mut()))
     }
 
     #[inline]
