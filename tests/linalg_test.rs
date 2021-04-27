@@ -6,13 +6,13 @@ mod common;
 extern crate approx;
 
 use std::f64::consts::{PI, FRAC_PI_2};
-use rand::Rng;
+use rand::{Rng, thread_rng};
 
 use ephem::vec3d;
 use ephem::base::consts::PI2;
 use ephem::base::error::Error;
 use ephem::base::linalg;
-use ephem::base::linalg::{Vec3D, Cartesian};
+use ephem::base::linalg::{Vec3D, Cartesian, Cylindrical, Spherical};
 
 
 #[test]
@@ -171,6 +171,7 @@ fn create_cartesian_vec3d_test() {
     }
 }
 
+
 #[test]
 fn create_cylindrical_vec3d_test() {
     let mut rng = rand::thread_rng();
@@ -198,6 +199,7 @@ fn create_cylindrical_vec3d_test() {
         assert_relative_eq!(t[2], z, epsilon=common::EPS);
     }
 }
+
 
 #[test]
 fn create_spherical_vec3d_test() {
@@ -253,7 +255,7 @@ fn create_spherical_vec3d_test() {
 
 #[test]
 fn vec3d_iter_test() {
-    let mut rng = rand::thread_rng();
+    let mut rng = thread_rng();
 
     for _ in 0..common::ITERATIONS {
         let v = new_random_vec3d(&mut rng);
@@ -344,7 +346,7 @@ fn vec3d_iter_test() {
 
 #[test]
 fn vec3d_operation_neg_test() {
-    let mut rng = rand::thread_rng();
+    let mut rng = thread_rng();
 
     for _ in 0..common::ITERATIONS {
         let v = new_random_vec3d(&mut rng);
@@ -387,9 +389,10 @@ fn vec3d_operation_neg_test() {
     }
 }
 
+
 #[test]
 fn vec3d_operation_add_test() {
-    let mut rng = rand::thread_rng();
+    let mut rng = thread_rng();
 
     for _ in 0..common::ITERATIONS {
         let v1 = new_random_vec3d(&mut rng);
@@ -415,9 +418,10 @@ fn vec3d_operation_add_test() {
     }
 }
 
+
 #[test]
 fn vec3d_operation_sub_test() {
-    let mut rng = rand::thread_rng();
+    let mut rng = thread_rng();
 
     for _ in 0..common::ITERATIONS {
         let v1 = new_random_vec3d(&mut rng);
@@ -442,6 +446,7 @@ fn vec3d_operation_sub_test() {
         assert_eq!(z, z1 - z2);
     }
 }
+
 
 #[test]
 fn vec3d_operation_mul_test() {
@@ -545,6 +550,7 @@ fn vec3d_operation_mul_test() {
         assert_relative_eq!(tz, z, epsilon=common::EPS);
     }
 }
+
 
 #[test]
 fn vec3d_operation_div_test() {
@@ -707,6 +713,7 @@ fn vec3d_operation_div_test() {
     }
 }
 
+
 #[test]
 fn vec3d_operation_dot_test() {
     let mut rng = rand::thread_rng();
@@ -725,6 +732,7 @@ fn vec3d_operation_dot_test() {
         assert_eq!(result, value);
     }
 }
+
 
 #[test]
 fn vec3d_operation_cross_test() {
@@ -772,6 +780,79 @@ fn vec3d_operation_cross_test() {
     }
 }
 
+
+#[test]
+fn vec3d_serde_test() {
+    let mut rng = thread_rng();
+
+    fn is_valid<T: Copy>(v: Vec3D<T>) -> bool
+        where
+            Vec3D<T>: std::convert::Into<(f64, f64, f64)>
+    {
+        let (e1, e2, e3) = v.into();
+
+        e1 > common::SERDE_THRESHOLD
+            && e2 > common::SERDE_THRESHOLD
+            && e3 > common::SERDE_THRESHOLD
+    }
+
+    for _ in 0..common::ITERATIONS {
+        let v = new_random_vec3d(&mut rng);
+        if !is_valid(v) {
+            continue;
+        }
+
+        let data = serde_json::to_string(&v).unwrap();
+        assert_eq!(
+            data,
+            format!("{{\"x\":{},\"y\":{},\"z\":{}}}", v.x(), v.y(), v.z())
+        );
+
+        let tested: Vec3D<Cartesian> = serde_json::from_str(data.as_str()).unwrap();
+        assert_relative_eq!(tested.x(), v.x(), epsilon=common::EPS);
+        assert_relative_eq!(tested.y(), v.y(), epsilon=common::EPS);
+        assert_relative_eq!(tested.z(), v.z(), epsilon=common::EPS);
+    }
+
+    for _ in 0..common::ITERATIONS {
+        let v = new_random_cvec3d(&mut rng);
+        if !is_valid(v) {
+            continue;
+        }
+
+        let data = serde_json::to_string(&v).unwrap();
+        assert_eq!(
+            data,
+            format!("{{\"radius\":{},\"azimuth\":{},\"altitude\":{}}}",
+                    v.radius(), v.azimuth(), v.altitude())
+        );
+
+        let tested: Vec3D<Cylindrical> = serde_json::from_str(data.as_str()).unwrap();
+        assert_relative_eq!(tested.radius(), v.radius(), epsilon=common::EPS);
+        assert_relative_eq!(tested.azimuth(), v.azimuth(), epsilon=common::EPS);
+        assert_relative_eq!(tested.altitude(), v.altitude(), epsilon=common::EPS);
+    }
+
+    for _ in 0..common::ITERATIONS {
+        let v = new_random_svec3d(&mut rng);
+        if !is_valid(v) {
+            continue;
+        }
+
+        let data = serde_json::to_string(&v).unwrap();
+        assert_eq!(
+            data,
+            format!("{{\"radius\":{},\"azimuth\":{},\"colatitude\":{}}}",
+                    v.radius(), v.azimuth(), v.colatitude())
+        );
+
+        let tested: Vec3D<Spherical> = serde_json::from_str(data.as_str()).unwrap();
+        assert_relative_eq!(tested.radius(), v.radius(), epsilon=common::EPS);
+        assert_relative_eq!(tested.azimuth(), v.azimuth(), epsilon=common::EPS);
+        assert_relative_eq!(tested.colatitude(), v.colatitude(), epsilon=common::EPS);
+    }
+}
+
 #[test]
 fn create_mat3d_test() {
     let z = linalg::Mat3D::zeros();
@@ -796,7 +877,7 @@ fn create_mat3d_test() {
         }
     }
 
-    let mut rng = rand::thread_rng();
+    let mut rng = thread_rng();
     for _ in 0..common::ITERATIONS {
         let v1 = new_random_vec3d(&mut rng);
         let v2 = new_random_vec3d(&mut rng);

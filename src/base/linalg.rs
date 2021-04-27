@@ -12,8 +12,12 @@ use crate::base::consts::PI2;
 use crate::base::error::Error;
 use crate::base::{Real, Result};
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
-pub struct Vec3D<T: Copy>([f64; 3], #[serde(skip)] PhantomData<T>);
+// ########################################################
+// # Type Vec3D
+// ########################################################
+
+#[derive(Debug, Copy, Clone)]
+pub struct Vec3D<T: Copy>([f64; 3], PhantomData<T>);
 
 impl<T: Copy> cmp::PartialEq for Vec3D<T> {
     #[inline]
@@ -95,8 +99,8 @@ impl<T: Copy> Vec3D<T> {
 }
 
 impl<T: Copy> Vec3D<T>
-where
-    Vec3D<T>: ops::Div<f64>,
+    where
+        Vec3D<T>: ops::Div<f64>,
 {
     #[inline]
     pub fn try_div(self, rhs: f64) -> Result<<Self as ops::Div<f64>>::Output> {
@@ -108,6 +112,10 @@ where
     }
 }
 
+
+// +-------------------------------------------------------
+// | Vec3D iterator
+// +-------------------------------------------------------
 
 pub struct Vec3DIter<'a> (
     Option<&'a [f64]>
@@ -131,6 +139,10 @@ impl<'a> iter::Iterator for Vec3DIter<'a> {
 }
 
 
+// +-------------------------------------------------------
+// | Vec3D mutable iterator
+// +-------------------------------------------------------
+
 pub struct Vec3DIterMut<'a> (
     Option<&'a mut [f64]>
 );
@@ -152,6 +164,10 @@ impl<'a> iter::Iterator for Vec3DIterMut<'a> {
     }
 }
 
+
+// +-------------------------------------------------------
+// | Vec3D mutable items
+// +-------------------------------------------------------
 
 macro_rules! x {
     ($self:ident) => {
@@ -189,6 +205,9 @@ macro_rules! l {
     };
 }
 
+// ########################################################
+// # Type Vec3D<Cartesian>
+// ########################################################
 
 #[derive(Copy, Clone)]
 pub struct Cartesian;
@@ -200,25 +219,19 @@ impl convert::From<(f64, f64, f64)> for Vec3D<Cartesian> {
     }
 }
 
-impl convert::Into<Vec3D<Cylindrical>> for Vec3D<Cartesian> {
-    fn into(self) -> Vec3D<Cylindrical> {
-        Vec3D::<Cylindrical>::new(y!(self).hypot(x!(self)), self.azimuth(), z!(self))
+impl convert::From<Vec3D<Cylindrical>> for Vec3D<Cartesian> {
+    fn from(vector: Vec3D<Cylindrical>) -> Self {
+        let (sin_a, cos_a) = a!(vector).sin_cos();
+        Self::new(r!(vector) * cos_a, r!(vector) * sin_a, z!(vector))
     }
 }
 
-impl convert::Into<Vec3D<Spherical>> for Vec3D<Cartesian> {
-    fn into(self) -> Vec3D<Spherical> {
-        let rho_sq = x!(self) * x!(self) + y!(self) * y!(self);
-        let r = (rho_sq + z!(self) * z!(self)).sqrt();
-
-        let rho = rho_sq.sqrt();
-        let theta = if rho == 0.0 && z!(self) == 0.0 {
-            0.0
-        } else {
-            z!(self).atan2(rho)
-        };
-
-        Vec3D::<Spherical>::new(r, self.azimuth(), theta)
+impl convert::From<Vec3D<Spherical>> for Vec3D<Cartesian> {
+    fn from(vector: Vec3D<Spherical>) -> Self {
+        let (sin_a, cos_a) = a!(vector).sin_cos();
+        let (sin_l, cos_l) = l!(vector).sin_cos();
+        let rho = r!(vector) * cos_l;
+        Self::new(rho * cos_a, rho * sin_a, r!(vector) * sin_l)
     }
 }
 
@@ -343,6 +356,10 @@ impl ops::DivAssign<f64> for Vec3D<Cartesian> {
     }
 }
 
+vec3d_serialize!(Cartesian);
+vec3d_deserialize!(Cartesian);
+
+
 impl Vec3D<Cartesian> {
     #[inline]
     pub fn new(x: f64, y: f64, z: f64) -> Self {
@@ -413,6 +430,9 @@ impl Vec3D<Cartesian> {
     }
 }
 
+// ########################################################
+// # Type Vec3D<Cylindrical>
+// ########################################################
 
 #[derive(Copy, Clone)]
 pub struct Cylindrical;
@@ -424,22 +444,21 @@ impl convert::From<(f64, f64, f64)> for Vec3D<Cylindrical> {
     }
 }
 
-impl convert::Into<Vec3D<Cartesian>> for Vec3D<Cylindrical> {
-    fn into(self) -> Vec3D<Cartesian> {
-        let (sin_a, cos_a) = a!(self).sin_cos();
-        Vec3D::<Cartesian>::new(r!(self) * cos_a, r!(self) * sin_a, z!(self))
+impl convert::From<Vec3D<Cartesian>> for Vec3D<Cylindrical> {
+    #[inline]
+    fn from(vector: Vec3D<Cartesian>) -> Self {
+        Self::new(
+            y!(vector).hypot(x!(vector)),
+            vector.azimuth(),
+            z!(vector)
+        )
     }
 }
 
-impl convert::Into<Vec3D<Spherical>> for Vec3D<Cylindrical> {
-    fn into(self) -> Vec3D<Spherical> {
-        let theta = if r!(self) == 0.0 && z!(self) == 0.0 {
-            0.0
-        } else {
-            z!(self).atan2(r!(self))
-        };
-
-        Vec3D::<Spherical>::new(r!(self).hypot(z!(self)), a!(self), theta)
+impl convert::From<Vec3D<Spherical>> for Vec3D<Cylindrical> {
+    fn from(vector: Vec3D<Spherical>) -> Self {
+        let (sin_l, cos_l) = l!(vector).sin_cos();
+        Self::new(r!(vector) * cos_l, a!(vector), r!(vector) * sin_l)
     }
 }
 
@@ -528,6 +547,10 @@ impl ops::DivAssign<f64> for Vec3D<Cylindrical> {
     }
 }
 
+vec3d_serialize!(Cylindrical);
+vec3d_deserialize!(Cylindrical);
+
+
 impl Vec3D<Cylindrical> {
     #[inline]
     pub fn new(radius: f64, azimuth: f64, altitude: f64) -> Self {
@@ -566,6 +589,9 @@ impl Vec3D<Cylindrical> {
     }
 }
 
+// ########################################################
+// # Type Vec3D<Spherical>
+// ########################################################
 
 #[derive(Copy, Clone)]
 pub struct Spherical;
@@ -577,19 +603,31 @@ impl convert::From<(f64, f64, f64)> for Vec3D<Spherical> {
     }
 }
 
-impl convert::Into<Vec3D<Cartesian>> for Vec3D<Spherical> {
-    fn into(self) -> Vec3D<Cartesian> {
-        let (sin_a, cos_a) = a!(self).sin_cos();
-        let (sin_l, cos_l) = l!(self).sin_cos();
-        let rho = r!(self) * cos_l;
-        Vec3D::<Cartesian>::new(rho * cos_a, rho * sin_a, r!(self) * sin_l)
+impl convert::From<Vec3D<Cartesian>> for Vec3D<Spherical> {
+    fn from(vector: Vec3D<Cartesian>) -> Self {
+        let rho_sq = x!(vector) * x!(vector) + y!(vector) * y!(vector);
+        let r = (rho_sq + z!(vector) * z!(vector)).sqrt();
+
+        let rho = rho_sq.sqrt();
+        let theta = if rho == 0.0 && z!(vector) == 0.0 {
+            0.0
+        } else {
+            z!(vector).atan2(rho)
+        };
+
+        Self::new(r, vector.azimuth(), theta)
     }
 }
 
-impl convert::Into<Vec3D<Cylindrical>> for Vec3D<Spherical> {
-    fn into(self) -> Vec3D<Cylindrical> {
-        let (sin_l, cos_l) = l!(self).sin_cos();
-        Vec3D::<Cylindrical>::new(r!(self) * cos_l, a!(self), r!(self) * sin_l)
+impl convert::From<Vec3D<Cylindrical>> for Vec3D<Spherical> {
+    fn from(vector: Vec3D<Cylindrical>) -> Self {
+        let theta = if r!(vector) == 0.0 && z!(vector) == 0.0 {
+            0.0
+        } else {
+            z!(vector).atan2(r!(vector))
+        };
+
+        Self::new(r!(vector).hypot(z!(vector)), a!(vector), theta)
     }
 }
 
@@ -669,6 +707,10 @@ impl ops::DivAssign<f64> for Vec3D<Spherical> {
     }
 }
 
+
+vec3d_serialize!(Spherical);
+vec3d_deserialize!(Spherical);
+
 impl Vec3D<Spherical> {
     pub fn new(radius: f64, azimuth: f64, colatitude: f64) -> Vec3D<Spherical> {
         Vec3D::<Spherical>(
@@ -731,6 +773,10 @@ impl Vec3D<Spherical> {
         }
     }
 }
+
+// ########################################################
+// # Type Mat3D
+// ########################################################
 
 #[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Mat3D([[f64; 3]; 3]);
