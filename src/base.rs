@@ -31,10 +31,12 @@ pub trait Real<T = Self> where T: Float
 macro_rules! impl_real {
     ($t:ty) => (
         impl Real for $t {
+            #[inline]
             fn frac(self) -> Self {
                 self - self.floor()
             }
 
+            #[inline]
             fn fmod(self, rhs: Self) -> Self {
                 self - rhs * (self / rhs).floor()
             }
