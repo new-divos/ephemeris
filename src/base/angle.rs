@@ -23,25 +23,38 @@ const TMM: f64 = TA * 60.0;
 const TMS: f64 = TMM * 60.0;
 
 
-///
-/// Left value in a composed angle value
-///
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Left(f64);
+// ########################################################
+// # Type Left
+// ########################################################
 
-///
-/// Middle value in a composed angle value
-///
+/// The left value of a composed angle value
+#[derive(Copy, Clone, Debug, PartialEq)]
+struct Left(f64);
+
+
+// ########################################################
+// # Type Middle
+// ########################################################
+
+/// The middle value of a composed angle value
 #[derive(Copy, Clone, Debug, PartialEq)]
 struct Middle(f64);
 
-///
-/// Right value in a composed angle value
-///
+
+// ########################################################
+// # Type Right
+// ########################################################
+
+/// The right value of a composed angle value
 #[derive(Copy, Clone, Debug, PartialEq)]
 struct Right(f64);
 
 
+// ########################################################
+// # Type Sign
+// ########################################################
+
+/// The sign of the angle
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Sign {
     Negative,
@@ -60,6 +73,11 @@ fn sign(value: f64) -> Sign {
 }
 
 
+// ########################################################
+// # Type ShortAngle
+// ########################################################
+
+/// The two components angle value
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct ShortAngle(i32, f64);
 
@@ -178,7 +196,11 @@ impl ShortAngle {
     }
 }
 
+// ########################################################
+// # Type LongAngle
+// ########################################################
 
+/// The three components angle value
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct LongAngle(i32, i8, f64);
 
@@ -337,10 +359,27 @@ impl LongAngle {
     }
 }
 
+// ########################################################
+// # Trait AngleWrapper
+// ########################################################
 
 pub trait AngleMapper {
     type Item: Copy;
 }
+
+
+// ########################################################
+// # Trait AngleWrapper
+// ########################################################
+
+pub trait AngleWrapper {
+    fn wrap(&self) -> Self;
+    fn translate(&self, n: i32) -> Self;
+}
+
+// ########################################################
+// # Type Angle
+// ########################################################
 
 #[derive(Clone, Copy)]
 pub struct Angle<T: AngleMapper + Copy>
@@ -704,6 +743,10 @@ impl<T> convert::Into<(Sign, i32, i32, f64)> for Angle<T>
 }
 
 
+// ########################################################
+// # Type Radians
+// ########################################################
+
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Radians;
 
@@ -743,6 +786,10 @@ impl convert::Into<f64> for Angle<Radians> {
 }
 
 
+// ########################################################
+// # Type Revolutions
+// ########################################################
+
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Revolutions;
 
@@ -769,6 +816,10 @@ angle_from! {
 
 angle_raw!(Revolutions: 0 * PI2);
 
+
+// ########################################################
+// # Type Degrees
+// ########################################################
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Degrees;
@@ -797,6 +848,10 @@ angle_from! {
 angle_raw!(Degrees: 0 * D2R);
 
 
+// ########################################################
+// # Type DegreesArcMinutes
+// ########################################################
+
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct DegreesArcMinutes;
 
@@ -823,6 +878,10 @@ angle_from! {
 
 angle_raw!(DegreesArcMinutes: Left * D2R);
 
+
+// ########################################################
+// # Type DegreesArcMinutesSeconds
+// ########################################################
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct DegreesArcMinutesSeconds;
@@ -851,6 +910,10 @@ angle_from! {
 angle_raw!(DegreesArcMinutesSeconds: Left * D2R);
 
 
+// ########################################################
+// # Type ArcMinutes
+// ########################################################
+
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct ArcMinutes;
 
@@ -876,6 +939,11 @@ angle_from! {
 }
 
 angle_raw!(ArcMinutes: 0 * AM2R);
+
+
+// ########################################################
+// # Type ArcMinutesSeconds
+// ########################################################
 
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
@@ -905,6 +973,10 @@ angle_from! {
 angle_raw!(ArcMinutesSeconds: Left * AM2R);
 
 
+// ########################################################
+// # Type ArcSeconds
+// ########################################################
+
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct ArcSeconds;
 
@@ -931,6 +1003,10 @@ angle_from! {
 
 angle_raw!(ArcSeconds: 0 * AS2R);
 
+
+// ########################################################
+// # Type Hours
+// ########################################################
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Hours;
@@ -959,6 +1035,10 @@ angle_from! {
 angle_raw!(Hours: 0 * H2R);
 
 
+// ########################################################
+// # Type HoursMinutes
+// ########################################################
+
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct HoursMinutes;
 
@@ -985,6 +1065,10 @@ angle_from! {
 
 angle_raw!(HoursMinutes: Left * H2R);
 
+
+// ########################################################
+// # Type HoursMinutesSeconds
+// ########################################################
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct HoursMinutesSeconds;
@@ -1013,6 +1097,10 @@ angle_from! {
 angle_raw!(HoursMinutesSeconds: Left * H2R);
 
 
+// ########################################################
+// # Type Minutes
+// ########################################################
+
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Minutes;
 
@@ -1039,6 +1127,10 @@ angle_from! {
 
 angle_raw!(Minutes: 0 * M2R);
 
+
+// ########################################################
+// # Type MinutesSeconds
+// ########################################################
 
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct MinutesSeconds;
@@ -1067,6 +1159,10 @@ angle_from! {
 angle_raw!(MinutesSeconds: Left * M2R);
 
 
+// ########################################################
+// # Type Seconds
+// ########################################################
+
 #[derive(AngleMapper, Clone, Copy, Debug)]
 pub struct Seconds;
 
@@ -1093,6 +1189,10 @@ angle_from! {
 
 angle_raw!(Seconds: 0 * S2R);
 
+
+// ########################################################
+// # Tests
+// ########################################################
 
 #[cfg(test)]
 mod tests {
