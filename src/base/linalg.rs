@@ -721,11 +721,11 @@ impl Vec3D<Spherical> {
                 } else {
                     azimuth.fmod(PI2)
                 },
-                Vec3D::<Spherical>::clamp(if radius < 0.0 {
+                (if radius < 0.0 {
                     -colatitude
                 } else {
                     colatitude
-                }),
+                }).clamp(-FRAC_PI_2, FRAC_PI_2),
             ],
             PhantomData::<Spherical>,
         )
@@ -736,7 +736,7 @@ impl Vec3D<Spherical> {
             [
                 1.0,
                 azimuth.fmod(PI2),
-                Vec3D::<Spherical>::clamp(colatitude),
+                colatitude.clamp(-FRAC_PI_2, FRAC_PI_2),
             ],
             PhantomData::<Spherical>,
         )
@@ -760,17 +760,6 @@ impl Vec3D<Spherical> {
     #[inline]
     pub fn colatitude(&self) -> f64 {
         l!(self)
-    }
-
-    #[inline]
-    fn clamp(theta: f64) -> f64 {
-        if theta < -FRAC_PI_2 {
-            -FRAC_PI_2
-        } else if theta > FRAC_PI_2 {
-            FRAC_PI_2
-        } else {
-            theta
-        }
     }
 }
 
