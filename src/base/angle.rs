@@ -3,6 +3,7 @@ use std::convert;
 use std::fmt;
 use std::marker::PhantomData;
 
+use crate::base::Real;
 use crate::base::consts::{PI2, D2R, R2D, R2AM, AM2R, R2AS, AS2R,
                           H2R, R2H, M2R, R2M, S2R, R2S};
 
@@ -372,8 +373,8 @@ pub trait AngleMapper {
 // # Trait AngleWrapper
 // ########################################################
 
-pub trait AngleWrapper {
-    fn wrap(&self) -> Self;
+pub trait AngleNormalizer {
+    fn normalize(&self) -> Self;
     fn translate(&self, n: i32) -> Self;
 }
 
@@ -815,6 +816,23 @@ angle_from! {
 }
 
 angle_raw!(Revolutions: 0 * PI2);
+
+
+// +-------------------------------------------------------
+// | Type Angle<Revolutions>
+// +-------------------------------------------------------
+
+impl AngleNormalizer for Angle<Revolutions> {
+    #[inline]
+    fn normalize(&self) -> Self {
+        Self(self.0.frac(), PhantomData::<Revolutions>)
+    }
+
+    #[inline]
+    fn translate(&self, n: i32) -> Self {
+        Self(self.0 + (n as f64), PhantomData::<Revolutions>)
+    }
+}
 
 
 // ########################################################

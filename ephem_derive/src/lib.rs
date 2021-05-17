@@ -230,7 +230,7 @@ fn vec3d_item(key: &'static str) -> syn::Ident {
 
 
 // +-------------------------------------------------------
-// | Vec3DSignature
+// | Type Vec3DSignature
 // +-------------------------------------------------------
 
 struct Vec3DSignature {
@@ -244,7 +244,7 @@ impl syn::parse::Parse for Vec3DSignature {
         }
 
         Ok(Vec3DSignature {
-            name: input.parse().unwrap()
+            name: input.parse()?
         })
     }
 }
@@ -815,14 +815,14 @@ fn angle_keys(units: Vec<String>) -> Vec<String> {
     keys
 }
 
+
 // +-------------------------------------------------------
-// | AngleSignature
+// | Type AngleSignature
 // +-------------------------------------------------------
 
 struct AngleSignature {
     name: syn::Ident
 }
-
 
 impl syn::parse::Parse for AngleSignature {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
@@ -831,8 +831,38 @@ impl syn::parse::Parse for AngleSignature {
         }
 
         Ok(AngleSignature {
-            name: input.parse().unwrap()
+            name: input.parse()?
         })
     }
 }
 
+
+// ########################################################
+// # Angle normalization
+// ########################################################
+
+
+// +-------------------------------------------------------
+// | Type AngleNormSignature
+// +-------------------------------------------------------
+
+//noinspection RsUnresolvedReference
+struct AngleNormSignature {
+    name: syn::Ident,
+    coma_token: Token![,],
+    revolution: syn::Expr
+}
+
+impl syn::parse::Parse for AngleNormSignature {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        if input.is_empty() {
+            panic!("Write full angle item signature.");
+        }
+
+        Ok(AngleNormSignature {
+            name: input.parse()?,
+            coma_token: input.parse()?,
+            revolution: input.parse()?
+        })
+    }
+}
