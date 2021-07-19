@@ -364,8 +364,10 @@ impl LongAngle {
 // # Trait AngleWrapper
 // ########################################################
 
-pub trait AngleMapper {
+pub trait AngleMeta {
     type Item: Copy;
+
+    const ROTATION: f64;
 }
 
 
@@ -383,9 +385,9 @@ pub trait AngleNormalizer {
 // ########################################################
 
 #[derive(Clone, Copy)]
-pub struct Angle<T: AngleMapper + Copy>
+pub struct Angle<T: AngleMeta + Copy>
 (
-    <T as AngleMapper>::Item,
+    <T as AngleMeta>::Item,
     PhantomData<T>
 );
 
@@ -715,7 +717,7 @@ macro_rules! angle_raw {
 
 impl<T> convert::Into<(Sign, f64)> for Angle<T>
     where
-        T: AngleMapper<Item=f64> + Copy,
+        T: AngleMeta<Item=f64> + Copy,
 {
     #[inline]
     fn into(self) -> (Sign, f64) {
@@ -725,7 +727,7 @@ impl<T> convert::Into<(Sign, f64)> for Angle<T>
 
 impl<T> convert::Into<(Sign, i32, f64)> for Angle<T>
     where
-        T: AngleMapper<Item=ShortAngle> + Copy,
+        T: AngleMeta<Item=ShortAngle> + Copy,
 {
     #[inline]
     fn into(self) -> (Sign, i32, f64) {
@@ -735,7 +737,7 @@ impl<T> convert::Into<(Sign, i32, f64)> for Angle<T>
 
 impl<T> convert::Into<(Sign, i32, i32, f64)> for Angle<T>
     where
-        T: AngleMapper<Item=LongAngle> + Copy,
+        T: AngleMeta<Item=LongAngle> + Copy,
 {
     #[inline]
     fn into(self) -> (Sign, i32, i32, f64) {
@@ -748,7 +750,8 @@ impl<T> convert::Into<(Sign, i32, i32, f64)> for Angle<T>
 // # Type Radians
 // ########################################################
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMeta, Clone, Copy, Debug)]
+#[rotation = "PI2"]
 pub struct Radians;
 
 angle_new!(Radians; radians);
@@ -791,7 +794,8 @@ impl convert::Into<f64> for Angle<Radians> {
 // # Type Revolutions
 // ########################################################
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMeta, Clone, Copy, Debug)]
+#[rotation = 1.0]
 pub struct Revolutions;
 
 angle_new!(Revolutions; revolutions);
@@ -839,7 +843,8 @@ impl AngleNormalizer for Angle<Revolutions> {
 // # Type Degrees
 // ########################################################
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMeta, Clone, Copy, Debug)]
+#[rotation = 360.0]
 pub struct Degrees;
 
 angle_new!(Degrees; degrees);
@@ -870,7 +875,8 @@ angle_raw!(Degrees: 0 * D2R);
 // # Type DegreesArcMinutes
 // ########################################################
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMeta, Clone, Copy, Debug)]
+#[rotation = 360.0]
 pub struct DegreesArcMinutes;
 
 angle_new!(DegreesArcMinutes; degrees, arc_minutes);
@@ -901,7 +907,8 @@ angle_raw!(DegreesArcMinutes: Left * D2R);
 // # Type DegreesArcMinutesSeconds
 // ########################################################
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMeta, Clone, Copy, Debug)]
+#[rotation = 360.0]
 pub struct DegreesArcMinutesSeconds;
 
 angle_new!(DegreesArcMinutesSeconds; degrees, arc_minutes, arc_seconds);
@@ -932,7 +939,8 @@ angle_raw!(DegreesArcMinutesSeconds: Left * D2R);
 // # Type ArcMinutes
 // ########################################################
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMeta, Clone, Copy, Debug)]
+#[rotation = 21600.0]
 pub struct ArcMinutes;
 
 angle_new!(ArcMinutes; arc_minutes);
@@ -964,7 +972,8 @@ angle_raw!(ArcMinutes: 0 * AM2R);
 // ########################################################
 
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMeta, Clone, Copy, Debug)]
+#[rotation = 21600.0]
 pub struct ArcMinutesSeconds;
 
 angle_new!(ArcMinutesSeconds; arc_minutes, arc_seconds);
@@ -995,7 +1004,8 @@ angle_raw!(ArcMinutesSeconds: Left * AM2R);
 // # Type ArcSeconds
 // ########################################################
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMeta, Clone, Copy, Debug)]
+#[rotation = 1296000.0]
 pub struct ArcSeconds;
 
 angle_new!(ArcSeconds; arc_seconds);
@@ -1026,7 +1036,8 @@ angle_raw!(ArcSeconds: 0 * AS2R);
 // # Type Hours
 // ########################################################
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMeta, Clone, Copy, Debug)]
+#[rotation = 24.0]
 pub struct Hours;
 
 angle_new!(Hours; hours);
@@ -1057,7 +1068,8 @@ angle_raw!(Hours: 0 * H2R);
 // # Type HoursMinutes
 // ########################################################
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMeta, Clone, Copy, Debug)]
+#[rotation = 24.0]
 pub struct HoursMinutes;
 
 angle_new!(HoursMinutes; hours, minutes);
@@ -1088,7 +1100,8 @@ angle_raw!(HoursMinutes: Left * H2R);
 // # Type HoursMinutesSeconds
 // ########################################################
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMeta, Clone, Copy, Debug)]
+#[rotation = 24.0]
 pub struct HoursMinutesSeconds;
 
 angle_new!(HoursMinutesSeconds; hours, minutes, seconds);
@@ -1119,7 +1132,8 @@ angle_raw!(HoursMinutesSeconds: Left * H2R);
 // # Type Minutes
 // ########################################################
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMeta, Clone, Copy, Debug)]
+#[rotation = 1440.0]
 pub struct Minutes;
 
 angle_new!(Minutes; minutes);
@@ -1150,7 +1164,8 @@ angle_raw!(Minutes: 0 * M2R);
 // # Type MinutesSeconds
 // ########################################################
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMeta, Clone, Copy, Debug)]
+#[rotation = 1440.0]
 pub struct MinutesSeconds;
 
 angle_new!(MinutesSeconds; minutes, seconds);
@@ -1181,7 +1196,8 @@ angle_raw!(MinutesSeconds: Left * M2R);
 // # Type Seconds
 // ########################################################
 
-#[derive(AngleMapper, Clone, Copy, Debug)]
+#[derive(AngleMeta, Clone, Copy, Debug)]
+#[rotation = 86400.0]
 pub struct Seconds;
 
 angle_new!(Seconds; seconds);
@@ -1219,6 +1235,24 @@ mod tests {
 
     use super::*;
     use crate::tests::{EPS, ITERATIONS};
+
+    #[test]
+    fn rotation_test() {
+        assert_eq!(Radians::ROTATION, PI2);
+        assert_eq!(Revolutions::ROTATION, 1.0);
+        assert_eq!(Degrees::ROTATION, RV2D);
+        assert_eq!(DegreesArcMinutes::ROTATION, RV2D);
+        assert_eq!(DegreesArcMinutesSeconds::ROTATION, RV2D);
+        assert_eq!(ArcMinutes::ROTATION, RV2AM);
+        assert_eq!(ArcMinutesSeconds::ROTATION, RV2AM);
+        assert_eq!(ArcSeconds::ROTATION, RV2AS);
+        assert_eq!(Hours::ROTATION, RV2H);
+        assert_eq!(HoursMinutes::ROTATION, RV2H);
+        assert_eq!(HoursMinutesSeconds::ROTATION, RV2H);
+        assert_eq!(Minutes::ROTATION, RV2M);
+        assert_eq!(MinutesSeconds::ROTATION, RV2M);
+        assert_eq!(Seconds::ROTATION, RV2S);
+    }
 
 
     #[test]

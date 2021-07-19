@@ -254,35 +254,76 @@ impl syn::parse::Parse for Vec3DSignature {
 // # Angle mapper
 // ########################################################
 
-#[proc_macro_derive(AngleMapper)]
-pub fn angle_mapper_derive(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(AngleMeta, attributes(rotation))]
+pub fn angle_meta_derive(input: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse2(input.into()).unwrap();
+
+    let mut rotation_value: Option<syn::LitFloat> = None;
+    let mut rotation_name: Option<String> = None;
+    for option in ast.attrs.into_iter() {
+        let option = option.parse_meta().unwrap();
+        match option {
+            syn::Meta::NameValue(syn::MetaNameValue {
+                                     ref path,
+                                     ref lit,
+                                     ..
+                                 }) if path.is_ident("rotation") => {
+                if let syn::Lit::Float(lit) = lit {
+                    rotation_value = Some(lit.to_owned());
+                } else if let syn::Lit::Str(lit) = lit {
+                    rotation_name = Some(lit.value());
+                }
+            },
+
+            _ => unreachable!()
+        }
+    }
 
     let name = &ast.ident;
     let count = parse_angle_name(&name.to_string())
         .filter(|value| *value != "arc")
         .count();
 
-    match count {
-        1 => (quote! {
-            impl crate::base::angle::AngleMapper for #name {
-                type Item = f64;
-            }
-        }).into(),
-
-        2 => (quote! {
-            impl crate::base::angle::AngleMapper for #name {
-                type Item = ShortAngle;
-            }
-        }).into(),
-
-        3 => (quote! {
-            impl crate::base::angle::AngleMapper for #name {
-                type Item = LongAngle;
-            }
-        }).into(),
-
+    let item_type: syn::Ident = match count {
+        1 => syn::Ident::new(
+            "f64",
+            Span::mixed_site()
+        ),
+        2 => syn::Ident::new(
+            "ShortAngle",
+            Span::mixed_site()
+        ),
+        3 => syn::Ident::new(
+            "LongAngle",
+            Span::mixed_site()
+        ),
         _ => unreachable!()
+    };
+
+    if let Some(rotation_value) = rotation_value {
+        (quote! {
+            impl crate::base::angle::AngleMeta for #name {
+                type Item = #item_type;
+
+                const ROTATION: f64 = #rotation_value;
+            }
+        }).into()
+    } else if let Some(rotation_name) = rotation_name {
+        let rotation_ident = syn::Ident::new(
+            rotation_name.as_str(),
+            Span::mixed_site()
+        );
+
+        (quote! {
+            impl crate::base::angle::AngleMeta for #name {
+                type Item = #item_type;
+
+                const ROTATION: f64 = crate::base::consts::#rotation_ident;
+            }
+        }).into()
+
+    } else {
+        panic!("The attribute 'rotation' is not found");
     }
 }
 
@@ -832,37 +873,6 @@ impl syn::parse::Parse for AngleSignature {
 
         Ok(AngleSignature {
             name: input.parse()?
-        })
-    }
-}
-
-
-// ########################################################
-// # Angle normalization
-// ########################################################
-
-
-// +-------------------------------------------------------
-// | Type AngleNormSignature
-// +-------------------------------------------------------
-
-//noinspection RsUnresolvedReference
-struct AngleNormSignature {
-    name: syn::Ident,
-    coma_token: Token![,],
-    revolution: syn::Expr
-}
-
-impl syn::parse::Parse for AngleNormSignature {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        if input.is_empty() {
-            panic!("Write full angle item signature.");
-        }
-
-        Ok(AngleNormSignature {
-            name: input.parse()?,
-            coma_token: input.parse()?,
-            revolution: input.parse()?
         })
     }
 }
