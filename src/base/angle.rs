@@ -367,6 +367,8 @@ impl LongAngle {
 pub trait AngleMeta {
     type Item: Copy;
 
+    const LENGTH: usize;
+    const PROPERTIES: &'static [&'static str];
     const ROTATION: f64;
 }
 
@@ -751,6 +753,7 @@ impl<T> convert::Into<(Sign, i32, i32, f64)> for Angle<T>
 // ########################################################
 
 #[derive(AngleMeta, Clone, Copy, Debug)]
+#[properties(radians)]
 #[rotation = "PI2"]
 pub struct Radians;
 
@@ -795,6 +798,7 @@ impl convert::Into<f64> for Angle<Radians> {
 // ########################################################
 
 #[derive(AngleMeta, Clone, Copy, Debug)]
+#[properties(revolutions)]
 #[rotation = 1.0]
 pub struct Revolutions;
 
@@ -844,6 +848,7 @@ impl AngleNormalizer for Angle<Revolutions> {
 // ########################################################
 
 #[derive(AngleMeta, Clone, Copy, Debug)]
+#[properties(degrees)]
 #[rotation = 360.0]
 pub struct Degrees;
 
@@ -876,6 +881,7 @@ angle_raw!(Degrees: 0 * D2R);
 // ########################################################
 
 #[derive(AngleMeta, Clone, Copy, Debug)]
+#[properties(degrees, arc_minutes)]
 #[rotation = 360.0]
 pub struct DegreesArcMinutes;
 
@@ -908,6 +914,7 @@ angle_raw!(DegreesArcMinutes: Left * D2R);
 // ########################################################
 
 #[derive(AngleMeta, Clone, Copy, Debug)]
+#[properties(degrees, arc_minutes, arc_seconds)]
 #[rotation = 360.0]
 pub struct DegreesArcMinutesSeconds;
 
@@ -940,6 +947,7 @@ angle_raw!(DegreesArcMinutesSeconds: Left * D2R);
 // ########################################################
 
 #[derive(AngleMeta, Clone, Copy, Debug)]
+#[properties(arc_minutes)]
 #[rotation = 21600.0]
 pub struct ArcMinutes;
 
@@ -973,6 +981,7 @@ angle_raw!(ArcMinutes: 0 * AM2R);
 
 
 #[derive(AngleMeta, Clone, Copy, Debug)]
+#[properties(arc_minutes, arc_seconds)]
 #[rotation = 21600.0]
 pub struct ArcMinutesSeconds;
 
@@ -1005,6 +1014,7 @@ angle_raw!(ArcMinutesSeconds: Left * AM2R);
 // ########################################################
 
 #[derive(AngleMeta, Clone, Copy, Debug)]
+#[properties(arc_seconds)]
 #[rotation = 1296000.0]
 pub struct ArcSeconds;
 
@@ -1037,6 +1047,7 @@ angle_raw!(ArcSeconds: 0 * AS2R);
 // ########################################################
 
 #[derive(AngleMeta, Clone, Copy, Debug)]
+#[properties(hours)]
 #[rotation = 24.0]
 pub struct Hours;
 
@@ -1069,6 +1080,7 @@ angle_raw!(Hours: 0 * H2R);
 // ########################################################
 
 #[derive(AngleMeta, Clone, Copy, Debug)]
+#[properties(hours, minutes)]
 #[rotation = 24.0]
 pub struct HoursMinutes;
 
@@ -1101,6 +1113,7 @@ angle_raw!(HoursMinutes: Left * H2R);
 // ########################################################
 
 #[derive(AngleMeta, Clone, Copy, Debug)]
+#[properties(hours, minutes, seconds)]
 #[rotation = 24.0]
 pub struct HoursMinutesSeconds;
 
@@ -1133,6 +1146,7 @@ angle_raw!(HoursMinutesSeconds: Left * H2R);
 // ########################################################
 
 #[derive(AngleMeta, Clone, Copy, Debug)]
+#[properties(minutes)]
 #[rotation = 1440.0]
 pub struct Minutes;
 
@@ -1165,6 +1179,7 @@ angle_raw!(Minutes: 0 * M2R);
 // ########################################################
 
 #[derive(AngleMeta, Clone, Copy, Debug)]
+#[properties(minutes, seconds)]
 #[rotation = 1440.0]
 pub struct MinutesSeconds;
 
@@ -1197,6 +1212,7 @@ angle_raw!(MinutesSeconds: Left * M2R);
 // ########################################################
 
 #[derive(AngleMeta, Clone, Copy, Debug)]
+#[properties(seconds)]
 #[rotation = 86400.0]
 pub struct Seconds;
 
@@ -1237,7 +1253,57 @@ mod tests {
     use crate::tests::{EPS, ITERATIONS};
 
     #[test]
-    fn rotation_test() {
+    fn angle_meta_test() {
+        assert_eq!(Radians::LENGTH, 1);
+        assert_eq!(Radians::PROPERTIES[0], "radians");
+
+        assert_eq!(Revolutions::LENGTH, 1);
+        assert_eq!(Revolutions::PROPERTIES[0], "revolutions");
+
+        assert_eq!(Degrees::LENGTH, 1);
+        assert_eq!(Degrees::PROPERTIES[0], "degrees");
+
+        assert_eq!(DegreesArcMinutes::LENGTH, 2);
+        assert_eq!(DegreesArcMinutes::PROPERTIES[0], "degrees");
+        assert_eq!(DegreesArcMinutes::PROPERTIES[1], "arc_minutes");
+
+        assert_eq!(DegreesArcMinutesSeconds::LENGTH, 3);
+        assert_eq!(DegreesArcMinutesSeconds::PROPERTIES[0], "degrees");
+        assert_eq!(DegreesArcMinutesSeconds::PROPERTIES[1], "arc_minutes");
+        assert_eq!(DegreesArcMinutesSeconds::PROPERTIES[2], "arc_seconds");
+
+        assert_eq!(ArcMinutes::LENGTH, 1);
+        assert_eq!(ArcMinutes::PROPERTIES[0], "arc_minutes");
+
+        assert_eq!(ArcMinutesSeconds::LENGTH, 2);
+        assert_eq!(ArcMinutesSeconds::PROPERTIES[0], "arc_minutes");
+        assert_eq!(ArcMinutesSeconds::PROPERTIES[1], "arc_seconds");
+
+        assert_eq!(ArcSeconds::LENGTH, 1);
+        assert_eq!(ArcSeconds::PROPERTIES[0], "arc_seconds");
+
+        assert_eq!(Hours::LENGTH, 1);
+        assert_eq!(Hours::PROPERTIES[0], "hours");
+
+        assert_eq!(HoursMinutes::LENGTH, 2);
+        assert_eq!(HoursMinutes::PROPERTIES[0], "hours");
+        assert_eq!(HoursMinutes::PROPERTIES[1], "minutes");
+
+        assert_eq!(HoursMinutesSeconds::LENGTH, 3);
+        assert_eq!(HoursMinutesSeconds::PROPERTIES[0], "hours");
+        assert_eq!(HoursMinutesSeconds::PROPERTIES[1], "minutes");
+        assert_eq!(HoursMinutesSeconds::PROPERTIES[2], "seconds");
+
+        assert_eq!(Minutes::LENGTH, 1);
+        assert_eq!(Minutes::PROPERTIES[0], "minutes");
+
+        assert_eq!(MinutesSeconds::LENGTH, 2);
+        assert_eq!(MinutesSeconds::PROPERTIES[0], "minutes");
+        assert_eq!(MinutesSeconds::PROPERTIES[1], "seconds");
+
+        assert_eq!(Seconds::LENGTH, 1);
+        assert_eq!(Seconds::PROPERTIES[0], "seconds");
+
         assert_eq!(Radians::ROTATION, PI2);
         assert_eq!(Revolutions::ROTATION, 1.0);
         assert_eq!(Degrees::ROTATION, RV2D);

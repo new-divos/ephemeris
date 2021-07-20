@@ -7,7 +7,8 @@ extern crate proc_macro2;
 use regex::Regex;
 
 use crate::proc_macro::TokenStream;
-use proc_macro2::Span;
+use proc_macro2::{Literal, Punct, Spacing, Span};
+use quote::TokenStreamExt;
 
 
 // ########################################################
@@ -254,15 +255,37 @@ impl syn::parse::Parse for Vec3DSignature {
 // # Angle mapper
 // ########################################################
 
-#[proc_macro_derive(AngleMeta, attributes(rotation))]
+#[proc_macro_derive(AngleMeta, attributes(properties, rotation))]
 pub fn angle_meta_derive(input: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse2(input.into()).unwrap();
 
     let mut rotation_value: Option<syn::LitFloat> = None;
     let mut rotation_name: Option<String> = None;
+    let mut properties: Vec<syn::Ident> = Vec::new();
+
     for option in ast.attrs.into_iter() {
         let option = option.parse_meta().unwrap();
         match option {
+            syn::Meta::List(syn::MetaList {
+                                ref path,
+                                ref nested,
+                                ..
+                            }) if path.is_ident("properties") => {
+                properties.extend(nested
+                    .clone()
+                    .into_pairs()
+                    .map(|pair| pair.into_value())
+                    .filter_map(|pair| match pair {
+                        syn::NestedMeta::Meta(meta) => match meta {
+                            syn::Meta::Path(path) => path.get_ident().cloned(),
+                            _ => panic!("Only Path meta supported for attribute 'items'")
+                        },
+
+                        _ => panic!("Lit is not supported for attribute 'items'")
+                    })
+                );
+            },
+
             syn::Meta::NameValue(syn::MetaNameValue {
                                      ref path,
                                      ref lit,
@@ -300,11 +323,28 @@ pub fn angle_meta_derive(input: TokenStream) -> TokenStream {
         _ => unreachable!()
     };
 
+    // The properties list length integer literal
+    let length_lit = syn::LitInt::new(
+        properties.len().to_string().as_str(),
+        Span::mixed_site()
+    );
+
+    // The properties names list
+    let mut properties_tokens = proc_macro2::TokenStream::new();
+    for (i, ident) in properties.iter().enumerate() {
+        if i > 0 {
+            properties_tokens.append(Punct::new(',', Spacing::Alone));
+        }
+        properties_tokens.append(Literal::string(ident.to_string().as_str()));
+    }
+
     if let Some(rotation_value) = rotation_value {
         (quote! {
             impl crate::base::angle::AngleMeta for #name {
                 type Item = #item_type;
 
+                const LENGTH: usize = #length_lit;
+                const PROPERTIES: &'static [&'static str] = &[#properties_tokens];
                 const ROTATION: f64 = #rotation_value;
             }
         }).into()
@@ -318,6 +358,8 @@ pub fn angle_meta_derive(input: TokenStream) -> TokenStream {
             impl crate::base::angle::AngleMeta for #name {
                 type Item = #item_type;
 
+                const LENGTH: usize = #length_lit;
+                const PROPERTIES: &'static [&'static str] = &[#properties_tokens];
                 const ROTATION: f64 = crate::base::consts::#rotation_ident;
             }
         }).into()
